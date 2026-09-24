@@ -3,23 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ilha da Ganância — VR Realista</title>
+<title>Ilha da Ganância — VR Ajustado</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden;
-    background: #02040a;
-    font-family: 'Segoe UI', system-ui, sans-serif; color: #e8edf7; }
+    background: #02040a; font-family: 'Segoe UI', system-ui, sans-serif; color: #e8edf7; }
   #app { position: fixed; inset: 0; }
   canvas { display: block; }
   #hint {
     position: fixed; top: 26px; left: 50%; transform: translateX(-50%);
     background: rgba(10,24,30,.85); backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
     padding: 11px 26px; border-radius: 999px; font-size: 14px;
-    letter-spacing: .3px; border: 1px solid rgba(212,175,90,.35);
-    pointer-events: none; transition: opacity .4s, transform .4s;
-    white-space: nowrap; z-index: 5; color: #f4e9c8; }
-  #hint.hidden { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    border: 1px solid rgba(212,175,90,.35); pointer-events: none;
+    transition: opacity .4s; white-space: nowrap; z-index: 5; color: #f4e9c8; }
+  #hint.hidden { opacity: 0; }
   #ui {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 12px; align-items: center; z-index: 6; flex-wrap: wrap;
@@ -28,17 +25,14 @@
     padding: 13px 26px; border-radius: 999px;
     border: 1px solid rgba(212,175,90,.35);
     background: rgba(10,40,34,.85); backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
     color: #f4e9c8; font-size: 15px; font-weight: 600;
-    font-family: inherit; letter-spacing: .4px;
-    cursor: pointer; transition: all .25s ease;
-    opacity: 0; pointer-events: none; transform: translateY(14px); }
+    font-family: inherit; letter-spacing: .4px; cursor: pointer;
+    transition: all .25s ease; opacity: 0; pointer-events: none;
+    transform: translateY(14px); }
   button.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
   button:hover:not(:disabled) {
-    background: rgba(20,80,60,.95);
-    border-color: rgba(212,175,90,.7);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(212,175,90,.25); }
+    background: rgba(20,80,60,.95); border-color: rgba(212,175,90,.7);
+    transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,175,90,.25); }
   button:active:not(:disabled) { transform: translateY(0) scale(.96); }
   button:disabled { opacity: .35; cursor: not-allowed; }
   button.primary {
@@ -51,8 +45,6 @@
   button.vr-btn {
     background: linear-gradient(135deg, #4f6dff 0%, #7c4dff 100%);
     border-color: rgba(180,200,255,.6); }
-
-  /* Modo preview VR — overlay */
   #vrPreview {
     position: fixed; inset: 0; pointer-events: none;
     z-index: 10; display: none; }
@@ -62,7 +54,6 @@
     box-shadow: inset 0 0 120px rgba(0,0,0,0.85); }
   #vrPreview::before { left: 0; border-right: 1px solid rgba(0,0,0,0.6); }
   #vrPreview::after { right: 0; border-left: 1px solid rgba(0,0,0,0.6); }
-
   #vrExit {
     position: fixed; top: 20px; left: 20px; z-index: 12;
     padding: 10px 22px; border-radius: 999px;
@@ -72,7 +63,6 @@
     font-family: inherit; display: none; }
   #vrExit.active { display: block; }
   #vrExit:hover { background: rgba(60,40,120,.95); }
-
   #loading {
     position: fixed; inset: 0; display: grid; place-items: center;
     background: #02040a; color: #d4af5a; font-size: 15px;
@@ -98,7 +88,6 @@
 </div>
 
 <button id="vrExit">✕ Sair do Preview VR</button>
-
 <div id="loading">CARREGANDO ILHA DA GANÂNCIA…</div>
 
 <script type="importmap">
@@ -116,6 +105,18 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+
+/* ============================================================
+   CONSTANTES VR — dimensões reais em metros
+   ============================================================ */
+const VR_SCALE = 0.041;           // livro: 45cm aberto / 23cm fechado
+const VR_BOOK_Y = 1.15;           // altura do peito
+const VR_BOOK_Z = -0.20;          // 20cm à frente
+const VR_OPEN_X = 0;              // spine no centro quando aberto
+const VR_CLOSED_X_OFF = -2.83 * VR_SCALE; // -0.116 — centra o livro fechado
+const VR_HOLO_Y_OFFSET = 0.20;    // holograma 20cm acima da carta
+const VR_HOLO_SCALE = 0.065;      // holograma ~13cm
+const VR_CARD_SCALE = 0.05;       // carta ~7cm
 
 /* ============================================================
    DADOS
@@ -152,13 +153,11 @@ const CARD_DATA = [
    ============================================================ */
 const TW = 640, TH = 960;
 function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
+  ctx.beginPath(); ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
   ctx.arcTo(x + w, y + h, x, y + h, r);
   ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+  ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 function wrapCentered(ctx, text, cx, cy, maxW, lh) {
   const words = text.split(' '); const lines = []; let line = '';
@@ -168,8 +167,8 @@ function wrapCentered(ctx, text, cx, cy, maxW, lh) {
     else line = t;
   }
   if (line) lines.push(line);
-  const startY = cy - (lines.length - 1) * lh / 2;
-  lines.forEach((l, i) => ctx.fillText(l, cx, startY + i * lh));
+  const s = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((l, i) => ctx.fillText(l, cx, s + i * lh));
 }
 function drawGoldCorner(ctx, x, y, s, flip = false) {
   ctx.save(); ctx.translate(x, y);
@@ -177,21 +176,18 @@ function drawGoldCorner(ctx, x, y, s, flip = false) {
   ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(0, s); ctx.lineTo(0, s * 0.30);
-  ctx.quadraticCurveTo(0, 0, s * 0.30, 0); ctx.lineTo(s, 0);
-  ctx.stroke();
+  ctx.quadraticCurveTo(0, 0, s * 0.30, 0); ctx.lineTo(s, 0); ctx.stroke();
   ctx.strokeStyle = 'rgba(212,175,90,0.6)'; ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(s * 0.18, s * 0.75); ctx.lineTo(s * 0.18, s * 0.35);
   ctx.quadraticCurveTo(s * 0.18, s * 0.18, s * 0.35, s * 0.18);
-  ctx.lineTo(s * 0.75, s * 0.18);
-  ctx.stroke();
+  ctx.lineTo(s * 0.75, s * 0.18); ctx.stroke();
   ctx.fillStyle = 'rgba(212,175,90,0.9)';
   ctx.beginPath();
   ctx.moveTo(s * 0.18, s * 0.18 - 6);
   ctx.lineTo(s * 0.18 + 6, s * 0.18);
   ctx.lineTo(s * 0.18, s * 0.18 + 6);
-  ctx.lineTo(s * 0.18 - 6, s * 0.18);
-  ctx.closePath(); ctx.fill();
+  ctx.lineTo(s * 0.18 - 6, s * 0.18); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 function drawRarityGem(ctx, cx, cy, r, power) {
@@ -226,32 +222,10 @@ function makeCardTexture(d, index) {
   light.addColorStop(0.35, 'rgba(255,255,255,0.12)');
   light.addColorStop(1, 'rgba(0,0,0,0.35)');
   ctx.fillStyle = light; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.06;
-  for (let i = -3; i < 14; i++) {
-    const x = i * (TW / 8);
-    ctx.fillStyle = i % 2 ? '#fff' : '#000';
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x + 30, 0);
-    ctx.lineTo(x - 90, TH); ctx.lineTo(x - 120, TH);
-    ctx.closePath(); ctx.fill();
-  }
-  ctx.restore();
-  ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
-  for (let y = -TH; y < TH * 2; y += 34) {
-    for (let x = -TW; x < TW * 2; x += 34) {
-      ctx.beginPath();
-      ctx.moveTo(x, y - 12); ctx.lineTo(x + 12, y);
-      ctx.lineTo(x, y + 12); ctx.lineTo(x - 12, y);
-      ctx.closePath(); ctx.stroke();
-    }
-  }
-  ctx.restore();
   ctx.strokeStyle = 'rgba(240,210,140,0.85)'; ctx.lineWidth = 5;
   roundRect(ctx, 22, 22, TW - 44, TH - 44, 30); ctx.stroke();
   ctx.strokeStyle = 'rgba(240,210,140,0.35)'; ctx.lineWidth = 1.5;
   roundRect(ctx, 38, 38, TW - 76, TH - 76, 22); ctx.stroke();
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
-  roundRect(ctx, 46, 46, TW - 92, TH - 92, 18); ctx.stroke();
   const cs = 34;
   drawGoldCorner(ctx, 50, 50, cs, false);
   drawGoldCorner(ctx, TW - 50, 50, cs, true);
@@ -259,15 +233,15 @@ function makeCardTexture(d, index) {
   drawGoldCorner(ctx, 0, 0, cs, false); ctx.restore();
   ctx.save(); ctx.translate(TW - 50, TH - 50); ctx.rotate(Math.PI);
   drawGoldCorner(ctx, 0, 0, cs, false); ctx.restore();
-  const bannerY = 60, bannerH = 92;
+  const bY = 60, bH = 92;
   ctx.fillStyle = 'rgba(10,14,24,0.72)';
-  roundRect(ctx, 60, bannerY, TW - 120, bannerH, 14); ctx.fill();
+  roundRect(ctx, 60, bY, TW - 120, bH, 14); ctx.fill();
   ctx.strokeStyle = 'rgba(240,210,140,0.75)'; ctx.lineWidth = 2;
-  roundRect(ctx, 60, bannerY, TW - 120, bannerH, 14); ctx.stroke();
+  roundRect(ctx, 60, bY, TW - 120, bH, 14); ctx.stroke();
   ctx.fillStyle = '#f4e9c8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = 'bold 44px Georgia, serif';
   ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 10;
-  ctx.fillText(d.name.toUpperCase(), TW / 2, bannerY + bannerH / 2 + 2);
+  ctx.fillText(d.name.toUpperCase(), TW / 2, bY + bH / 2 + 2);
   ctx.shadowBlur = 0;
   const pCX = TW / 2, pCY = TH * 0.52, pR = 175;
   const aura = ctx.createRadialGradient(pCX, pCY, pR * 0.5, pCX, pCY, pR * 1.35);
@@ -285,21 +259,6 @@ function makeCardTexture(d, index) {
   ctx.strokeStyle = 'rgba(240,210,140,0.5)'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.arc(pCX, pCY, pR - 12, 0, 7); ctx.stroke();
   ctx.beginPath(); ctx.arc(pCX, pCY, pR + 10, 0, 7); ctx.stroke();
-  ctx.save(); ctx.translate(pCX, pCY);
-  ctx.strokeStyle = 'rgba(240,210,140,0.65)';
-  ctx.fillStyle = 'rgba(240,210,140,0.85)'; ctx.lineWidth = 2;
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    const r1 = pR + 22, r2 = pR + 30;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
-    ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(Math.cos(a) * (pR + 40), Math.sin(a) * (pR + 40), 3, 0, 7);
-    ctx.fill();
-  }
-  ctx.restore();
   ctx.font = '210px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = d.c1; ctx.shadowBlur = 60;
@@ -307,25 +266,19 @@ function makeCardTexture(d, index) {
   ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 8;
   ctx.fillText(d.emoji, pCX, pCY + 6);
   ctx.shadowBlur = 0;
-  const descY = TH - 175, descH = 118;
+  const dY = TH - 175, dH = 118;
   ctx.fillStyle = 'rgba(10,14,24,0.78)';
-  roundRect(ctx, 60, descY, TW - 120, descH, 14); ctx.fill();
+  roundRect(ctx, 60, dY, TW - 120, dH, 14); ctx.fill();
   ctx.strokeStyle = 'rgba(240,210,140,0.7)'; ctx.lineWidth = 2;
-  roundRect(ctx, 60, descY, TW - 120, descH, 14); ctx.stroke();
-  ctx.fillStyle = 'rgba(240,210,140,0.85)';
-  ctx.font = '22px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('❖', TW / 2, descY + 12);
+  roundRect(ctx, 60, dY, TW - 120, dH, 14); ctx.stroke();
   ctx.fillStyle = 'rgba(255,250,235,0.95)';
   ctx.font = 'italic 26px Georgia, serif';
-  wrapCentered(ctx, d.desc, TW / 2, descY + descH * 0.62, TW - 150, 32);
+  wrapCentered(ctx, d.desc, TW / 2, dY + dH * 0.62, TW - 150, 32);
   drawRarityGem(ctx, TW - 92, 92, 32, d.power);
   ctx.fillStyle = 'rgba(240,210,140,0.85)';
   ctx.font = 'bold 22px Georgia, serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.fillText('Nº ' + String(index + 1).padStart(2, '0'), 88, 92);
-  ctx.font = '16px Georgia, serif';
-  ctx.fillStyle = 'rgba(240,210,140,0.55)';
-  ctx.fillText('ARCANA', 88, 118);
   const vig = ctx.createRadialGradient(TW/2, TH/2, TH*0.35, TW/2, TH/2, TH*0.75);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
   vig.addColorStop(1, 'rgba(0,0,0,0.6)');
@@ -345,25 +298,19 @@ function makeBackTexture() {
   ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH);
   const halo = ctx.createRadialGradient(TW/2, TH/2, 10, TW/2, TH/2, TH*0.6);
   halo.addColorStop(0, 'rgba(212,175,90,0.22)');
-  halo.addColorStop(0.6, 'rgba(100,160,100,0.08)');
   halo.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = halo; ctx.fillRect(0, 0, TW, TH);
   for (let i = 0; i < 220; i++) {
     const x = Math.random() * TW, y = Math.random() * TH;
-    const r = Math.random() * 1.4 + 0.2;
     ctx.fillStyle = `rgba(230,240,210,${Math.random() * 0.5 + 0.15})`;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, Math.random() * 1.4 + 0.2, 0, 7); ctx.fill();
   }
   ctx.strokeStyle = 'rgba(212,175,90,0.75)'; ctx.lineWidth = 5;
   roundRect(ctx, 22, 22, TW - 44, TH - 44, 30); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.30)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 40, 40, TW - 80, TH - 80, 22); ctx.stroke();
   ctx.save(); ctx.translate(TW/2, TH/2);
-  const gold = 'rgba(212,175,90,0.9)', goldSoft = 'rgba(212,175,90,0.35)', emerald = 'rgba(80,220,150,0.75)';
+  const gold = 'rgba(212,175,90,0.9)', emerald = 'rgba(80,220,150,0.75)';
   ctx.strokeStyle = gold; ctx.lineWidth = 2;
   [260, 220, 180, 140, 100].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); });
-  ctx.strokeStyle = goldSoft; ctx.lineWidth = 1;
-  [240, 200, 160, 120, 80].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); });
   ctx.strokeStyle = emerald; ctx.lineWidth = 2;
   ctx.fillStyle = 'rgba(80,220,150,0.10)';
   for (let i = 0; i < 16; i++) {
@@ -384,13 +331,8 @@ function makeBackTexture() {
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   }
   ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = gold; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.arc(0, 0, 55, 0, 7); ctx.stroke();
   ctx.fillStyle = gold;
   ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
-  ctx.fillStyle = '#041410';
-  ctx.font = 'bold 32px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('✦', 0, 2);
   ctx.restore();
   ctx.fillStyle = 'rgba(212,175,90,0.7)';
   ctx.font = '18px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -416,18 +358,6 @@ function makeCoverTexture() {
     ctx.beginPath(); ctx.arc(x, y, Math.random() * 1.6, 0, 7); ctx.fill();
   }
   ctx.restore();
-  ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = '#d4af5a'; ctx.lineWidth = 1;
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(TW/2, TH/2);
-    ctx.lineTo(TW/2 + Math.cos(a) * 800, TH/2 + Math.sin(a) * 800);
-    ctx.stroke();
-  }
-  for (let r = 80; r < 500; r += 70) {
-    ctx.beginPath(); ctx.arc(TW/2, TH/2, r, 0, 7); ctx.stroke();
-  }
-  ctx.restore();
   ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 8;
   roundRect(ctx, 30, 30, TW - 60, TH - 60, 22); ctx.stroke();
   ctx.strokeStyle = 'rgba(212,175,90,0.55)'; ctx.lineWidth = 2;
@@ -448,15 +378,9 @@ function makeCoverTexture() {
   ctx.font = 'italic bold 62px Georgia, serif';
   ctx.fillText('DA GANÂNCIA', TW / 2, TH * 0.40);
   ctx.restore();
-  ctx.font = 'italic 26px Georgia, serif';
-  ctx.fillStyle = 'rgba(212,175,90,0.75)';
-  ctx.fillText('✦  Greed Island  ✦', TW / 2, TH * 0.455);
   ctx.save(); ctx.translate(TW / 2, TH * 0.70);
   ctx.strokeStyle = 'rgba(212,175,90,0.85)'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.arc(0, 0, 130, 0, 7); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.5)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(0, 0, 112, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(0, 0, 96, 0, 7); ctx.stroke();
   ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 4;
   ctx.fillStyle = 'rgba(10,70,55,0.6)';
   ctx.beginPath();
@@ -465,15 +389,8 @@ function makeCoverTexture() {
   ctx.fillStyle = '#f4e9c8';
   ctx.font = 'italic bold 44px Georgia, serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(212,175,90,0.9)'; ctx.shadowBlur = 14;
   ctx.fillText('G·I', 0, 2);
   ctx.restore();
-  ctx.fillStyle = 'rgba(212,175,90,0.7)';
-  ctx.font = 'italic 22px Georgia, serif'; ctx.textAlign = 'center';
-  ctx.fillText('✦  Edição Limitada  ✦', TW / 2, TH - 120);
-  ctx.font = '18px Georgia, serif';
-  ctx.fillStyle = 'rgba(212,175,90,0.5)';
-  ctx.fillText('SLOT 0 / 100', TW / 2, TH - 88);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
   return tex;
@@ -486,40 +403,22 @@ function makeInsideCoverTexture() {
   const g = ctx.createLinearGradient(0, 0, TW, TH);
   g.addColorStop(0, '#f6ecd6'); g.addColorStop(1, '#e2d0a8');
   ctx.fillStyle = g; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = '#8a6f4a'; ctx.lineWidth = 1;
-  for (let y = 0; y < TH; y += 22) {
-    ctx.beginPath();
-    for (let x = 0; x <= TW; x += 10) {
-      const yy = y + Math.sin(x * 0.02 + y * 0.04) * 8 + Math.sin(x * 0.09) * 3;
-      x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
   ctx.strokeStyle = 'rgba(138,111,74,0.55)'; ctx.lineWidth = 3;
   roundRect(ctx, 30, 30, TW - 60, TH - 60, 24); ctx.stroke();
-  ctx.strokeStyle = 'rgba(138,111,74,0.28)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 44, 44, TW - 88, TH - 88, 18); ctx.stroke();
   ctx.fillStyle = '#5c4527';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = 'italic bold 42px Georgia, serif';
   ctx.fillText('Bem-vindo,', TW / 2, 180);
   ctx.font = 'italic bold 58px Georgia, serif';
   ctx.fillText('caçador', TW / 2, 250);
-  ctx.fillStyle = 'rgba(138,111,74,0.7)';
-  ctx.font = '34px Georgia, serif';
-  ctx.fillText('❦', TW / 2, 320);
   ctx.fillStyle = 'rgba(60,45,25,0.8)';
   ctx.font = 'italic 26px Georgia, serif';
   const lines = [
     'Esta é a Ilha da Ganância.',
-    'Cada carta invoca um holograma',
-    'do ser que nela habita.',
-    '',
     'Toque numa carta para invocar.',
-    'Toque novamente para devolver.'
+    'Use os botões ao lado para folhear.'
   ];
-  lines.forEach((l, i) => ctx.fillText(l, TW / 2, TH * 0.52 + i * 46));
+  lines.forEach((l, i) => ctx.fillText(l, TW / 2, TH * 0.55 + i * 46));
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
   return tex;
@@ -531,43 +430,19 @@ function makeBackCoverInsideTexture() {
   const g = ctx.createLinearGradient(0, 0, TW, TH);
   g.addColorStop(0, '#efe3ca'); g.addColorStop(1, '#d4bf99');
   ctx.fillStyle = g; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.06;
-  for (let i = 0; i < 3000; i++) {
-    const x = Math.random() * TW, y = Math.random() * TH;
-    ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#4a3520';
-    ctx.beginPath(); ctx.arc(x, y, Math.random() * 2, 0, 7); ctx.fill();
-  }
-  ctx.restore();
   ctx.strokeStyle = 'rgba(138,111,74,0.55)'; ctx.lineWidth = 3;
   roundRect(ctx, 30, 30, TW - 60, TH - 60, 24); ctx.stroke();
-  ctx.strokeStyle = 'rgba(138,111,74,0.28)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 46, 46, TW - 92, TH - 92, 18); ctx.stroke();
   ctx.fillStyle = '#5c4527';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = 'italic bold 40px Georgia, serif';
-  ctx.fillText('Fim da coleção', TW / 2, TH * 0.42);
-  ctx.font = 'italic 26px Georgia, serif';
-  ctx.fillStyle = 'rgba(92,69,39,0.75)';
-  ctx.fillText('que a magia acompanhe', TW / 2, TH * 0.50);
-  ctx.fillText('seus próximos passos', TW / 2, TH * 0.50 + 40);
-  ctx.save(); ctx.translate(TW / 2, TH * 0.72);
-  ctx.strokeStyle = 'rgba(138,111,74,0.6)'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.arc(0, 0, 90, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(0, 0, 66, 0, 7); ctx.stroke();
-  ctx.fillStyle = 'rgba(138,111,74,0.6)';
-  ctx.beginPath(); ctx.arc(0, 0, 28, 0, 7); ctx.fill();
-  ctx.fillStyle = '#f6ecd6';
-  ctx.font = 'bold 30px Georgia, serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('✦', 0, 2);
-  ctx.restore();
+  ctx.fillText('Fim da coleção', TW / 2, TH * 0.44);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
   return tex;
 }
 
 /* ============================================================
-   HOLOGRAMAS HD
+   TEXTURAS DE HOLOGRAMA HD
    ============================================================ */
 const holoTexCache = new Map();
 function getHoloCoreTex(emoji, tintHex = '#88ddff') {
@@ -577,35 +452,18 @@ function getHoloCoreTex(emoji, tintHex = '#88ddff') {
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
-  const font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
-  ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = tintHex; ctx.shadowBlur = 140;
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#fff';
   ctx.fillText(emoji, S/2, S/2); ctx.fillText(emoji, S/2, S/2);
   ctx.shadowColor = 'rgba(220,245,255,0.98)'; ctx.shadowBlur = 60;
   ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowColor = 'rgba(240,250,255,1)'; ctx.shadowBlur = 22;
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 0; ctx.fillStyle = '#ffffff';
-  ctx.fillText(emoji, S/2, S/2);
+  ctx.shadowBlur = 0; ctx.fillText(emoji, S/2, S/2);
   ctx.globalCompositeOperation = 'source-atop';
-  const sl = 6;
-  for (let y = 0; y < S; y += sl * 2) {
-    ctx.fillStyle = 'rgba(0,10,25,0.32)';
-    ctx.fillRect(0, y, S, sl);
-  }
-  ctx.fillStyle = 'rgba(180,240,255,0.55)';
-  for (let i = 0; i < 7; i++) {
-    const gy = Math.floor(Math.random() * S);
-    const gh = 1 + Math.floor(Math.random() * 3);
-    ctx.fillRect(0, gy, S, gh);
-  }
-  ctx.globalCompositeOperation = 'color-burn';
-  ctx.fillStyle = 'rgba(40,120,200,0.32)';
-  ctx.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y += 12) { ctx.fillStyle = 'rgba(0,10,25,0.32)'; ctx.fillRect(0, y, S, 6); }
   ctx.globalCompositeOperation = 'overlay';
-  ctx.fillStyle = 'rgba(90,190,255,0.28)';
-  ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = 'rgba(90,190,255,0.28)'; ctx.fillRect(0, 0, S, S);
   ctx.globalCompositeOperation = 'source-over';
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
@@ -620,52 +478,11 @@ function getHoloSilhouetteTex(emoji, colorHex) {
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
-  const font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
-  ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = colorHex; ctx.shadowBlur = 80; ctx.fillStyle = colorHex;
   ctx.fillText(emoji, S/2, S/2);
   ctx.shadowBlur = 40; ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 18; ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 0; ctx.fillText(emoji, S/2, S/2);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  holoTexCache.set(key, tex);
-  return tex;
-}
-function getHoloEdgeTex(emoji, colorHex) {
-  const key = 'edge_' + emoji + colorHex;
-  if (holoTexCache.has(key)) return holoTexCache.get(key);
-  const S = 512;
-  const cv = document.createElement('canvas');
-  cv.width = S; cv.height = S;
-  const ctx = cv.getContext('2d');
-  const font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
-  ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = colorHex;
-  const offs = [[-5,0],[5,0],[0,-5],[0,5],[-4,-4],[4,4],[-4,4],[4,-4],[-3,0],[3,0],[0,-3],[0,3]];
-  offs.forEach(([ox, oy]) => ctx.fillText(emoji, S/2 + ox, S/2 + oy));
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = '#000'; ctx.fillText(emoji, S/2, S/2);
-  ctx.globalCompositeOperation = 'source-over';
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  holoTexCache.set(key, tex);
-  return tex;
-}
-function getHoloHotTex(emoji) {
-  const key = 'hot_' + emoji;
-  if (holoTexCache.has(key)) return holoTexCache.get(key);
-  const S = 512;
-  const cv = document.createElement('canvas');
-  cv.width = S; cv.height = S;
-  const ctx = cv.getContext('2d');
-  const font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
-  ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(255,255,255,1)'; ctx.shadowBlur = 12;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(emoji, S/2, S/2); ctx.fillText(emoji, S/2, S/2);
   ctx.shadowBlur = 0; ctx.fillText(emoji, S/2, S/2);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
@@ -693,11 +510,8 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 renderer.xr.enabled = true;
 app.appendChild(renderer.domElement);
-
-/* Botão VR nativo (que aparece no navegador quando há headset conectado) */
 document.body.appendChild(VRButton.createButton(renderer));
 
-/* Orbit controls (modo desktop) */
 const TARGET_CLOSED = new THREE.Vector3(2.8, 0.7, -1.5);
 const TARGET_OPEN   = new THREE.Vector3(0, 0.3, -1.5);
 const CAM_CLOSED    = new THREE.Vector3(7.5, 9.5, 9);
@@ -739,22 +553,20 @@ coolLight.position.set(6, 4, 8); scene.add(coolLight);
   const c = cv.getContext('2d');
   const rg = c.createRadialGradient(256, 256, 20, 256, 256, 256);
   rg.addColorStop(0, 'rgba(20,40,30,0.6)');
-  rg.addColorStop(0.6, 'rgba(10,20,15,0.25)');
   rg.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = rg; c.fillRect(0, 0, 512, 512);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const ground = new THREE.Mesh(
+  const g = new THREE.Mesh(
     new THREE.PlaneGeometry(30, 26),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.35;
-  scene.add(ground);
+  g.rotation.x = -Math.PI / 2; g.position.y = -0.35;
+  scene.add(g);
 })();
 
 /* ============================================================
-   CÉU CÓSMICO REALISTA (alta resolução, sem quadriculado)
+   CÉU CÓSMICO REALISTA
    ============================================================ */
 const SKY_RADIUS = 300;
 function makeSkyTexture() {
@@ -762,156 +574,74 @@ function makeSkyTexture() {
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-
-  // fundo profundo (mais escuro e sem cortes visíveis)
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0.00, '#050918');
-  g.addColorStop(0.25, '#02040c');
-  g.addColorStop(0.50, '#010206');
-  g.addColorStop(0.75, '#02040c');
+  g.addColorStop(0.00, '#050918'); g.addColorStop(0.25, '#02040c');
+  g.addColorStop(0.50, '#010206'); g.addColorStop(0.75, '#02040c');
   g.addColorStop(1.00, '#050918');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-
-  // === NEBULOSAS EM MÚLTIPLAS CAMADAS ===
-  // Camada 1: nuvens muito difusas (blur grande)
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 40; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
+    const x = Math.random() * W, y = Math.random() * H;
     const r = 250 + Math.random() * 600;
     const hue = [210, 260, 280, 190, 320][Math.floor(Math.random() * 5)];
-    const sat = 50 + Math.random() * 40;
     const alpha = 0.04 + Math.random() * 0.06;
     const neb = ctx.createRadialGradient(x, y, 0, x, y, r);
-    neb.addColorStop(0, `hsla(${hue}, ${sat}%, 45%, ${alpha})`);
-    neb.addColorStop(0.4, `hsla(${hue}, ${sat}%, 35%, ${alpha * 0.6})`);
+    neb.addColorStop(0, `hsla(${hue}, 60%, 45%, ${alpha})`);
     neb.addColorStop(1, 'transparent');
     ctx.fillStyle = neb;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
-
-  // Camada 2: núcleos brilhantes das nebulosas
   for (let i = 0; i < 12; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
+    const x = Math.random() * W, y = Math.random() * H;
     const r = 120 + Math.random() * 250;
     const hue = [210, 280, 190, 330][Math.floor(Math.random() * 4)];
     const neb = ctx.createRadialGradient(x, y, 0, x, y, r);
     neb.addColorStop(0, `hsla(${hue}, 80%, 65%, 0.15)`);
-    neb.addColorStop(0.5, `hsla(${hue}, 70%, 50%, 0.06)`);
     neb.addColorStop(1, 'transparent');
     ctx.fillStyle = neb;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
-
-  // Camada 3: poeira interestelar (faixas escuras)
-  ctx.globalCompositeOperation = 'multiply';
-  for (let i = 0; i < 8; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
-    const r = 200 + Math.random() * 400;
-    const neb = ctx.createRadialGradient(x, y, 0, x, y, r);
-    neb.addColorStop(0, 'rgba(10,5,20,0.4)');
-    neb.addColorStop(1, 'transparent');
-    ctx.fillStyle = neb;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-
-  // === ESTRELAS EM CAMADAS (tamanhos e brilhos variados) ===
-  ctx.globalCompositeOperation = 'lighter';
-
-  // estrelas distantes pequeninas
   for (let i = 0; i < 8000; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
-    const r = 0.3 + Math.random() * 0.7;
-    const b = 0.15 + Math.random() * 0.35;
-    const hue = 200 + Math.random() * 40;
-    ctx.fillStyle = `hsla(${hue}, 30%, ${75 + Math.random() * 20}%, ${b})`;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    const x = Math.random() * W, y = Math.random() * H;
+    ctx.fillStyle = `hsla(210, 30%, ${75 + Math.random() * 20}%, ${0.15 + Math.random() * 0.35})`;
+    ctx.beginPath(); ctx.arc(x, y, 0.3 + Math.random() * 0.7, 0, 7); ctx.fill();
   }
-
-  // estrelas médias
   for (let i = 0; i < 2500; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
+    const x = Math.random() * W, y = Math.random() * H;
     const r = 0.8 + Math.random() * 1.2;
     const b = 0.4 + Math.random() * 0.5;
-    const hue = Math.random() < 0.2 ? 30 : 200 + Math.random() * 50;
-    ctx.fillStyle = `hsla(${hue}, 40%, ${80 + Math.random() * 15}%, ${b})`;
+    ctx.fillStyle = `hsla(210, 40%, 85%, ${b})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-    // leve halo
     const halo = ctx.createRadialGradient(x, y, 0, x, y, r * 6);
-    halo.addColorStop(0, `hsla(${hue}, 60%, 80%, ${b * 0.18})`);
+    halo.addColorStop(0, `hsla(210, 60%, 80%, ${b * 0.18})`);
     halo.addColorStop(1, 'transparent');
     ctx.fillStyle = halo;
     ctx.beginPath(); ctx.arc(x, y, r * 6, 0, 7); ctx.fill();
   }
-
-  // estrelas grandes e brilhantes (com 4 pontas)
   for (let i = 0; i < 350; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
+    const x = Math.random() * W, y = Math.random() * H;
     const r = 1.5 + Math.random() * 1.8;
     const b = 0.7 + Math.random() * 0.3;
-    const hue = Math.random() < 0.25 ? 40 : 200 + Math.random() * 60;
-    const color = `hsla(${hue}, 50%, 90%, ${b})`;
-    // núcleo
-    ctx.fillStyle = color;
+    const hue = Math.random() < 0.25 ? 40 : 210;
+    ctx.fillStyle = `hsla(${hue}, 50%, 92%, ${b})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-    // glow
     const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 12);
     glow.addColorStop(0, `hsla(${hue}, 60%, 90%, ${b * 0.6})`);
-    glow.addColorStop(0.4, `hsla(${hue}, 60%, 70%, ${b * 0.12})`);
     glow.addColorStop(1, 'transparent');
     ctx.fillStyle = glow;
     ctx.beginPath(); ctx.arc(x, y, r * 12, 0, 7); ctx.fill();
-    // 4 pontas (difração)
-    ctx.save();
-    ctx.translate(x, y);
+    ctx.save(); ctx.translate(x, y);
     ctx.strokeStyle = `hsla(${hue}, 40%, 95%, ${b * 0.5})`;
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.moveTo(-r * 6, 0); ctx.lineTo(r * 6, 0);
     ctx.moveTo(0, -r * 6); ctx.lineTo(0, r * 6);
-    ctx.stroke();
-    ctx.restore();
+    ctx.stroke(); ctx.restore();
   }
-
-  // Via Láctea (banda diagonal suave)
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.save();
-  ctx.translate(W / 2, H / 2);
-  ctx.rotate(-0.35);
-  const mwGrad = ctx.createLinearGradient(0, -180, 0, 180);
-  mwGrad.addColorStop(0, 'rgba(80,60,120,0)');
-  mwGrad.addColorStop(0.35, 'rgba(140,120,180,0.055)');
-  mwGrad.addColorStop(0.5, 'rgba(180,160,220,0.09)');
-  mwGrad.addColorStop(0.65, 'rgba(140,120,180,0.055)');
-  mwGrad.addColorStop(1, 'rgba(80,60,120,0)');
-  ctx.fillStyle = mwGrad;
-  ctx.fillRect(-W, -180, W * 2, 360);
-
-  // muitas estrelas concentradas na via láctea
-  for (let i = 0; i < 4000; i++) {
-    const px = -W + Math.random() * W * 2;
-    const py = (Math.random() - 0.5) * 340 * Math.exp(-Math.abs(Math.random() * 2 - 1));
-    const r = 0.3 + Math.random() * 0.8;
-    const b = 0.3 + Math.random() * 0.4;
-    ctx.fillStyle = `hsla(220, 30%, 85%, ${b})`;
-    ctx.beginPath(); ctx.arc(px, py, r, 0, 7); ctx.fill();
-  }
-  ctx.restore();
-
   ctx.globalCompositeOperation = 'source-over';
-
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 16;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.generateMipmaps = false;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   return tex;
 }
 const skyMesh = new THREE.Mesh(
@@ -951,21 +681,20 @@ const extendedNames = [
   'Águia','Centauro','Cruzeiro do Sul','Carina','Hidra','Corvo','Cão Maior','Cão Menor',
   'Baleia','Pégaso','Dragão','Hércules','Fênix','Cocheiro','Eridano','Pavão'
 ];
-
 function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity = 0.9) {
   const group = new THREE.Group();
   const center = pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0,0]);
   center[0] /= pts.length; center[1] /= pts.length;
   const localPts = pts.map(p => [(p[0] - center[0]) * 7 * scale, (p[1] - center[1]) * 7 * scale]);
-  const linePts = localPts.map(p => new THREE.Vector3(p[0], p[1], 0));
   const lineMat = new THREE.LineBasicMaterial({
     color, transparent: true, opacity: 0.4 * intensity,
     blending: THREE.AdditiveBlending, depthWrite: false
   });
-  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), lineMat));
-
+  group.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(localPts.map(p => new THREE.Vector3(p[0], p[1], 0))),
+    lineMat
+  ));
   localPts.forEach(p => {
-    // estrela principal (Sprite branco puro)
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       color: 0xffffff, transparent: true, opacity: 0.95 * intensity,
       blending: THREE.AdditiveBlending, depthWrite: false
@@ -973,8 +702,6 @@ function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity 
     sprite.scale.set(2.0, 2.0, 1);
     sprite.position.set(p[0], p[1], 0);
     group.add(sprite);
-
-    // halo colorido
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
       color, transparent: true, opacity: 0.35 * intensity,
       blending: THREE.AdditiveBlending, depthWrite: false
@@ -983,17 +710,15 @@ function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity 
     glow.position.set(p[0], p[1], -0.1);
     group.add(glow);
   });
-
   group.userData.lineMat = lineMat;
   group.userData.phase = Math.random() * Math.PI * 2;
   return group;
 }
 function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.85) {
-  const phi = elevation, theta = azimuth;
   group.position.set(
-    dist * Math.cos(phi) * Math.cos(theta),
-    dist * Math.sin(phi),
-    dist * Math.cos(phi) * Math.sin(theta)
+    dist * Math.cos(elevation) * Math.cos(azimuth),
+    dist * Math.sin(elevation),
+    dist * Math.cos(elevation) * Math.sin(azimuth)
   );
   group.lookAt(0, 0, 0);
 }
@@ -1045,24 +770,23 @@ function spawnShootingStar() {
     blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const trail = new THREE.Line(trailGeo, trailMat);
   const tailDir = new THREE.Vector3().subVectors(endPos, startPos).normalize();
-  const tailGeo = new THREE.ConeGeometry(0.9, 14, 6, 1, true);
-  const tailMat = new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent: true, opacity: 0.55,
-    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
-  const tail = new THREE.Mesh(tailGeo, tailMat);
+  const tail = new THREE.Mesh(
+    new THREE.ConeGeometry(0.9, 14, 6, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent: true, opacity: 0.55,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })
+  );
   const group = new THREE.Group();
   group.add(core, tail);
   scene.add(group, trail);
   shootingStars.push({ group, core, tail, trail, startPos, endPos, tailDir,
-    t: 0, speed: 0.35 + Math.random() * 0.4, life: 1.4 + Math.random() * 1.0 });
+    t: 0, life: 1.4 + Math.random() * 1.0 });
 }
 let shootingStarTimer = 0;
-const shootingStarInterval = 2.5;
 
 /* ============================================================
-   ÁLBUM (escala real — 30cm × 20cm)
+   ÁLBUM
    ============================================================ */
 const bookGroup = new THREE.Group();
-// Posição padrão desktop
 bookGroup.position.set(0, 1.0, -1.5);
 scene.add(bookGroup);
 
@@ -1084,7 +808,6 @@ const backInsidePlane = new THREE.Mesh(
 );
 backInsidePlane.rotation.x = -Math.PI / 2;
 backInsidePlane.position.set(COVER_W / 2, Y_BACK + COVER_T / 2 + 0.003, 0);
-backInsidePlane.receiveShadow = true;
 bookGroup.add(backInsidePlane);
 
 const BACK_TEX = makeBackTexture();
@@ -1148,7 +871,6 @@ const coverOutsidePlane = new THREE.Mesh(
 );
 coverOutsidePlane.rotation.x = -Math.PI / 2;
 coverOutsidePlane.position.set(COVER_W / 2, COVER_T / 2 + 0.003, 0);
-coverOutsidePlane.castShadow = true;
 coverPivot.add(coverOutsidePlane);
 const coverInsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
@@ -1167,7 +889,7 @@ const coverInfo = { pivot: coverPivot, originalY: Y_COVER, flippedY: Y_FLIP_COVE
 })();
 
 /* ============================================================
-   HOLOGRAMA HD
+   HOLOGRAMA
    ============================================================ */
 function buildHologram(data) {
   const group = new THREE.Group();
@@ -1175,119 +897,64 @@ function buildHologram(data) {
   const tint = c1.clone().lerp(new THREE.Color(0x88ddff), 0.35);
   const tintHex = '#' + tint.getHexString();
   const bright = c1.clone().lerp(new THREE.Color(0xffffff), 0.65);
-
   const coreTex = getHoloCoreTex(data.emoji, tintHex);
   const silTex = getHoloSilhouetteTex(data.emoji, tintHex);
-  const edgeTex = getHoloEdgeTex(data.emoji, tintHex);
-  const hotTex = getHoloHotTex(data.emoji);
+  const Y = 0.55;
 
-  const Y = 1.75;
-
-  const auraCanvas = document.createElement('canvas');
-  auraCanvas.width = 512; auraCanvas.height = 512;
-  const actx = auraCanvas.getContext('2d');
-  const rg = actx.createRadialGradient(256, 256, 20, 256, 256, 250);
+  const auraCv = document.createElement('canvas');
+  auraCv.width = 256; auraCv.height = 256;
+  const actx = auraCv.getContext('2d');
+  const rg = actx.createRadialGradient(128, 128, 10, 128, 128, 124);
   rg.addColorStop(0, `rgba(${Math.round(c1.r*255)},${Math.round(c1.g*255)},${Math.round(c1.b*255)},0.55)`);
-  rg.addColorStop(0.5, `rgba(${Math.round(c1.r*255)},${Math.round(c1.g*255)},${Math.round(c1.b*255)},0.15)`);
   rg.addColorStop(1, 'rgba(0,0,0,0)');
-  actx.fillStyle = rg; actx.fillRect(0, 0, 512, 512);
-  const auraTex = new THREE.CanvasTexture(auraCanvas);
-  auraTex.colorSpace = THREE.SRGBColorSpace;
+  actx.fillStyle = rg; actx.fillRect(0, 0, 256, 256);
   const auraSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: auraTex, transparent: true, opacity: 0.9,
+    map: new THREE.CanvasTexture(auraCv), transparent: true, opacity: 0.9,
     blending: THREE.AdditiveBlending, depthWrite: false
   }));
-  auraSprite.scale.set(6, 6, 1);
+  auraSprite.scale.set(1.4, 1.4, 1);
   auraSprite.position.y = Y;
   group.add(auraSprite);
 
   const silPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.6, 3.6),
+    new THREE.PlaneGeometry(0.85, 0.85),
     new THREE.MeshBasicMaterial({
       map: silTex, transparent: true, blending: THREE.AdditiveBlending,
       depthWrite: false, opacity: 0.9, side: THREE.DoubleSide,
       color: tint.clone().multiplyScalar(1.4)
     })
   );
-  silPlane.position.y = Y;
-  group.add(silPlane);
-
-  const edgePlane1 = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.0, 3.0),
-    new THREE.MeshBasicMaterial({
-      map: edgeTex, transparent: true, blending: THREE.AdditiveBlending,
-      depthWrite: false, opacity: 0.75, side: THREE.DoubleSide, color: bright
-    })
-  );
-  edgePlane1.position.set(0, Y, 0.02); group.add(edgePlane1);
-
-  const edgePlane2 = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.15, 3.15),
-    new THREE.MeshBasicMaterial({
-      map: edgeTex, transparent: true, blending: THREE.AdditiveBlending,
-      depthWrite: false, opacity: 0.5, side: THREE.DoubleSide, color: tint
-    })
-  );
-  edgePlane2.position.set(0, Y, 0.01); group.add(edgePlane2);
+  silPlane.position.y = Y; group.add(silPlane);
 
   const redPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.85, 2.85),
+    new THREE.PlaneGeometry(0.7, 0.7),
     new THREE.MeshBasicMaterial({
       map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
       depthWrite: false, opacity: 0.42, color: 0xff4477, side: THREE.DoubleSide
     })
   );
-  redPlane.position.set(0.07, Y, 0.03); group.add(redPlane);
+  redPlane.position.set(0.015, Y, 0.01); group.add(redPlane);
 
   const bluePlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.85, 2.85),
+    new THREE.PlaneGeometry(0.7, 0.7),
     new THREE.MeshBasicMaterial({
       map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
       depthWrite: false, opacity: 0.42, color: 0x44aaff, side: THREE.DoubleSide
     })
   );
-  bluePlane.position.set(-0.07, Y, 0.03); group.add(bluePlane);
+  bluePlane.position.set(-0.015, Y, 0.01); group.add(bluePlane);
 
   const corePlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.75, 2.75),
+    new THREE.PlaneGeometry(0.68, 0.68),
     new THREE.MeshBasicMaterial({
       map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
-      depthWrite: false, opacity: 0.98, side: THREE.DoubleSide,
-      color: bright.clone()
+      depthWrite: false, opacity: 0.98, side: THREE.DoubleSide, color: bright.clone()
     })
   );
-  corePlane.position.set(0, Y, 0.05); group.add(corePlane);
-
-  const hotPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.6, 2.6),
-    new THREE.MeshBasicMaterial({
-      map: hotTex, transparent: true, blending: THREE.AdditiveBlending,
-      depthWrite: false, opacity: 0.6, side: THREE.DoubleSide, color: 0xffffff
-    })
-  );
-  hotPlane.position.set(0, Y, 0.07); group.add(hotPlane);
-
-  const scanCv = document.createElement('canvas');
-  scanCv.width = 128; scanCv.height = 512;
-  const sctx = scanCv.getContext('2d');
-  for (let y = 0; y < scanCv.height; y += 4) {
-    sctx.fillStyle = 'rgba(180,240,255,0.28)';
-    sctx.fillRect(0, y, scanCv.width, 1);
-  }
-  const scanTex = new THREE.CanvasTexture(scanCv);
-  scanTex.wrapS = scanTex.wrapT = THREE.RepeatWrapping;
-  scanTex.repeat.set(4, 4);
-  const scanPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.2, 3.2),
-    new THREE.MeshBasicMaterial({
-      map: scanTex, transparent: true, blending: THREE.AdditiveBlending,
-      depthWrite: false, opacity: 0.35, side: THREE.DoubleSide
-    })
-  );
-  scanPlane.position.set(0, Y, 0.09); group.add(scanPlane);
+  corePlane.position.set(0, Y, 0.015); group.add(corePlane);
 
   const disc = new THREE.Mesh(
-    new THREE.RingGeometry(0.6, 1.3, 64),
+    new THREE.RingGeometry(0.15, 0.30, 48),
     new THREE.MeshBasicMaterial({
       color: c1, transparent: true, opacity: 0.7,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
@@ -1295,84 +962,54 @@ function buildHologram(data) {
   );
   disc.rotation.x = -Math.PI / 2; group.add(disc);
 
-  const innerDisc = new THREE.Mesh(
-    new THREE.RingGeometry(0.18, 0.55, 48),
-    new THREE.MeshBasicMaterial({
-      color: bright, transparent: true, opacity: 0.8,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
-    })
-  );
-  innerDisc.rotation.x = -Math.PI / 2; innerDisc.position.y = 0.01; group.add(innerDisc);
-
-  const midRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.88, 0.95, 48),
-    new THREE.MeshBasicMaterial({
-      color: bright, transparent: true, opacity: 0.75,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
-    })
-  );
-  midRing.rotation.x = -Math.PI / 2; midRing.position.y = 0.02; group.add(midRing);
-
   const outerRing = new THREE.Mesh(
-    new THREE.RingGeometry(1.35, 1.45, 64),
+    new THREE.RingGeometry(0.32, 0.35, 48),
     new THREE.MeshBasicMaterial({
-      color: c1, transparent: true, opacity: 0.88,
+      color: bright, transparent: true, opacity: 0.88,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
     })
   );
-  outerRing.rotation.x = -Math.PI / 2; outerRing.position.y = 0.03; group.add(outerRing);
+  outerRing.rotation.x = -Math.PI / 2; outerRing.position.y = 0.01; group.add(outerRing);
 
   const runesGroup = new THREE.Group();
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
     const rune = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.16),
+      new THREE.PlaneGeometry(0.04, 0.04),
       new THREE.MeshBasicMaterial({
         color: bright, transparent: true, opacity: 0.95,
         blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
       })
     );
-    rune.position.set(Math.cos(a) * 1.55, 0.06, Math.sin(a) * 1.55);
+    rune.position.set(Math.cos(a) * 0.38, 0.02, Math.sin(a) * 0.38);
     rune.rotation.x = -Math.PI / 2; rune.rotation.z = -a;
     runesGroup.add(rune);
   }
   group.add(runesGroup);
 
-  const hex = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.6, 1.6, 0.06, 6, 1, true),
-    new THREE.MeshBasicMaterial({
-      color: c1, transparent: true, opacity: 0.6,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      depthWrite: false, wireframe: true
-    })
-  );
-  hex.position.y = 0.08; group.add(hex);
-
   const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.75, 1.3, 1.7, 32, 1, true),
+    new THREE.CylinderGeometry(0.18, 0.30, 0.42, 24, 1, true),
     new THREE.MeshBasicMaterial({
       color: tint, transparent: true, opacity: 0.22,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
     })
   );
-  beam.position.y = 0.85; group.add(beam);
+  beam.position.y = 0.21; group.add(beam);
 
-  const particleCount = 100;
+  const pCount = 50;
   const pGeo = new THREE.BufferGeometry();
-  const pPos = new Float32Array(particleCount * 3);
+  const pPos = new Float32Array(pCount * 3);
   const pSeeds = [];
-  for (let i = 0; i < particleCount; i++) {
+  for (let i = 0; i < pCount; i++) {
     const a = Math.random() * Math.PI * 2;
-    const r = 0.9 + Math.random() * 1.0;
-    const y = Math.random() * 3.4;
-    pPos[i*3] = Math.cos(a) * r;
-    pPos[i*3+1] = y;
-    pPos[i*3+2] = Math.sin(a) * r;
+    const r = 0.22 + Math.random() * 0.25;
+    const y = Math.random() * 0.85;
+    pPos[i*3] = Math.cos(a) * r; pPos[i*3+1] = y; pPos[i*3+2] = Math.sin(a) * r;
     pSeeds.push({ a, r, speed: 0.3 + Math.random() * 0.6, phase: Math.random() * 6.28, y });
   }
   pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
   const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-    color: bright, size: 0.06, transparent: true, opacity: 0.95,
+    color: bright, size: 0.015, transparent: true, opacity: 0.95,
     blending: THREE.AdditiveBlending, depthWrite: false
   }));
   particles.userData.seeds = pSeeds;
@@ -1380,144 +1017,82 @@ function buildHologram(data) {
   group.add(particles);
 
   const gem = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.26, 0),
+    new THREE.OctahedronGeometry(0.06, 0),
     new THREE.MeshStandardMaterial({
       color: c1, emissive: c1, emissiveIntensity: 2.0,
       roughness: 0.1, metalness: 1.0, transparent: true, opacity: 0.9
     })
   );
-  gem.position.y = 3.6; group.add(gem);
-  const gemGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-    color: bright, transparent: true, opacity: 0.7,
-    blending: THREE.AdditiveBlending, depthWrite: false
-  }));
-  gemGlow.scale.set(1.8, 1.8, 1);
-  gemGlow.position.y = 3.6; group.add(gemGlow);
+  gem.position.y = 0.95; group.add(gem);
 
-  group.userData.holoPlanes = [silPlane, edgePlane1, edgePlane2, redPlane, bluePlane, corePlane, hotPlane, scanPlane];
+  group.userData.holoPlanes = [silPlane, redPlane, bluePlane, corePlane];
   group.userData.outerRing = outerRing;
-  group.userData.midRing = midRing;
   group.userData.runes = runesGroup;
-  group.userData.hex = hex;
   group.userData.beam = beam;
   group.userData.gem = gem;
-  group.userData.gemGlow = gemGlow;
   group.userData.auraSprite = auraSprite;
-  group.userData.scanTex = scanTex;
   group.userData.y = Y;
-
   return group;
 }
 
 /* ============================================================
-   BRACELETE PARA VR
+   BOTÕES VR DE VIRAR PÁGINA
    ============================================================ */
-function buildVRBracelet() {
+function makePageButton(isNext) {
   const g = new THREE.Group();
-
-  // base torus
-  const base = new THREE.Mesh(
-    new THREE.TorusGeometry(0.045, 0.008, 16, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0x2a1a0a, metalness: 0.9, roughness: 0.3
-    })
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 256;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgba(20,60,45,0.9)';
+  ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#d4af5a'; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(212,175,90,0.4)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(128, 128, 92, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#f4e9c8';
+  ctx.font = 'bold 140px Georgia, serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#d4af5a'; ctx.shadowBlur = 18;
+  ctx.fillText(isNext ? '▶' : '◀', 128, 136);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.06, 0.06),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide })
   );
-  base.rotation.x = Math.PI / 2;
-  g.add(base);
-
-  // anel dourado
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.048, 0.004, 16, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0xd4af5a, metalness: 1.0, roughness: 0.15,
-      emissive: 0xd4af5a, emissiveIntensity: 0.35
-    })
-  );
-  ring.rotation.x = Math.PI / 2;
-  g.add(ring);
-
-  // botão esférico (o "botão de abrir")
-  const buttonGroup = new THREE.Group();
-  buttonGroup.position.set(0, 0.005, 0.045); // na frente do pulso
-
-  const buttonBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.018, 0.020, 0.008, 20),
-    new THREE.MeshStandardMaterial({
-      color: 0x1a1008, metalness: 0.9, roughness: 0.4
-    })
-  );
-  buttonBase.rotation.x = Math.PI / 2;
-  buttonGroup.add(buttonBase);
-
-  const buttonTop = new THREE.Mesh(
-    new THREE.SphereGeometry(0.012, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshStandardMaterial({
-      color: 0x0d5c45, metalness: 0.6, roughness: 0.25,
-      emissive: 0x22aa66, emissiveIntensity: 1.2
-    })
-  );
-  buttonTop.rotation.x = Math.PI / 2;
-  buttonTop.position.z = 0.005;
-  buttonGroup.add(buttonTop);
-
-  // anel de luz do botão
-  const glowRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.020, 0.002, 12, 24),
+  g.add(mesh);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.045, 32),
     new THREE.MeshBasicMaterial({
-      color: 0x44ffaa, transparent: true, opacity: 0.9,
-      blending: THREE.AdditiveBlending
+      color: isNext ? 0x66aaff : 0xffaa66,
+      transparent: true, opacity: 0.35,
+      blending: THREE.AdditiveBlending, depthWrite: false
     })
   );
-  glowRing.rotation.x = Math.PI / 2;
-  glowRing.position.z = 0.002;
-  buttonGroup.add(glowRing);
-
-  // label "ABRIR" via sprite
-  const labelCv = document.createElement('canvas');
-  labelCv.width = 256; labelCv.height = 64;
-  const lctx = labelCv.getContext('2d');
-  lctx.font = 'bold 32px Georgia, serif';
-  lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
-  lctx.fillStyle = '#ffe8a0';
-  lctx.shadowColor = '#ffb040'; lctx.shadowBlur = 10;
-  lctx.fillText('ABRIR', 128, 32);
-  const labelTex = new THREE.CanvasTexture(labelCv);
-  labelTex.colorSpace = THREE.SRGBColorSpace;
-  const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: labelTex, transparent: true, depthWrite: false,
-    blending: THREE.AdditiveBlending
-  }));
-  labelSprite.scale.set(0.06, 0.015, 1);
-  labelSprite.position.set(0, 0.03, 0.055);
-  buttonGroup.add(labelSprite);
-
-  // aura
-  const aura = new THREE.Mesh(
-    new THREE.SphereGeometry(0.024, 16, 12),
-    new THREE.MeshBasicMaterial({
-      color: 0x44ffaa, transparent: true, opacity: 0.35,
-      blending: THREE.AdditiveBlending
-    })
-  );
-  aura.position.z = 0.008;
-  buttonGroup.add(aura);
-
-  g.add(buttonGroup);
-  g.userData.buttonGroup = buttonGroup;
-  g.userData.glowRing = glowRing;
-  g.userData.aura = aura;
-  g.userData.buttonTop = buttonTop;
-
-  // hitbox invisível (para raycast / squeeze)
-  const hitbox = new THREE.Mesh(
-    new THREE.SphereGeometry(0.06, 8, 6),
+  glow.position.z = -0.002;
+  g.add(glow);
+  g.userData.isPageButton = true;
+  g.userData.direction = isNext ? 1 : -1;
+  g.userData.mesh = mesh;
+  g.userData.glow = glow;
+  // hitbox maior para facilitar
+  const hit = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.11, 0.11),
     new THREE.MeshBasicMaterial({ visible: false })
   );
-  g.add(hitbox);
-  g.userData.hitbox = hitbox;
-
+  g.add(hit);
+  g.userData.hit = hit;
   return g;
 }
+const vrUIGroup = new THREE.Group();
+scene.add(vrUIGroup);
+const pageNextBtn = makePageButton(true);
+const pagePrevBtn = makePageButton(false);
+pageNextBtn.position.set(0.28, 0.16, 0.06);
+pagePrevBtn.position.set(-0.28, 0.16, 0.06);
+vrUIGroup.add(pageNextBtn);
+vrUIGroup.add(pagePrevBtn);
+vrUIGroup.visible = false;
 
 /* ============================================================
    TWEEN
@@ -1525,10 +1100,7 @@ function buildVRBracelet() {
 const activeTweens = [];
 function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-function easeOutBack(t) {
-  const c1 = 1.70158, c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
+function easeOutBack(t) { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
 function animate(duration, updateFn, completeFn, ease = easeInOutCubic) {
   const t0 = performance.now();
   const tw = {
@@ -1561,10 +1133,8 @@ const state = {
   inspectedCard: null, cardOriginalParent: null,
   cardOriginalPos: null, cardOriginalQuat: null, cardOriginalScale: null,
   summoned: null, holoTime: 0,
-  isVR: false,
-  vrPreview: false,
-  bookAppeared: false,
-  bookSpawnedInVR: false
+  isVR: false, vrPreview: false,
+  targetBookX: null
 };
 const MAX_SPREAD = 3;
 
@@ -1581,6 +1151,7 @@ const desummonBtn = document.getElementById('desummonBtn');
 const previewBtn = document.getElementById('previewBtn');
 const vrExit = document.getElementById('vrExit');
 const vrPreviewOverlay = document.getElementById('vrPreview');
+
 function setHint(text) { hintEl.textContent = text; hintEl.classList.remove('hidden'); }
 function refreshUI() {
   const m = state.mode;
@@ -1604,22 +1175,30 @@ function refreshUI() {
 /* ============================================================
    ABRIR / FECHAR / FOLHEAR
    ============================================================ */
+function isVRActive() { return renderer.xr.isPresenting || state.vrPreview; }
+
 function openAlbum() {
   if (state.mode !== 'closed') return;
   state.mode = 'flipping'; state.spread = 1; refreshUI();
   const sR = coverInfo.pivot.rotation.z, sY = coverInfo.pivot.position.y;
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
+  const vr = isVRActive();
+  const startX = bookGroup.position.x;
+  const endX = VR_OPEN_X;
+
   animate(1200, (t) => {
     coverInfo.pivot.rotation.z = sR + (Math.PI - sR) * t;
     coverInfo.pivot.position.y = sY + (coverInfo.flippedY - sY) * t;
-    if (!renderer.xr.isPresenting && !state.vrPreview) {
+    if (vr) bookGroup.position.x = startX + (endX - startX) * t;
+    if (!vr) {
       camera.position.lerpVectors(camStart, CAM_OPEN, t);
       controls.target.lerpVectors(tgtStart, TARGET_OPEN, t);
       controls.update();
     }
   }, () => { state.mode = 'open'; refreshUI(); });
 }
+
 function closeAlbum() {
   if (state.mode !== 'open') return;
   if (state.spread > 1) { flipBack(() => closeAlbum()); return; }
@@ -1627,16 +1206,22 @@ function closeAlbum() {
   const sR = coverInfo.pivot.rotation.z, sY = coverInfo.pivot.position.y;
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
+  const vr = isVRActive();
+  const startX = bookGroup.position.x;
+  const endX = VR_CLOSED_X_OFF;
+
   animate(1200, (t) => {
     coverInfo.pivot.rotation.z = sR * (1 - t);
     coverInfo.pivot.position.y = sY + (coverInfo.originalY - sY) * t;
-    if (!renderer.xr.isPresenting && !state.vrPreview) {
+    if (vr) bookGroup.position.x = startX + (endX - startX) * t;
+    if (!vr) {
       camera.position.lerpVectors(camStart, CAM_CLOSED, t);
       controls.target.lerpVectors(tgtStart, TARGET_CLOSED, t);
       controls.update();
     }
   }, () => { state.mode = 'closed'; state.spread = 0; refreshUI(); });
 }
+
 function flipForward() {
   if (state.mode !== 'open' || state.spread >= MAX_SPREAD) return;
   state.mode = 'flipping'; refreshUI();
@@ -1653,6 +1238,7 @@ function flipForward() {
     state.spread++; state.mode = 'open'; refreshUI();
   });
 }
+
 function flipBack(callback) {
   if (state.mode !== 'open' || state.spread <= 1) { if (callback) callback(); return; }
   state.mode = 'flipping'; refreshUI();
@@ -1672,7 +1258,7 @@ function flipBack(callback) {
 }
 
 /* ============================================================
-   RAYCAST
+   RAYCAST / PICK
    ============================================================ */
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -1692,10 +1278,22 @@ function pickCover() {
   raycaster.setFromCamera(pointer, camera);
   return raycaster.intersectObject(coverOutsidePlane, false).length > 0;
 }
+function pickVRPageButton() {
+  raycaster.setFromCamera(pointer, camera);
+  if (!vrUIGroup.visible) return null;
+  if (pageNextBtn.visible) {
+    const hits = raycaster.intersectObject(pageNextBtn.userData.hit, false);
+    if (hits.length > 0) return pageNextBtn;
+  }
+  if (pagePrevBtn.visible) {
+    const hits = raycaster.intersectObject(pagePrevBtn.userData.hit, false);
+    if (hits.length > 0) return pagePrevBtn;
+  }
+  return null;
+}
 function computeCardFacingQuat(cardPos, camPos) {
   const yDir = new THREE.Vector3().subVectors(camPos, cardPos).normalize();
-  const worldDown = new THREE.Vector3(0, -1, 0);
-  const zDir = worldDown.clone().projectOnPlane(yDir).normalize();
+  const zDir = new THREE.Vector3(0, -1, 0).projectOnPlane(yDir).normalize();
   const xDir = new THREE.Vector3().crossVectors(yDir, zDir).normalize();
   return new THREE.Quaternion().setFromRotationMatrix(
     new THREE.Matrix4().makeBasis(xDir, yDir, zDir)
@@ -1710,19 +1308,22 @@ function summonHologram(card) {
   const cardWorldPos = new THREE.Vector3();
   card.getWorldPosition(cardWorldPos);
   const holo = buildHologram(data);
-  holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, 2.1, 0));
+  const vr = isVRActive();
+  const yOff = vr ? VR_HOLO_Y_OFFSET : 2.1;
+  holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, yOff, 0));
   holo.scale.setScalar(0.01);
   scene.add(holo);
   state.summoned = holo;
   state.holoTime = 0;
-  animate(750, (t) => { holo.scale.setScalar(0.01 + t * 0.89); },
-    () => { holo.scale.setScalar(0.9); }, easeOutCubic);
+  const targetScale = vr ? 1.0 : 0.9; // já está em escala local ~0.7
+  animate(750, (t) => { holo.scale.setScalar(0.01 + t * targetScale); },
+    () => { holo.scale.setScalar(targetScale); }, easeOutCubic);
 }
 function desummonHologram(onComplete) {
   if (!state.summoned) { if (onComplete) onComplete(); return; }
   const holo = state.summoned;
   state.summoned = null;
-  const bc = 70;
+  const bc = 50;
   const bGeo = new THREE.BufferGeometry();
   const pos = new Float32Array(bc * 3);
   const col = new Float32Array(bc * 3);
@@ -1730,14 +1331,14 @@ function desummonHologram(onComplete) {
   const c = new THREE.Color(0x88ddff);
   for (let i = 0; i < bc; i++) {
     pos[i*3] = holo.position.x;
-    pos[i*3+1] = holo.position.y + 1.7;
+    pos[i*3+1] = holo.position.y + 0.5;
     pos[i*3+2] = holo.position.z;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
-    const s = 1.0 + Math.random() * 2.5;
+    const s = 0.4 + Math.random() * 0.8;
     vel.push({
       x: Math.sin(phi) * Math.cos(theta) * s,
-      y: Math.cos(phi) * s + 0.6,
+      y: Math.cos(phi) * s + 0.3,
       z: Math.sin(phi) * Math.sin(theta) * s
     });
     col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
@@ -1745,7 +1346,7 @@ function desummonHologram(onComplete) {
   bGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   bGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const bMat = new THREE.PointsMaterial({
-    size: 0.15, vertexColors: true, transparent: true,
+    size: 0.04, vertexColors: true, transparent: true,
     blending: THREE.AdditiveBlending, depthWrite: false
   });
   const burst = new THREE.Points(bGeo, bMat);
@@ -1758,7 +1359,7 @@ function desummonHologram(onComplete) {
       p[i*3] += vel[i].x * 0.016;
       p[i*3+1] += vel[i].y * 0.016;
       p[i*3+2] += vel[i].z * 0.016;
-      vel[i].y -= 0.04;
+      vel[i].y -= 0.02;
     }
     burst.geometry.attributes.position.needsUpdate = true;
     bMat.opacity = 1 - t;
@@ -1771,12 +1372,8 @@ function desummonHologram(onComplete) {
         else o.material.dispose();
       }
     });
-    animate(400, (t) => {
-      bMat.opacity = 1 - t;
-      bMat.size = 0.15 * (1 + t * 2);
-    }, () => {
-      scene.remove(burst);
-      bGeo.dispose(); bMat.dispose();
+    animate(400, (t) => { bMat.opacity = 1 - t; bMat.size = 0.04 * (1 + t * 2); }, () => {
+      scene.remove(burst); bGeo.dispose(); bMat.dispose();
       if (onComplete) onComplete();
     });
   });
@@ -1797,18 +1394,22 @@ function doInspect(card) {
   state.cardOriginalQuat = card.quaternion.clone();
   state.cardOriginalScale = card.scale.clone();
   scene.attach(card);
-  const camPos = camera.position.clone();
+
+  const camPos = new THREE.Vector3();
+  camera.getWorldPosition(camPos);
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
-  const dist = (renderer.xr.isPresenting || state.vrPreview) ? 0.9 : 6.8;
+  const vr = isVRActive();
+  const dist = vr ? 0.25 : 6.8;
   const targetPos = camPos.clone().addScaledVector(camDir, dist);
   const targetQuat = computeCardFacingQuat(targetPos, camPos);
   const startPos = card.position.clone();
   const startQuat = card.quaternion.clone();
   const startScale = card.scale.clone();
-  const targetScale = (renderer.xr.isPresenting || state.vrPreview)
-    ? new THREE.Vector3(0.35, 0.35, 0.35)
+  const targetScale = vr
+    ? new THREE.Vector3(VR_CARD_SCALE, VR_CARD_SCALE, VR_CARD_SCALE)
     : new THREE.Vector3(1.3, 1.3, 1.3);
+
   controls.enabled = false;
   refreshUI();
   animate(600, (t) => {
@@ -1859,7 +1460,7 @@ function returnCardToAlbum(card) {
 }
 
 /* ============================================================
-   DRAG
+   DRAG DESKTOP
    ============================================================ */
 let pointerDownOnCard = false;
 let pointerDownPos = new THREE.Vector2();
@@ -1868,6 +1469,7 @@ let dragPlane = new THREE.Plane();
 let dragOffset = new THREE.Vector3();
 let didDrag = false;
 const DRAG_THRESHOLD_PX = 6;
+
 function startCardDrag(e, card) {
   pointerDownOnCard = true;
   pointerDownPos.set(e.clientX, e.clientY);
@@ -1897,7 +1499,10 @@ function updateCardDrag(e) {
   if (raycaster.ray.intersectPlane(dragPlane, hit)) {
     const newPos = hit.clone().add(dragOffset);
     state.inspectedCard.position.copy(newPos);
-    if (state.summoned) state.summoned.position.copy(newPos).add(new THREE.Vector3(0, 2.1, 0));
+    if (state.summoned) {
+      const yOff = isVRActive() ? VR_HOLO_Y_OFFSET : 2.1;
+      state.summoned.position.copy(newPos).add(new THREE.Vector3(0, yOff, 0));
+    }
   }
 }
 function endCardDrag(e) {
@@ -1912,6 +1517,17 @@ function endCardDrag(e) {
 function onPointerDown(e) {
   if (e.button !== 0 || state.isVR) return;
   setPointer(e);
+
+  // Se está em preview VR, checa primeiro os botões 3D
+  if (state.vrPreview) {
+    const btn = pickVRPageButton();
+    if (btn) {
+      if (btn === pageNextBtn) flipForward();
+      else if (btn === pagePrevBtn) flipBack();
+      return;
+    }
+  }
+
   if (state.mode === 'closed') { if (pickCover()) openAlbum(); return; }
   if (state.mode === 'open') {
     const card = pickCard();
@@ -1928,6 +1544,12 @@ function onPointerDown(e) {
 function onPointerMove(e) {
   if (state.isVR) return;
   if (state.mode === 'inspecting' && pointerDownOnCard) { updateCardDrag(e); return; }
+  if (state.vrPreview) {
+    setPointer(e);
+    const btn = pickVRPageButton();
+    renderer.domElement.style.cursor = btn ? 'pointer' : 'default';
+    return;
+  }
   if (state.mode === 'closed') {
     setPointer(e);
     renderer.domElement.style.cursor = pickCover() ? 'pointer' : 'grab';
@@ -1955,11 +1577,13 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' && state.mode === 'open') flipForward();
   if (e.key === 'ArrowLeft' && state.mode === 'open') flipBack();
   if ((e.key === 'd' || e.key === 'D') && state.summoned) desummonHologram();
-  if ((e.key === 'b' || e.key === 'B') && state.isVR) {
+  // B = botão B do controle / tecla para abrir/fechar em VR
+  if ((e.key === 'b' || e.key === 'B')) {
     if (state.mode === 'closed') openAlbum();
-    else closeAlbum();
+    else if (state.mode === 'open') closeAlbum();
   }
 });
+
 openBtn.addEventListener('click', (e) => { e.stopPropagation(); openAlbum(); });
 closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeAlbum(); });
 nextBtn.addEventListener('click', (e) => { e.stopPropagation(); flipForward(); });
@@ -1968,7 +1592,36 @@ backBtn.addEventListener('click', (e) => { e.stopPropagation(); returnInspectedC
 desummonBtn.addEventListener('click', (e) => { e.stopPropagation(); desummonHologram(); });
 
 /* ============================================================
-   PREVIEW VR NO NAVEGADOR
+   POSICIONAMENTO VR DO LIVRO
+   ============================================================ */
+function positionBookForVR() {
+  bookGroup.scale.setScalar(VR_SCALE);
+  bookGroup.position.set(VR_CLOSED_X_OFF, VR_BOOK_Y, VR_BOOK_Z);
+  bookGroup.rotation.set(0, 0, 0);
+}
+
+function animateBookAppearance() {
+  const targetScale = VR_SCALE;
+  const targetPos = new THREE.Vector3(VR_CLOSED_X_OFF, VR_BOOK_Y, VR_BOOK_Z);
+  bookGroup.scale.setScalar(0.001);
+  bookGroup.position.set(0, 0.3, -1.5);
+  bookGroup.rotation.set(0.6, -0.8, 0);
+  animate(1400, (t) => {
+    bookGroup.scale.setScalar(t * targetScale);
+    bookGroup.position.lerpVectors(new THREE.Vector3(0, 0.3, -1.5), targetPos, t);
+    bookGroup.rotation.set(
+      0.6 * (1 - t), -0.8 * (1 - t),
+      0.15 * Math.sin(t * Math.PI) * (1 - t)
+    );
+  }, () => {
+    bookGroup.scale.setScalar(targetScale);
+    bookGroup.position.copy(targetPos);
+    bookGroup.rotation.set(0, 0, 0);
+  }, easeOutBack);
+}
+
+/* ============================================================
+   PREVIEW VR
    ============================================================ */
 let savedCameraPos = new THREE.Vector3();
 let savedCameraQuat = new THREE.Quaternion();
@@ -1978,34 +1631,26 @@ let savedControlsEnabled = true;
 function enterVRPreview() {
   if (state.vrPreview || state.isVR) return;
   state.vrPreview = true;
-
-  // Salva estado atual
   savedCameraPos.copy(camera.position);
   savedCameraQuat.copy(camera.quaternion);
   savedTarget.copy(controls.target);
   savedControlsEnabled = controls.enabled;
 
-  // Posiciona câmera como se estivesse em VR (na posição do usuário)
-  camera.position.set(0, 1.65, 0);
-  camera.quaternion.setFromEuler(new THREE.Euler(-0.15, 0, 0));
+  // Headset no preview
+  camera.position.set(0, 1.6, 0);
+  camera.quaternion.setFromEuler(new THREE.Euler(-0.25, 0, 0));
   controls.enabled = false;
 
-  // Reposiciona o livro em frente ao usuário
+  // Reposiciona o livro
   positionBookForVR();
-
-  // Cria animação de aparição
   animateBookAppearance();
 
-  // Ativa overlay estereoscópico
+  // Céu cheio
+  zodiacGroup.visible = true;
+  extendedGroup.visible = true;
+
   vrPreviewOverlay.classList.add('active');
   vrExit.classList.add('active');
-
-  // Chama o sistema VR do céu
-  if (!state.isVR) {
-    extendedGroup.visible = false; // preview mostra somente zodíaco
-    zodiacGroup.visible = true;
-  }
-
   refreshUI();
 }
 
@@ -2015,162 +1660,185 @@ function exitVRPreview() {
   vrPreviewOverlay.classList.remove('active');
   vrExit.classList.remove('active');
 
-  // Restaura estado
   camera.position.copy(savedCameraPos);
   camera.quaternion.copy(savedCameraQuat);
   controls.target.copy(savedTarget);
   controls.enabled = savedControlsEnabled;
   controls.update();
 
-  // Restaura posição do livro
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
+  extendedGroup.visible = false;
 
   refreshUI();
 }
-
 previewBtn.addEventListener('click', (e) => { e.stopPropagation(); enterVRPreview(); });
 vrExit.addEventListener('click', (e) => { e.stopPropagation(); exitVRPreview(); });
 
 /* ============================================================
-   POSICIONAMENTO DO LIVRO EM VR
-   ============================================================ */
-function positionBookForVR() {
-  // Em VR: livro na altura do peito, 50cm à frente, escala 1:1 real
-  // O livro tem 30cm de largura (0.3m) — vamos deixá-lo em escala ~0.28
-  const targetScale = 0.28;
-  bookGroup.scale.setScalar(targetScale);
-  bookGroup.position.set(0, 1.15, -0.55);
-  bookGroup.rotation.set(0, 0, 0);
-}
-
-/* ============================================================
-   ANIMAÇÃO DE APARIÇÃO DO LIVRO
-   ============================================================ */
-function animateBookAppearance() {
-  state.bookAppeared = false;
-
-  // Guarda o alvo final
-  const targetScale = 0.28;
-  const targetPos = new THREE.Vector3(0, 1.15, -0.55);
-
-  // Começa do "nada": escala 0, longe
-  bookGroup.scale.setScalar(0.001);
-  bookGroup.position.set(0, 0.3, -2.5);
-  bookGroup.rotation.set(0.6, -0.8, 0);
-
-  // Animação: cresce + voa para frente + gira
-  animate(1400, (t) => {
-    const s = t * targetScale;
-    bookGroup.scale.setScalar(s);
-    bookGroup.position.lerpVectors(
-      new THREE.Vector3(0, 0.3, -2.5),
-      targetPos,
-      t
-    );
-    bookGroup.rotation.set(
-      0.6 * (1 - t),
-      -0.8 * (1 - t),
-      0.15 * Math.sin(t * Math.PI) * (1 - t)
-    );
-  }, () => {
-    bookGroup.scale.setScalar(targetScale);
-    bookGroup.position.copy(targetPos);
-    bookGroup.rotation.set(0, 0, 0);
-    state.bookAppeared = true;
-  }, easeOutBack);
-}
-
-/* ============================================================
-   VR — CONTROLADORES, HAND TRACKING E BRACELETE
+   VR — CONTROLES, MÃOS, BRACELETE
    ============================================================ */
 const controllerModelFactory = new XRControllerModelFactory();
 const handModelFactory = new XRHandModelFactory();
 
-// Controller 0 (esquerdo)
 const controller0 = renderer.xr.getController(0);
-controller0.userData.handedness = 'left';
-// Controller 1 (direito)
 const controller1 = renderer.xr.getController(1);
-controller1.userData.handedness = 'right';
-
-// Grip models (controles)
 const grip0 = renderer.xr.getControllerGrip(0);
 const grip1 = renderer.xr.getControllerGrip(1);
 grip0.add(controllerModelFactory.createControllerModel(grip0));
 grip1.add(controllerModelFactory.createControllerModel(grip1));
 
-// Hand tracking (aparece quando os controles estão guardados)
 const hand0 = renderer.xr.getHand(0);
 const hand1 = renderer.xr.getHand(1);
 try {
   hand0.add(handModelFactory.createHandModel(hand0, 'mesh'));
   hand1.add(handModelFactory.createHandModel(hand1, 'mesh'));
-} catch (e) {
-  console.warn('Hand tracking não disponível:', e);
-}
+} catch (e) { console.warn('Hand tracking indisponível:', e); }
 
 scene.add(controller0, controller1, grip0, grip1, hand0, hand1);
 
-// Raio de pointer para cada controlador
 function addRay(controller) {
   const geo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0, 0, -1.5)
+    new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2)
   ]);
-  const mat = new THREE.LineBasicMaterial({
+  controller.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
     color: 0xd4af5a, transparent: true, opacity: 0.5,
     blending: THREE.AdditiveBlending
-  });
-  const line = new THREE.Line(geo, mat);
-  controller.add(line);
-  return line;
+  })));
 }
-const ray0 = addRay(controller0);
-const ray1 = addRay(controller1);
+addRay(controller0); addRay(controller1);
 
-// Bracelete anexado ao controlador/grip esquerdo
-const vrBracelet = buildVRBracelet();
-grip0.add(vrBracelet);
-// também anexa à mão esquerda caso hand tracking esteja ativo
-hand0.add(vrBracelet.clone());
-// Pequeno ajuste de rotação
-vrBracelet.rotation.set(0, 0, 0);
-vrBracelet.position.set(0, 0, 0);
+/* Bracelete com botão "ABRIR" */
+function buildVRBracelet() {
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(
+    new THREE.TorusGeometry(0.045, 0.008, 16, 32),
+    new THREE.MeshStandardMaterial({ color: 0x2a1a0a, metalness: 0.9, roughness: 0.3 })
+  );
+  base.rotation.x = Math.PI / 2; g.add(base);
 
-/* Hover no bracelete */
-let braceletHovered = false;
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.048, 0.004, 16, 32),
+    new THREE.MeshStandardMaterial({
+      color: 0xd4af5a, metalness: 1.0, roughness: 0.15,
+      emissive: 0xd4af5a, emissiveIntensity: 0.35
+    })
+  );
+  ring.rotation.x = Math.PI / 2; g.add(ring);
 
-/* Detecção de squeeze / B button nos controles */
-function onSqueezeStart(event) {
-  // Squeeze abre/fecha o livro
+  const btnGroup = new THREE.Group();
+  btnGroup.position.set(0, 0.005, 0.045);
+  const btnBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.020, 0.008, 20),
+    new THREE.MeshStandardMaterial({ color: 0x1a1008, metalness: 0.9, roughness: 0.4 })
+  );
+  btnBase.rotation.x = Math.PI / 2; btnGroup.add(btnBase);
+
+  const btnTop = new THREE.Mesh(
+    new THREE.SphereGeometry(0.012, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshStandardMaterial({
+      color: 0x0d5c45, metalness: 0.6, roughness: 0.25,
+      emissive: 0x22aa66, emissiveIntensity: 1.2
+    })
+  );
+  btnTop.rotation.x = Math.PI / 2; btnTop.position.z = 0.005;
+  btnGroup.add(btnTop);
+
+  const glowRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.020, 0.002, 12, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0x44ffaa, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  glowRing.rotation.x = Math.PI / 2; glowRing.position.z = 0.002;
+  btnGroup.add(glowRing);
+
+  // Label sprite
+  const lcv = document.createElement('canvas');
+  lcv.width = 256; lcv.height = 64;
+  const lctx = lcv.getContext('2d');
+  lctx.font = 'bold 34px Georgia, serif';
+  lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
+  lctx.fillStyle = '#ffe8a0';
+  lctx.shadowColor = '#ffb040'; lctx.shadowBlur = 12;
+  lctx.fillText('ABRIR', 128, 32);
+  const lTex = new THREE.CanvasTexture(lcv);
+  lTex.colorSpace = THREE.SRGBColorSpace;
+  const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: lTex, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending
+  }));
+  labelSprite.scale.set(0.055, 0.014, 1);
+  labelSprite.position.set(0, 0.028, 0.055);
+  btnGroup.add(labelSprite);
+
+  g.add(btnGroup);
+
+  // hitbox
+  const hit = new THREE.Mesh(
+    new THREE.SphereGeometry(0.055, 8, 6),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  g.add(hit);
+
+  g.userData.btnGroup = btnGroup;
+  g.userData.glowRing = glowRing;
+  g.userData.btnTop = btnTop;
+  g.userData.hitbox = hit;
+  return g;
+}
+
+const vrBraceletL = buildVRBracelet();
+const vrBraceletR = buildVRBracelet();
+grip0.add(vrBraceletL);
+hand0.add(vrBraceletR); // fallback: também mostra na mão esquerda
+// Ajuste: girar para ficar "em cima" do pulso
+vrBraceletL.rotation.set(0, 0, 0);
+
+/* ============================================================
+   AÇÕES VR
+   ============================================================ */
+function toggleBookVR() {
   if (state.mode === 'closed') openAlbum();
   else if (state.mode === 'open') closeAlbum();
 }
-controller0.addEventListener('squeezestart', onSqueezeStart);
-controller1.addEventListener('squeezestart', onSqueezeStart);
 
-/* Select (gatilho) - comporta-se como clique */
-function onSelectStart(event) {
+/* Squeeze = abrir/fechar */
+controller0.addEventListener('squeezestart', toggleBookVR);
+controller1.addEventListener('squeezestart', toggleBookVR);
+
+/* Select (trigger) — checa botões 3D e cards */
+function handleVRSelect(event) {
   const controller = event.target;
   const tempMatrix = new THREE.Matrix4();
   tempMatrix.identity().extractRotation(controller.matrixWorld);
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
-  // Verifica se está apontando para o bracelete
-  const braceletHits = raycaster.intersectObject(vrBracelet.userData.hitbox, false);
-  if (braceletHits.length > 0) {
-    if (state.mode === 'closed') openAlbum();
-    else closeAlbum();
-    return;
+  // 1) Botões de virar página
+  if (vrUIGroup.visible) {
+    if (pageNextBtn.visible && raycaster.intersectObject(pageNextBtn.userData.hit, false).length > 0) {
+      flipForward(); return;
+    }
+    if (pagePrevBtn.visible && raycaster.intersectObject(pagePrevBtn.userData.hit, false).length > 0) {
+      flipBack(); return;
+    }
   }
 
+  // 2) Bracelete
+  if (raycaster.intersectObject(vrBraceletL.userData.hitbox, false).length > 0) {
+    toggleBookVR(); return;
+  }
+
+  // 3) Capa
   if (state.mode === 'closed') {
     if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) openAlbum();
     return;
   }
+
+  // 4) Cartas
   if (state.mode === 'open') {
     const allCards = [];
     bookGroup.traverse(o => { if (o.userData.isCard) allCards.push(o); });
@@ -2178,47 +1846,35 @@ function onSelectStart(event) {
     if (hits.length > 0) inspectCard(hits[0].object);
     return;
   }
+
+  // 5) Devolver carta inspecionada
   if (state.mode === 'inspecting') {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) {
       returnInspectedCard();
     }
   }
 }
-controller0.addEventListener('selectstart', onSelectStart);
-controller1.addEventListener('selectstart', onSelectStart);
+controller0.addEventListener('selectstart', handleVRSelect);
+controller1.addEventListener('selectstart', handleVRSelect);
 
 /* ============================================================
-   DETECÇÃO DE ESTADO VR
+   SESSÃO VR
    ============================================================ */
 renderer.xr.addEventListener('sessionstart', () => {
   state.isVR = true;
-  state.bookSpawnedInVR = false;
-
-  // Zoom no céu VR: mostra todas as constelações
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
-
-  // Reposiciona o livro para VR
   positionBookForVR();
-
-  // Animação de aparição
   animateBookAppearance();
-
-  // Esconde o céu próximo (o skydome fica bem distante)
-  // e remove o "chão" para não atrapalhar
   refreshUI();
 });
 
 renderer.xr.addEventListener('sessionend', () => {
   state.isVR = false;
   extendedGroup.visible = false;
-
-  // Reposiciona o livro para desktop
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
-
-  // Volta a câmera
   camera.position.copy(CAM_CLOSED);
   controls.target.copy(TARGET_CLOSED);
   controls.enabled = true;
@@ -2246,8 +1902,8 @@ renderer.setAnimationLoop(() => {
   updateTweens(now);
 
   skyMesh.rotation.y += dt * 0.002;
-
   const tGlobal = now * 0.001;
+
   [zodiacGroup, extendedGroup].forEach(grp => {
     if (!grp.visible) return;
     grp.children.forEach((c) => {
@@ -2258,10 +1914,7 @@ renderer.setAnimationLoop(() => {
   });
 
   shootingStarTimer += dt;
-  if (shootingStarTimer > shootingStarInterval) {
-    shootingStarTimer = 0;
-    spawnShootingStar();
-  }
+  if (shootingStarTimer > 2.5) { shootingStarTimer = 0; spawnShootingStar(); }
   for (let i = shootingStars.length - 1; i >= 0; i--) {
     const ss = shootingStars[i];
     ss.t += dt / ss.life;
@@ -2283,10 +1936,10 @@ renderer.setAnimationLoop(() => {
     );
     ss.tail.rotateX(Math.PI / 2);
     const tp = ss.trail.geometry.attributes.position.array;
-    const tailLen = Math.min(p * 8, 6);
-    tp[0] = pos.x - ss.tailDir.x * tailLen;
-    tp[1] = pos.y - ss.tailDir.y * tailLen;
-    tp[2] = pos.z - ss.tailDir.z * tailLen;
+    const tl = Math.min(p * 8, 6);
+    tp[0] = pos.x - ss.tailDir.x * tl;
+    tp[1] = pos.y - ss.tailDir.y * tl;
+    tp[2] = pos.z - ss.tailDir.z * tl;
     tp[3] = pos.x; tp[4] = pos.y; tp[5] = pos.z;
     ss.trail.geometry.attributes.position.needsUpdate = true;
     const fade = 1 - Math.max(0, p - 0.7) / 0.3;
@@ -2295,26 +1948,51 @@ renderer.setAnimationLoop(() => {
     ss.tail.material.opacity = 0.55 * fade;
   }
 
-  // Animação do bracelete (brilho pulsante)
-  if (state.isVR) {
-    const bracelets = [vrBracelet];
-    bracelets.forEach(br => {
-      const tg = br.userData.buttonGroup;
-      if (!tg) return;
-      const glow = br.userData.glowRing;
-      const aura = br.userData.aura;
-      const btnTop = br.userData.buttonTop;
-      if (glow) {
-        glow.material.opacity = 0.6 + Math.sin(tGlobal * 3.5) * 0.4;
-        glow.scale.setScalar(1 + Math.sin(tGlobal * 3.5) * 0.15);
+  // UI VR: posiciona e faz billboard dos botões de virar
+  const vrActive = renderer.xr.isPresenting || state.vrPreview;
+  if (vrActive) {
+    // Posiciona o grupo de UI na posição do livro (sem escala)
+    vrUIGroup.position.copy(bookGroup.position);
+    vrUIGroup.visible = state.mode === 'open';
+
+    // Billboard dos botões
+    const camWorldPos = new THREE.Vector3();
+    camera.getWorldPosition(camWorldPos);
+    pageNextBtn.lookAt(camWorldPos);
+    pagePrevBtn.lookAt(camWorldPos);
+
+    // Visibilidade por spread
+    pageNextBtn.visible = state.spread < MAX_SPREAD;
+    pagePrevBtn.visible = state.spread > 1;
+
+    // Pulso sutil
+    [pageNextBtn, pagePrevBtn].forEach((b, i) => {
+      const ph = i * 1.5;
+      if (b.userData.glow) {
+        b.userData.glow.material.opacity = 0.3 + Math.sin(tGlobal * 3 + ph) * 0.15;
       }
-      if (aura) {
-        aura.material.opacity = 0.2 + Math.sin(tGlobal * 3.5) * 0.15;
-      }
-      if (btnTop) {
-        btnTop.material.emissiveIntensity = 0.8 + Math.sin(tGlobal * 3.5) * 0.5;
+      if (b.userData.mesh) {
+        const s = 1 + Math.sin(tGlobal * 3 + ph) * 0.05;
+        b.userData.mesh.scale.set(s, s, 1);
       }
     });
+
+    // Bracelete pulsando
+    [vrBraceletL, vrBraceletR].forEach((br, i) => {
+      if (!br.userData) return;
+      const glow = br.userData.glowRing;
+      const btnTop = br.userData.btnTop;
+      const ph = i * 2;
+      if (glow) {
+        glow.material.opacity = 0.6 + Math.sin(tGlobal * 3.5 + ph) * 0.4;
+        glow.scale.setScalar(1 + Math.sin(tGlobal * 3.5 + ph) * 0.15);
+      }
+      if (btnTop) {
+        btnTop.material.emissiveIntensity = 0.8 + Math.sin(tGlobal * 3.5 + ph) * 0.5;
+      }
+    });
+  } else {
+    vrUIGroup.visible = false;
   }
 
   // Holograma
@@ -2323,38 +2001,28 @@ renderer.setAnimationLoop(() => {
     const t = state.holoTime;
     const holo = state.summoned;
     if (!holo.userData.baseY) holo.userData.baseY = holo.position.y;
-    holo.position.y = holo.userData.baseY + Math.sin(t * 1.2) * 0.14;
+    holo.position.y = holo.userData.baseY + Math.sin(t * 1.2) * 0.02;
 
     const planes = holo.userData.holoPlanes;
-    const yOff = holo.userData.y || 1.75;
+    const yOff = holo.userData.y || 0.55;
     if (planes) {
       planes.forEach((p, i) => {
         p.lookAt(camera.position);
-        if (i === 3) p.position.set(0.07 + Math.sin(t * 14) * 0.010, yOff, 0.03);
-        else if (i === 4) p.position.set(-0.07 + Math.sin(t * 14 + 1.5) * 0.010, yOff, 0.03);
+        if (i === 1) p.position.set(0.015 + Math.sin(t * 14) * 0.004, yOff, 0.01);
+        else if (i === 2) p.position.set(-0.015 + Math.sin(t * 14 + 1.5) * 0.004, yOff, 0.01);
         else p.position.y = yOff;
       });
     }
     if (holo.userData.auraSprite) {
-      const s = 6 + Math.sin(t * 1.8) * 0.4;
+      const s = 1.4 + Math.sin(t * 1.8) * 0.15;
       holo.userData.auraSprite.scale.set(s, s, 1);
-      holo.userData.auraSprite.material.opacity = 0.85 + Math.sin(t * 2.4) * 0.08;
-    }
-    if (holo.userData.scanTex) {
-      holo.userData.scanTex.offset.y = -t * 0.35;
     }
     if (holo.userData.outerRing) holo.userData.outerRing.rotation.z = t * 0.4;
-    if (holo.userData.midRing) holo.userData.midRing.rotation.z = -t * 0.7;
     if (holo.userData.runes) holo.userData.runes.rotation.y = t * 0.5;
-    if (holo.userData.hex) holo.userData.hex.rotation.y = -t * 0.3;
     if (holo.userData.beam) holo.userData.beam.material.opacity = 0.18 + Math.sin(t * 3) * 0.06;
     if (holo.userData.gem) {
       holo.userData.gem.rotation.y = t * 1.5;
       holo.userData.gem.rotation.x = t * 0.9;
-    }
-    if (holo.userData.gemGlow) {
-      const s = 1.8 + Math.sin(t * 4) * 0.35;
-      holo.userData.gemGlow.scale.set(s, s, 1);
     }
     holo.traverse(o => {
       if (o.userData.isParticles) {
@@ -2364,7 +2032,7 @@ renderer.setAnimationLoop(() => {
           const s = seeds[i];
           const a = s.a + t * s.speed;
           pos[i*3] = Math.cos(a) * s.r;
-          pos[i*3+1] = s.y + Math.sin(t * 1.8 + s.phase) * 0.20;
+          pos[i*3+1] = s.y + Math.sin(t * 1.8 + s.phase) * 0.05;
           pos[i*3+2] = Math.sin(a) * s.r;
         }
         o.geometry.attributes.position.needsUpdate = true;
@@ -2372,7 +2040,7 @@ renderer.setAnimationLoop(() => {
     });
   }
 
-  if (!state.isVR && !state.vrPreview) controls.update();
+  if (!renderer.xr.isPresenting && !state.vrPreview) controls.update();
   renderer.render(scene, camera);
 });
 
