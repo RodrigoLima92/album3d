@@ -50,6 +50,9 @@
   button.vr-btn {
     background: linear-gradient(135deg, #4f6dff 0%, #7c4dff 100%);
     border-color: rgba(180,200,255,.6); }
+  button.mode-btn {
+    background: linear-gradient(135deg, #6d4fff 0%, #4f2bcc 100%);
+    border-color: rgba(180,200,255,.6); }
   #vrPreview {
     position: fixed; inset: 0; pointer-events: none;
     z-index: 10; display: none; }
@@ -89,6 +92,7 @@
   <button id="nextBtn" class="nav-btn">▶</button>
   <button id="desummonBtn" class="danger">✕ Desinvocar</button>
   <button id="backBtn" class="primary">↩ Devolver carta</button>
+  <button id="modeBtn" class="mode-btn">📌 Modo</button>
   <button id="previewBtn" class="vr-btn">👓 Preview VR</button>
 </div>
 
@@ -511,8 +515,8 @@ function makeInsideCoverTexture() {
     'Cada carta invoca um holograma',
     'do ser que nela habita.',
     '',
-    'Toque numa carta para invocar.',
-    'Toque novamente para devolver.'
+    'Botão A: alterna entre Mão e Mundo.',
+    'Modo Mundo: pegue com o gatilho.'
   ];
   lines.forEach((l, i) => ctx.fillText(l, TW / 2, TH * 0.52 + i * 46));
   const tex = new THREE.CanvasTexture(cv);
@@ -1326,6 +1330,18 @@ const coverInfo = { pivot: coverPivot, originalY: Y_COVER, flippedY: Y_FLIP_COVE
   bookGroup.add(spine);
 })();
 
+/* ★ Anel de "modo mundo" — brilha quando o livro está fixo no cenário ★ */
+const worldModeRing = new THREE.Mesh(
+  new THREE.TorusGeometry(COVER_D * 0.55, 0.02, 12, 64),
+  new THREE.MeshBasicMaterial({
+    color: 0x9a7dff, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  })
+);
+worldModeRing.rotation.x = -Math.PI / 2;
+worldModeRing.position.set(COVER_W / 2, -0.05, 0);
+bookGroup.add(worldModeRing);
+
 /* ============================================================
    HOLOGRAMA
    ============================================================ */
@@ -1562,7 +1578,6 @@ function buildHologram(data) {
   group.userData.gem = gem;
   group.userData.gemGlow = gemGlow;
   group.userData.auraSprite = auraSprite;
-  group.userData.coreTex = coreTex;
   group.userData.y = Y;
   group.userData.scanTex = scanTex;
   return group;
@@ -1600,22 +1615,31 @@ function updateTweens(now) {
 }
 
 /* ============================================================
-   ★ SISTEMA VR DO LIVRO ★
+   ★ SISTEMA VR DO LIVRO — Hand vs World ★
    ============================================================ */
-// ⬇️ AJUSTE AQUI: DIMINUIR O TAMANHO E AUMENTAR A DISTÂNCIA ⬇️
-const BOOK_VR_SCALE = 0.026;    // era 0.045 → agora 42% menor
-const BOOK_VR_Y = -0.14;        // altura (levemente mais alto, pois está mais longe)
-const BOOK_VR_Z = -0.42;        // era -0.24 → agora 42cm à frente (75% mais longe)
-const BOOK_VR_TILT = -0.32;     // inclinação sutil
+const BOOK_VR_SCALE = 0.026;
+const BOOK_VR_Y = -0.14;
+const BOOK_VR_Z = -0.42;
+const BOOK_VR_TILT = -0.32;
 
+// Estado do livro em VR
 const bookVR = {
   active: false,
+  // Hand mode: transforma local relativo à câmera
   localPos: new THREE.Vector3(-COVER_W / 2 * BOOK_VR_SCALE, BOOK_VR_Y, BOOK_VR_Z),
   localQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(BOOK_VR_TILT, 0, 0)),
   scale: BOOK_VR_SCALE,
   targetPos: new THREE.Vector3(-COVER_W / 2 * BOOK_VR_SCALE, BOOK_VR_Y, BOOK_VR_Z),
   targetQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(BOOK_VR_TILT, 0, 0)),
   targetScale: BOOK_VR_SCALE
+};
+
+// Estado do livro em World mode
+const bookWorld = {
+  pos: new THREE.Vector3(),
+  quat: new THREE.Quaternion(),
+  targetPos: new THREE.Vector3(),
+  targetQuat: new THREE.Quaternion()
 };
 
 function refreshBookVRTarget() {
@@ -1632,24 +1656,39 @@ function refreshBookVRTarget() {
 function updateBookVRTransform(dt) {
   if (!bookVR.active) return;
   const k = 1 - Math.pow(0.0005, dt);
-  bookVR.localPos.lerp(bookVR.targetPos, k);
-  bookVR.localQuat.slerp(bookVR.targetQuat, k);
   bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
 
-  const camPos = new THREE.Vector3();
-  const camQuat = new THREE.Quaternion();
-  camera.getWorldPosition(camPos);
-  camera.getWorldQuaternion(camQuat);
-
-  const worldOffset = bookVR.localPos.clone().applyQuaternion(camQuat);
-  bookGroup.position.copy(camPos).add(worldOffset);
-  bookGroup.quaternion.copy(camQuat).multiply(bookVR.localQuat);
-  bookGroup.scale.setScalar(bookVR.scale);
+  if (state.bookMode === 'world') {
+    // ═══ WORLD MODE: livro fica fixo em um ponto do cenário ═══
+    const kw = 1 - Math.pow(0.00005, dt); // transição mais suave
+    bookWorld.pos.lerp(bookWorld.targetPos, kw);
+    // Se está sendo agarrado, o quat alvo é atualizado pelo controller; senão, converge para o alvo
+    if (!isGrabbingBook) {
+      bookWorld.quat.slerp(bookWorld.targetQuat, kw);
+    } else {
+      bookWorld.quat.copy(bookWorld.targetQuat); // segue imediatamente o controller
+    }
+    bookGroup.position.copy(bookWorld.pos);
+    bookGroup.quaternion.copy(bookWorld.quat);
+    bookGroup.scale.setScalar(bookVR.scale);
+  } else {
+    // ═══ HAND MODE: livro segue a câmera ═══
+    bookVR.localPos.lerp(bookVR.targetPos, k);
+    bookVR.localQuat.slerp(bookVR.targetQuat, k);
+    const camPos = new THREE.Vector3();
+    const camQuat = new THREE.Quaternion();
+    camera.getWorldPosition(camPos);
+    camera.getWorldQuaternion(camQuat);
+    const worldOffset = bookVR.localPos.clone().applyQuaternion(camQuat);
+    bookGroup.position.copy(camPos).add(worldOffset);
+    bookGroup.quaternion.copy(camQuat).multiply(bookVR.localQuat);
+    bookGroup.scale.setScalar(bookVR.scale);
+  }
 }
 
 function enableBookVR() {
   bookVR.active = true;
-  // Começa distante/pequeno para animação de entrada
+  state.bookMode = 'hand';
   bookVR.localPos.set(0, -1.0, -0.15);
   bookVR.localQuat.setFromEuler(new THREE.Euler(0.5, -0.6, 0));
   bookVR.scale = 0.001;
@@ -1657,9 +1696,93 @@ function enableBookVR() {
 }
 function disableBookVR() {
   bookVR.active = false;
+  state.bookMode = 'hand';
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
+}
+
+/* ★ PINAR / SOLTAR DO MUNDO ★ */
+function pinBookToWorld() {
+  // Pega o transform mundial atual do livro
+  const wp = new THREE.Vector3();
+  const wq = new THREE.Quaternion();
+  bookGroup.getWorldPosition(wp);
+  bookGroup.getWorldQuaternion(wq);
+  // Ajusta: quando pinado no mundo, colocamos o livro um pouco abaixo da linha dos olhos
+  // e na frente — como se estivesse apoiado numa mesa invisível
+  bookWorld.pos.copy(wp);
+  bookWorld.quat.copy(wq);
+  bookWorld.targetPos.copy(wp);
+  bookWorld.targetQuat.copy(wq);
+  state.bookMode = 'world';
+  // Anima o anel indicador
+  worldModeRing.material.opacity = 0.85;
+  worldModeRing.scale.setScalar(1);
+}
+function releaseBookToHand() {
+  // Volta para o modo mão, calculando o offset local atual para transição suave
+  const camPos = new THREE.Vector3();
+  const camQuat = new THREE.Quaternion();
+  camera.getWorldPosition(camPos);
+  camera.getWorldQuaternion(camQuat);
+  const offsetWorld = bookGroup.position.clone().sub(camPos);
+  const localOffset = offsetWorld.applyQuaternion(camQuat.clone().invert());
+  bookVR.localPos.copy(localOffset);
+  bookVR.localQuat.copy(camQuat.clone().invert().multiply(bookGroup.quaternion));
+  state.bookMode = 'hand';
+  refreshBookVRTarget();
+  worldModeRing.material.opacity = 0;
+}
+
+function toggleBookMode() {
+  if (!bookVR.active) return;
+  if (state.bookMode === 'hand') pinBookToWorld();
+  else releaseBookToHand();
+}
+
+/* ★ GRAB — segurar com o gatilho e rotacionar com o controller ★ */
+let isGrabbingBook = false;
+let grabbingController = null;
+const grabStartCtrlQuatInv = new THREE.Quaternion();
+const grabStartBookQuat = new THREE.Quaternion();
+
+function tryStartBookGrab(controller) {
+  if (state.bookMode !== 'world') return false;
+  if (isGrabbingBook) return false;
+  // Raycast do controller
+  const tempMatrix = new THREE.Matrix4();
+  tempMatrix.identity().extractRotation(controller.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+  const hits = raycaster.intersectObject(bookGroup, true);
+  if (hits.length === 0) return false;
+  // Inicia grab
+  isGrabbingBook = true;
+  grabbingController = controller;
+  const cq = new THREE.Quaternion();
+  controller.getWorldQuaternion(cq);
+  grabStartCtrlQuatInv.copy(cq).invert();
+  grabStartBookQuat.copy(bookWorld.targetQuat);
+  return true;
+}
+
+function updateBookGrab() {
+  if (!isGrabbingBook || !grabbingController) return;
+  const cq = new THREE.Quaternion();
+  grabbingController.getWorldQuaternion(cq);
+  const newQuat = cq.clone()
+    .multiply(grabStartCtrlQuatInv)
+    .multiply(grabStartBookQuat);
+  bookWorld.targetQuat.copy(newQuat);
+  bookWorld.quat.copy(newQuat);
+}
+
+function endBookGrab() {
+  if (isGrabbingBook) {
+    isGrabbingBook = false;
+    grabbingController = null;
+  }
 }
 
 /* ============================================================
@@ -1670,7 +1793,8 @@ const state = {
   inspectedCard: null, cardOriginalParent: null,
   cardOriginalPos: null, cardOriginalQuat: null, cardOriginalScale: null,
   summoned: null, holoTime: 0,
-  vrPreview: false
+  vrPreview: false,
+  bookMode: 'hand'  // 'hand' ou 'world'
 };
 const MAX_SPREAD = 3;
 
@@ -1685,6 +1809,7 @@ const nextBtn = document.getElementById('nextBtn');
 const backBtn = document.getElementById('backBtn');
 const desummonBtn = document.getElementById('desummonBtn');
 const previewBtn = document.getElementById('previewBtn');
+const modeBtn = document.getElementById('modeBtn');
 const vrExit = document.getElementById('vrExit');
 const vrPreviewOverlay = document.getElementById('vrPreview');
 
@@ -1698,6 +1823,8 @@ function refreshUI() {
   nextBtn.classList.toggle('visible', (m === 'open' || m === 'flipping') && !inVR);
   backBtn.classList.toggle('visible', m === 'inspecting' && !inVR);
   desummonBtn.classList.toggle('visible', m === 'inspecting' && !!state.summoned && !inVR);
+  modeBtn.classList.toggle('visible', inVR);
+  modeBtn.textContent = state.bookMode === 'hand' ? '📌 Fixar no mundo' : '✋ Voltar à mão';
   previewBtn.classList.toggle('visible', !inVR);
   prevBtn.disabled = state.spread <= 1;
   nextBtn.disabled = state.spread >= MAX_SPREAD;
@@ -1716,7 +1843,7 @@ function isVRActive() { return renderer.xr.isPresenting || state.vrPreview; }
 function openAlbum() {
   if (state.mode !== 'closed') return;
   state.mode = 'flipping'; state.spread = 1; refreshUI();
-  if (isVRActive()) refreshBookVRTarget();
+  if (isVRActive() && state.bookMode === 'hand') refreshBookVRTarget();
   const sR = coverInfo.pivot.rotation.z, sY = coverInfo.pivot.position.y;
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
@@ -1735,7 +1862,7 @@ function closeAlbum() {
   if (state.mode !== 'open') return;
   if (state.spread > 1) { flipBack(() => closeAlbum()); return; }
   state.mode = 'flipping'; refreshUI();
-  if (isVRActive()) refreshBookVRTarget();
+  if (isVRActive() && state.bookMode === 'hand') refreshBookVRTarget();
   const sR = coverInfo.pivot.rotation.z, sY = coverInfo.pivot.position.y;
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
@@ -2019,7 +2146,7 @@ function endCardDrag(e) {
   if (didDrag) renderer.domElement.style.cursor = 'pointer';
 }
 
-/* EVENTOS */
+/* EVENTOS MOUSE */
 function onPointerDown(e) {
   if (e.button !== 0 || renderer.xr.isPresenting) return;
   setPointer(e);
@@ -2066,6 +2193,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' && state.mode === 'open') flipForward();
   if (e.key === 'ArrowLeft' && state.mode === 'open') flipBack();
   if ((e.key === 'd' || e.key === 'D') && state.summoned) desummonHologram();
+  if ((e.key === 'm' || e.key === 'M') && isVRActive()) toggleBookMode();
 });
 openBtn.addEventListener('click', (e) => { e.stopPropagation(); openAlbum(); });
 closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeAlbum(); });
@@ -2073,6 +2201,7 @@ nextBtn.addEventListener('click', (e) => { e.stopPropagation(); flipForward(); }
 prevBtn.addEventListener('click', (e) => { e.stopPropagation(); flipBack(); });
 backBtn.addEventListener('click', (e) => { e.stopPropagation(); returnInspectedCard(); });
 desummonBtn.addEventListener('click', (e) => { e.stopPropagation(); desummonHologram(); });
+modeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleBookMode(); });
 
 /* ============================================================
    PREVIEW VR
@@ -2117,6 +2246,7 @@ function exitVRPreview() {
   coverInfo.pivot.position.y = coverInfo.originalY;
   sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
   sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
+  worldModeRing.material.opacity = 0;
   refreshUI();
 }
 previewBtn.addEventListener('click', (e) => { e.stopPropagation(); enterVRPreview(); });
@@ -2144,8 +2274,14 @@ addRay(controller0); addRay(controller1);
 scene.add(controller0); scene.add(controller1);
 scene.add(grip0); scene.add(grip1);
 
-function onControllerSelect(event) {
+/* Select = gatilho: em modo mundo, pode iniciar grab */
+function onControllerSelectStart(event) {
   const controller = event.target;
+  // Primeiro: tentar grab (apenas em modo mundo)
+  if (state.bookMode === 'world' && tryStartBookGrab(controller)) {
+    return; // grab iniciado, não faz mais nada
+  }
+  // Se não pegou, faz o comportamento normal (abrir/inspecionar)
   const tempMatrix = new THREE.Matrix4();
   tempMatrix.identity().extractRotation(controller.matrixWorld);
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
@@ -2165,8 +2301,32 @@ function onControllerSelect(event) {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) returnInspectedCard();
   }
 }
-controller0.addEventListener('selectstart', onControllerSelect);
-controller1.addEventListener('selectstart', onControllerSelect);
+function onControllerSelectEnd() {
+  endBookGrab();
+}
+controller0.addEventListener('selectstart', onControllerSelectStart);
+controller0.addEventListener('selectend', onControllerSelectEnd);
+controller1.addEventListener('selectstart', onControllerSelectStart);
+controller1.addEventListener('selectend', onControllerSelectEnd);
+
+/* ★ Poll do botão A → alterna modo hand/world ★ */
+const controllerBtnStates = [
+  { a: false },
+  { a: false }
+];
+function pollControllerButtons() {
+  if (!renderer.xr.isPresenting) return;
+  [controller0, controller1].forEach((ctrl, i) => {
+    const src = ctrl.inputSource;
+    if (!src || !src.gamepad) return;
+    const gp = src.gamepad;
+    const aPressed = gp.buttons[4] ? gp.buttons[4].pressed : false;
+    if (aPressed && !controllerBtnStates[i].a) {
+      toggleBookMode();
+    }
+    controllerBtnStates[i].a = aPressed;
+  });
+}
 
 /* ============================================================
    SESSÃO VR
@@ -2175,11 +2335,15 @@ renderer.xr.addEventListener('sessionstart', () => {
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
   enableBookVR();
+  controllerBtnStates[0].a = false;
+  controllerBtnStates[1].a = false;
   refreshUI();
 });
 renderer.xr.addEventListener('sessionend', () => {
   extendedGroup.visible = false;
   disableBookVR();
+  endBookGrab();
+  worldModeRing.material.opacity = 0;
   state.mode = 'closed';
   state.spread = 0;
   coverInfo.pivot.rotation.z = 0;
@@ -2211,7 +2375,16 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
   updateTweens(now);
+  pollControllerButtons();
+  updateBookGrab();
   updateBookVRTransform(dt);
+
+  // Anel de modo mundo pulsa e encolhe gradual
+  if (worldModeRing.material.opacity > 0) {
+    const s = 1 + Math.sin(now * 0.004) * 0.03;
+    worldModeRing.scale.setScalar(s);
+    worldModeRing.rotation.z += dt * 0.4;
+  }
 
   skyMesh.rotation.y += dt * 0.003;
   const tGlobal = now * 0.001;
