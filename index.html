@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ilha da Ganância — VR Ajustado</title>
+<title>Ilha da Ganância — VR Corrigido</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden;
@@ -107,16 +107,14 @@ import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFa
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
 /* ============================================================
-   CONSTANTES VR — dimensões reais em metros
+   CONSTANTES VR
    ============================================================ */
-const VR_SCALE = 0.041;           // livro: 45cm aberto / 23cm fechado
-const VR_BOOK_Y = 1.15;           // altura do peito
-const VR_BOOK_Z = -0.20;          // 20cm à frente
-const VR_OPEN_X = 0;              // spine no centro quando aberto
-const VR_CLOSED_X_OFF = -2.83 * VR_SCALE; // -0.116 — centra o livro fechado
-const VR_HOLO_Y_OFFSET = 0.20;    // holograma 20cm acima da carta
-const VR_HOLO_SCALE = 0.065;      // holograma ~13cm
-const VR_CARD_SCALE = 0.05;       // carta ~7cm
+const VR_SCALE = 0.041;                // livro: 45cm aberto / 23cm fechado
+const VR_BOOK_X_OPEN = 0;              // spine no centro quando aberto
+const VR_BOOK_X_CLOSED = -0.116;       // centra o livro fechado (2.83 * 0.041)
+const VR_BOOK_Y = -0.18;               // 18cm abaixo dos olhos (nível do peito)
+const VR_BOOK_Z = -0.22;               // 22cm à frente do usuário
+const VR_BOOK_TILT = -0.28;            // inclinação suave para baixo
 
 /* ============================================================
    DADOS
@@ -321,16 +319,6 @@ function makeBackTexture() {
     ctx.lineTo(Math.cos(a2) * 240, Math.sin(a2) * 240);
     ctx.closePath(); ctx.fill(); ctx.stroke();
   }
-  ctx.strokeStyle = gold; ctx.lineWidth = 3;
-  ctx.fillStyle = 'rgba(212,175,90,0.10)';
-  ctx.beginPath();
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2 - Math.PI / 2;
-    const r = i % 2 === 0 ? 140 : 55;
-    const x = Math.cos(a) * r, y = Math.sin(a) * r;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle = gold;
   ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
   ctx.restore();
@@ -351,13 +339,6 @@ function makeCoverTexture() {
   bg.addColorStop(0, '#0a4535'); bg.addColorStop(0.35, '#052820');
   bg.addColorStop(0.65, '#031a14'); bg.addColorStop(1, '#0a4535');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.08;
-  for (let i = 0; i < 9000; i++) {
-    const x = Math.random() * TW, y = Math.random() * TH;
-    ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
-    ctx.beginPath(); ctx.arc(x, y, Math.random() * 1.6, 0, 7); ctx.fill();
-  }
-  ctx.restore();
   ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 8;
   roundRect(ctx, 30, 30, TW - 60, TH - 60, 22); ctx.stroke();
   ctx.strokeStyle = 'rgba(212,175,90,0.55)'; ctx.lineWidth = 2;
@@ -413,11 +394,7 @@ function makeInsideCoverTexture() {
   ctx.fillText('caçador', TW / 2, 250);
   ctx.fillStyle = 'rgba(60,45,25,0.8)';
   ctx.font = 'italic 26px Georgia, serif';
-  const lines = [
-    'Esta é a Ilha da Ganância.',
-    'Toque numa carta para invocar.',
-    'Use os botões ao lado para folhear.'
-  ];
+  const lines = ['Esta é a Ilha da Ganância.', 'Toque numa carta para invocar.'];
   lines.forEach((l, i) => ctx.fillText(l, TW / 2, TH * 0.55 + i * 46));
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
@@ -442,7 +419,7 @@ function makeBackCoverInsideTexture() {
 }
 
 /* ============================================================
-   TEXTURAS DE HOLOGRAMA HD
+   TEXTURAS DE HOLOGRAMA
    ============================================================ */
 const holoTexCache = new Map();
 function getHoloCoreTex(emoji, tintHex = '#88ddff') {
@@ -490,6 +467,39 @@ function getHoloSilhouetteTex(emoji, colorHex) {
   holoTexCache.set(key, tex);
   return tex;
 }
+
+/* ============================================================
+   ★ NOVO: TEXTURA REDONDA PARA ESTRELAS DAS CONSTELAÇÕES
+   ============================================================ */
+function makeStarRoundTexture(hardness = 0.35) {
+  // hardness: 0 = muito suave, 1 = muito dura
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  const c = S / 2;
+  const g = ctx.createRadialGradient(c, c, 0, c, c, c);
+  const h = Math.max(0.05, Math.min(0.95, hardness));
+  g.addColorStop(0.0, 'rgba(255,255,255,1)');
+  g.addColorStop(h * 0.5, 'rgba(255,255,255,1)');
+  g.addColorStop(h, 'rgba(255,255,255,0.85)');
+  g.addColorStop(0.75, 'rgba(255,255,255,0.28)');
+  g.addColorStop(0.92, 'rgba(255,255,255,0.05)');
+  g.addColorStop(1.0, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(c, c, c, 0, Math.PI * 2);
+  ctx.fill();
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  return tex;
+}
+// Duas versões: estrela (dura) e halo (suave)
+const STAR_TEX      = makeStarRoundTexture(0.55);   // núcleo nítido
+const STAR_HALO_TEX = makeStarRoundTexture(0.10);   // halo difuso
 
 /* ============================================================
    CENA
@@ -630,13 +640,6 @@ function makeSkyTexture() {
     glow.addColorStop(1, 'transparent');
     ctx.fillStyle = glow;
     ctx.beginPath(); ctx.arc(x, y, r * 12, 0, 7); ctx.fill();
-    ctx.save(); ctx.translate(x, y);
-    ctx.strokeStyle = `hsla(${hue}, 40%, 95%, ${b * 0.5})`;
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(-r * 6, 0); ctx.lineTo(r * 6, 0);
-    ctx.moveTo(0, -r * 6); ctx.lineTo(0, r * 6);
-    ctx.stroke(); ctx.restore();
   }
   ctx.globalCompositeOperation = 'source-over';
   const tex = new THREE.CanvasTexture(cv);
@@ -681,13 +684,15 @@ const extendedNames = [
   'Águia','Centauro','Cruzeiro do Sul','Carina','Hidra','Corvo','Cão Maior','Cão Menor',
   'Baleia','Pégaso','Dragão','Hércules','Fênix','Cocheiro','Eridano','Pavão'
 ];
+
+/* ★ AGORA USA SPRITES COM TEXTURA REDONDA */
 function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity = 0.9) {
   const group = new THREE.Group();
   const center = pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0,0]);
   center[0] /= pts.length; center[1] /= pts.length;
   const localPts = pts.map(p => [(p[0] - center[0]) * 7 * scale, (p[1] - center[1]) * 7 * scale]);
   const lineMat = new THREE.LineBasicMaterial({
-    color, transparent: true, opacity: 0.4 * intensity,
+    color, transparent: true, opacity: 0.35 * intensity,
     blending: THREE.AdditiveBlending, depthWrite: false
   });
   group.add(new THREE.Line(
@@ -695,20 +700,47 @@ function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity 
     lineMat
   ));
   localPts.forEach(p => {
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      color: 0xffffff, transparent: true, opacity: 0.95 * intensity,
-      blending: THREE.AdditiveBlending, depthWrite: false
-    }));
-    sprite.scale.set(2.0, 2.0, 1);
-    sprite.position.set(p[0], p[1], 0);
-    group.add(sprite);
+    // Halo suave externo (atrás)
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-      color, transparent: true, opacity: 0.35 * intensity,
-      blending: THREE.AdditiveBlending, depthWrite: false
+      map: STAR_HALO_TEX,
+      color: color,
+      transparent: true,
+      opacity: 0.55 * intensity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false
     }));
-    glow.scale.set(8, 8, 1);
+    glow.scale.set(9, 9, 1);
     glow.position.set(p[0], p[1], -0.1);
     group.add(glow);
+
+    // Núcleo da estrela (redondo)
+    const core = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: STAR_TEX,
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.98 * intensity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false
+    }));
+    core.scale.set(2.2, 2.2, 1);
+    core.position.set(p[0], p[1], 0);
+    group.add(core);
+
+    // Glow intermediário colorido
+    const mid = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: STAR_TEX,
+      color: color,
+      transparent: true,
+      opacity: 0.65 * intensity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false
+    }));
+    mid.scale.set(4.5, 4.5, 1);
+    mid.position.set(p[0], p[1], -0.05);
+    group.add(mid);
   });
   group.userData.lineMat = lineMat;
   group.userData.phase = Math.random() * Math.PI * 2;
@@ -786,6 +818,8 @@ let shootingStarTimer = 0;
 /* ============================================================
    ÁLBUM
    ============================================================ */
+// ⚠️ O álbum começa como filho da CENA (desktop).
+// Em VR ele vira filho da CÂMERA para acompanhar o headset.
 const bookGroup = new THREE.Group();
 bookGroup.position.set(0, 1.0, -1.5);
 scene.add(bookGroup);
@@ -1075,9 +1109,8 @@ function makePageButton(isNext) {
   g.userData.direction = isNext ? 1 : -1;
   g.userData.mesh = mesh;
   g.userData.glow = glow;
-  // hitbox maior para facilitar
   const hit = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.11, 0.11),
+    new THREE.PlaneGeometry(0.13, 0.13),
     new THREE.MeshBasicMaterial({ visible: false })
   );
   g.add(hit);
@@ -1134,7 +1167,7 @@ const state = {
   cardOriginalPos: null, cardOriginalQuat: null, cardOriginalScale: null,
   summoned: null, holoTime: 0,
   isVR: false, vrPreview: false,
-  targetBookX: null
+  bookInCamera: false
 };
 const MAX_SPREAD = 3;
 
@@ -1185,7 +1218,7 @@ function openAlbum() {
   const tgtStart = controls.target.clone();
   const vr = isVRActive();
   const startX = bookGroup.position.x;
-  const endX = VR_OPEN_X;
+  const endX = VR_BOOK_X_OPEN;
 
   animate(1200, (t) => {
     coverInfo.pivot.rotation.z = sR + (Math.PI - sR) * t;
@@ -1198,7 +1231,6 @@ function openAlbum() {
     }
   }, () => { state.mode = 'open'; refreshUI(); });
 }
-
 function closeAlbum() {
   if (state.mode !== 'open') return;
   if (state.spread > 1) { flipBack(() => closeAlbum()); return; }
@@ -1208,7 +1240,7 @@ function closeAlbum() {
   const tgtStart = controls.target.clone();
   const vr = isVRActive();
   const startX = bookGroup.position.x;
-  const endX = VR_CLOSED_X_OFF;
+  const endX = VR_BOOK_X_CLOSED;
 
   animate(1200, (t) => {
     coverInfo.pivot.rotation.z = sR * (1 - t);
@@ -1221,7 +1253,6 @@ function closeAlbum() {
     }
   }, () => { state.mode = 'closed'; state.spread = 0; refreshUI(); });
 }
-
 function flipForward() {
   if (state.mode !== 'open' || state.spread >= MAX_SPREAD) return;
   state.mode = 'flipping'; refreshUI();
@@ -1238,7 +1269,6 @@ function flipForward() {
     state.spread++; state.mode = 'open'; refreshUI();
   });
 }
-
 function flipBack(callback) {
   if (state.mode !== 'open' || state.spread <= 1) { if (callback) callback(); return; }
   state.mode = 'flipping'; refreshUI();
@@ -1309,13 +1339,14 @@ function summonHologram(card) {
   card.getWorldPosition(cardWorldPos);
   const holo = buildHologram(data);
   const vr = isVRActive();
-  const yOff = vr ? VR_HOLO_Y_OFFSET : 2.1;
+  // Em VR: 8cm acima da carta. Desktop: 2.1 unidades
+  const yOff = vr ? 0.08 : 2.1;
   holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, yOff, 0));
   holo.scale.setScalar(0.01);
   scene.add(holo);
   state.summoned = holo;
   state.holoTime = 0;
-  const targetScale = vr ? 1.0 : 0.9; // já está em escala local ~0.7
+  const targetScale = vr ? 0.65 : 0.9;
   animate(750, (t) => { holo.scale.setScalar(0.01 + t * targetScale); },
     () => { holo.scale.setScalar(targetScale); }, easeOutCubic);
 }
@@ -1331,7 +1362,7 @@ function desummonHologram(onComplete) {
   const c = new THREE.Color(0x88ddff);
   for (let i = 0; i < bc; i++) {
     pos[i*3] = holo.position.x;
-    pos[i*3+1] = holo.position.y + 0.5;
+    pos[i*3+1] = holo.position.y + 0.3;
     pos[i*3+2] = holo.position.z;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
@@ -1400,14 +1431,15 @@ function doInspect(card) {
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
   const vr = isVRActive();
-  const dist = vr ? 0.25 : 6.8;
+  const dist = vr ? 0.28 : 6.8;
   const targetPos = camPos.clone().addScaledVector(camDir, dist);
   const targetQuat = computeCardFacingQuat(targetPos, camPos);
   const startPos = card.position.clone();
   const startQuat = card.quaternion.clone();
   const startScale = card.scale.clone();
+  // Tamanho real da carta: ~7cm × 12cm
   const targetScale = vr
-    ? new THREE.Vector3(VR_CARD_SCALE, VR_CARD_SCALE, VR_CARD_SCALE)
+    ? new THREE.Vector3(0.05, 0.05, 0.05)
     : new THREE.Vector3(1.3, 1.3, 1.3);
 
   controls.enabled = false;
@@ -1500,7 +1532,7 @@ function updateCardDrag(e) {
     const newPos = hit.clone().add(dragOffset);
     state.inspectedCard.position.copy(newPos);
     if (state.summoned) {
-      const yOff = isVRActive() ? VR_HOLO_Y_OFFSET : 2.1;
+      const yOff = isVRActive() ? 0.08 : 2.1;
       state.summoned.position.copy(newPos).add(new THREE.Vector3(0, yOff, 0));
     }
   }
@@ -1517,8 +1549,6 @@ function endCardDrag(e) {
 function onPointerDown(e) {
   if (e.button !== 0 || state.isVR) return;
   setPointer(e);
-
-  // Se está em preview VR, checa primeiro os botões 3D
   if (state.vrPreview) {
     const btn = pickVRPageButton();
     if (btn) {
@@ -1527,7 +1557,6 @@ function onPointerDown(e) {
       return;
     }
   }
-
   if (state.mode === 'closed') { if (pickCover()) openAlbum(); return; }
   if (state.mode === 'open') {
     const card = pickCard();
@@ -1577,7 +1606,6 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' && state.mode === 'open') flipForward();
   if (e.key === 'ArrowLeft' && state.mode === 'open') flipBack();
   if ((e.key === 'd' || e.key === 'D') && state.summoned) desummonHologram();
-  // B = botão B do controle / tecla para abrir/fechar em VR
   if ((e.key === 'b' || e.key === 'B')) {
     if (state.mode === 'closed') openAlbum();
     else if (state.mode === 'open') closeAlbum();
@@ -1592,31 +1620,53 @@ backBtn.addEventListener('click', (e) => { e.stopPropagation(); returnInspectedC
 desummonBtn.addEventListener('click', (e) => { e.stopPropagation(); desummonHologram(); });
 
 /* ============================================================
-   POSICIONAMENTO VR DO LIVRO
+   ★ POSICIONAMENTO VR — livro como filho da CÂMERA
    ============================================================ */
-function positionBookForVR() {
-  bookGroup.scale.setScalar(VR_SCALE);
-  bookGroup.position.set(VR_CLOSED_X_OFF, VR_BOOK_Y, VR_BOOK_Z);
-  bookGroup.rotation.set(0, 0, 0);
+function attachBookToCamera() {
+  if (bookGroup.parent === camera) return;
+  // Preserva posição desktop como segurança, mas reparenta
+  scene.remove(bookGroup);
+  camera.add(bookGroup);
+  state.bookInCamera = true;
+}
+function attachBookToScene() {
+  if (bookGroup.parent === scene) return;
+  camera.remove(bookGroup);
+  scene.add(bookGroup);
+  state.bookInCamera = false;
 }
 
+/* Posiciona o livro em espaço LOCAL da câmera (fica na frente da cabeça) */
+function positionBookForVR() {
+  bookGroup.scale.setScalar(VR_SCALE);
+  bookGroup.position.set(VR_BOOK_X_CLOSED, VR_BOOK_Y, VR_BOOK_Z);
+  bookGroup.rotation.set(VR_BOOK_TILT, 0, 0);
+}
+
+/* Animação de aparição — em espaço local da câmera */
 function animateBookAppearance() {
   const targetScale = VR_SCALE;
-  const targetPos = new THREE.Vector3(VR_CLOSED_X_OFF, VR_BOOK_Y, VR_BOOK_Z);
+  const targetPos = new THREE.Vector3(VR_BOOK_X_CLOSED, VR_BOOK_Y, VR_BOOK_Z);
+  const targetRotX = VR_BOOK_TILT;
+  const startPos = new THREE.Vector3(0, -0.5, -0.15);
+  const startRotX = 0.4;
+
   bookGroup.scale.setScalar(0.001);
-  bookGroup.position.set(0, 0.3, -1.5);
-  bookGroup.rotation.set(0.6, -0.8, 0);
+  bookGroup.position.copy(startPos);
+  bookGroup.rotation.set(startRotX, -0.6, 0);
+
   animate(1400, (t) => {
     bookGroup.scale.setScalar(t * targetScale);
-    bookGroup.position.lerpVectors(new THREE.Vector3(0, 0.3, -1.5), targetPos, t);
+    bookGroup.position.lerpVectors(startPos, targetPos, t);
     bookGroup.rotation.set(
-      0.6 * (1 - t), -0.8 * (1 - t),
+      startRotX * (1 - t) + targetRotX * t,
+      -0.6 * (1 - t),
       0.15 * Math.sin(t * Math.PI) * (1 - t)
     );
   }, () => {
     bookGroup.scale.setScalar(targetScale);
     bookGroup.position.copy(targetPos);
-    bookGroup.rotation.set(0, 0, 0);
+    bookGroup.rotation.set(targetRotX, 0, 0);
   }, easeOutBack);
 }
 
@@ -1636,12 +1686,13 @@ function enterVRPreview() {
   savedTarget.copy(controls.target);
   savedControlsEnabled = controls.enabled;
 
-  // Headset no preview
-  camera.position.set(0, 1.6, 0);
+  // Camera na altura dos olhos, olhando um pouco para baixo
+  camera.position.set(0, 1.65, 0);
   camera.quaternion.setFromEuler(new THREE.Euler(-0.25, 0, 0));
   controls.enabled = false;
 
-  // Reposiciona o livro
+  // Livro vira filho da câmera
+  attachBookToCamera();
   positionBookForVR();
   animateBookAppearance();
 
@@ -1653,24 +1704,25 @@ function enterVRPreview() {
   vrExit.classList.add('active');
   refreshUI();
 }
-
 function exitVRPreview() {
   if (!state.vrPreview) return;
   state.vrPreview = false;
   vrPreviewOverlay.classList.remove('active');
   vrExit.classList.remove('active');
 
+  // Livro volta para a cena
+  attachBookToScene();
+  bookGroup.position.set(0, 1.0, -1.5);
+  bookGroup.rotation.set(0, 0, 0);
+  bookGroup.scale.setScalar(1);
+
+  // Câmera de volta
   camera.position.copy(savedCameraPos);
   camera.quaternion.copy(savedCameraQuat);
   controls.target.copy(savedTarget);
   controls.enabled = savedControlsEnabled;
   controls.update();
-
-  bookGroup.position.set(0, 1.0, -1.5);
-  bookGroup.rotation.set(0, 0, 0);
-  bookGroup.scale.setScalar(1);
   extendedGroup.visible = false;
-
   refreshUI();
 }
 previewBtn.addEventListener('click', (e) => { e.stopPropagation(); enterVRPreview(); });
@@ -1709,7 +1761,6 @@ function addRay(controller) {
 }
 addRay(controller0); addRay(controller1);
 
-/* Bracelete com botão "ABRIR" */
 function buildVRBracelet() {
   const g = new THREE.Group();
   const base = new THREE.Mesh(
@@ -1755,7 +1806,6 @@ function buildVRBracelet() {
   glowRing.rotation.x = Math.PI / 2; glowRing.position.z = 0.002;
   btnGroup.add(glowRing);
 
-  // Label sprite
   const lcv = document.createElement('canvas');
   lcv.width = 256; lcv.height = 64;
   const lctx = lcv.getContext('2d');
@@ -1776,7 +1826,6 @@ function buildVRBracelet() {
 
   g.add(btnGroup);
 
-  // hitbox
   const hit = new THREE.Mesh(
     new THREE.SphereGeometry(0.055, 8, 6),
     new THREE.MeshBasicMaterial({ visible: false })
@@ -1789,27 +1838,18 @@ function buildVRBracelet() {
   g.userData.hitbox = hit;
   return g;
 }
-
 const vrBraceletL = buildVRBracelet();
 const vrBraceletR = buildVRBracelet();
 grip0.add(vrBraceletL);
-hand0.add(vrBraceletR); // fallback: também mostra na mão esquerda
-// Ajuste: girar para ficar "em cima" do pulso
-vrBraceletL.rotation.set(0, 0, 0);
+hand0.add(vrBraceletR);
 
-/* ============================================================
-   AÇÕES VR
-   ============================================================ */
 function toggleBookVR() {
   if (state.mode === 'closed') openAlbum();
   else if (state.mode === 'open') closeAlbum();
 }
-
-/* Squeeze = abrir/fechar */
 controller0.addEventListener('squeezestart', toggleBookVR);
 controller1.addEventListener('squeezestart', toggleBookVR);
 
-/* Select (trigger) — checa botões 3D e cards */
 function handleVRSelect(event) {
   const controller = event.target;
   const tempMatrix = new THREE.Matrix4();
@@ -1826,18 +1866,15 @@ function handleVRSelect(event) {
       flipBack(); return;
     }
   }
-
   // 2) Bracelete
   if (raycaster.intersectObject(vrBraceletL.userData.hitbox, false).length > 0) {
     toggleBookVR(); return;
   }
-
   // 3) Capa
   if (state.mode === 'closed') {
     if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) openAlbum();
     return;
   }
-
   // 4) Cartas
   if (state.mode === 'open') {
     const allCards = [];
@@ -1846,8 +1883,7 @@ function handleVRSelect(event) {
     if (hits.length > 0) inspectCard(hits[0].object);
     return;
   }
-
-  // 5) Devolver carta inspecionada
+  // 5) Devolver
   if (state.mode === 'inspecting') {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) {
       returnInspectedCard();
@@ -1864,17 +1900,30 @@ renderer.xr.addEventListener('sessionstart', () => {
   state.isVR = true;
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
-  positionBookForVR();
-  animateBookAppearance();
+
+  // ⚠️ Livro vira filho da CÂMERA — fica sempre em frente ao usuário
+  attachBookToCamera();
+
+  // Aguarda dois frames para o headset se posicionar
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      positionBookForVR();
+      animateBookAppearance();
+    });
+  });
+
   refreshUI();
 });
-
 renderer.xr.addEventListener('sessionend', () => {
   state.isVR = false;
   extendedGroup.visible = false;
+
+  // Devolve o livro à cena
+  attachBookToScene();
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
+
   camera.position.copy(CAM_CLOSED);
   controls.target.copy(TARGET_CLOSED);
   controls.enabled = true;
@@ -1908,7 +1957,7 @@ renderer.setAnimationLoop(() => {
     if (!grp.visible) return;
     grp.children.forEach((c) => {
       if (c.userData.lineMat) {
-        c.userData.lineMat.opacity = 0.4 + Math.sin(tGlobal * 1.2 + c.userData.phase) * 0.18;
+        c.userData.lineMat.opacity = 0.35 + Math.sin(tGlobal * 1.2 + c.userData.phase) * 0.15;
       }
     });
   });
@@ -1948,24 +1997,24 @@ renderer.setAnimationLoop(() => {
     ss.tail.material.opacity = 0.55 * fade;
   }
 
-  // UI VR: posiciona e faz billboard dos botões de virar
+  // UI VR — atualiza posição/rotação dos botões
   const vrActive = renderer.xr.isPresenting || state.vrPreview;
   if (vrActive) {
-    // Posiciona o grupo de UI na posição do livro (sem escala)
-    vrUIGroup.position.copy(bookGroup.position);
+    // Pega a posição mundial do livro (funciona mesmo sendo filho da câmera)
+    const bp = new THREE.Vector3();
+    bookGroup.getWorldPosition(bp);
+
+    vrUIGroup.position.copy(bp);
     vrUIGroup.visible = state.mode === 'open';
 
-    // Billboard dos botões
     const camWorldPos = new THREE.Vector3();
     camera.getWorldPosition(camWorldPos);
     pageNextBtn.lookAt(camWorldPos);
     pagePrevBtn.lookAt(camWorldPos);
 
-    // Visibilidade por spread
     pageNextBtn.visible = state.spread < MAX_SPREAD;
     pagePrevBtn.visible = state.spread > 1;
 
-    // Pulso sutil
     [pageNextBtn, pagePrevBtn].forEach((b, i) => {
       const ph = i * 1.5;
       if (b.userData.glow) {
@@ -1977,7 +2026,6 @@ renderer.setAnimationLoop(() => {
       }
     });
 
-    // Bracelete pulsando
     [vrBraceletL, vrBraceletR].forEach((br, i) => {
       if (!br.userData) return;
       const glow = br.userData.glowRing;
