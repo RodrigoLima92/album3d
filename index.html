@@ -109,12 +109,19 @@ import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 /* ============================================================
    CONSTANTES VR
    ============================================================ */
-const VR_SCALE = 0.041;                // livro: 45cm aberto / 23cm fechado
-const VR_BOOK_X_OPEN = 0;              // spine no centro quando aberto
-const VR_BOOK_X_CLOSED = -0.116;       // centra o livro fechado (2.83 * 0.041)
-const VR_BOOK_Y = -0.18;               // 18cm abaixo dos olhos (nível do peito)
-const VR_BOOK_Z = -0.22;               // 22cm à frente do usuário
-const VR_BOOK_TILT = -0.28;            // inclinação suave para baixo
+const VR_SCALE = 0.041;                  // livro fechado ~23cm / aberto ~44cm
+const VR_BOOK_X_CLOSED = -2.83 * VR_SCALE;
+const VR_BOOK_X_OPEN = 0;
+const VR_BOOK_Y = -0.18;                 // 18cm abaixo dos olhos
+const VR_BOOK_Z = -0.24;                 // 24cm à frente
+const VR_BOOK_TILT = -0.30;
+
+// Posição quando o livro está segurado na mão
+const HAND_BOOK_X_CLOSED = -2.83 * VR_SCALE;
+const HAND_BOOK_X_OPEN = 0;
+const HAND_BOOK_Y = 0.10;
+const HAND_BOOK_Z = 0.0;
+const HAND_BOOK_TILT = 0.25;
 
 /* ============================================================
    DADOS
@@ -254,9 +261,6 @@ function makeCardTexture(d, index) {
   ctx.fillStyle = glass; ctx.beginPath(); ctx.arc(pCX, pCY, pR, 0, 7); ctx.fill();
   ctx.strokeStyle = 'rgba(240,210,140,0.95)'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.arc(pCX, pCY, pR, 0, 7); ctx.stroke();
-  ctx.strokeStyle = 'rgba(240,210,140,0.5)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(pCX, pCY, pR - 12, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(pCX, pCY, pR + 10, 0, 7); ctx.stroke();
   ctx.font = '210px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = d.c1; ctx.shadowBlur = 60;
@@ -294,10 +298,6 @@ function makeBackTexture() {
   const bg = ctx.createLinearGradient(0, 0, TW, TH);
   bg.addColorStop(0, '#0d2a20'); bg.addColorStop(0.5, '#041410'); bg.addColorStop(1, '#0d2a20');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH);
-  const halo = ctx.createRadialGradient(TW/2, TH/2, 10, TW/2, TH/2, TH*0.6);
-  halo.addColorStop(0, 'rgba(212,175,90,0.22)');
-  halo.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = halo; ctx.fillRect(0, 0, TW, TH);
   for (let i = 0; i < 220; i++) {
     const x = Math.random() * TW, y = Math.random() * TH;
     ctx.fillStyle = `rgba(230,240,210,${Math.random() * 0.5 + 0.15})`;
@@ -362,7 +362,6 @@ function makeCoverTexture() {
   ctx.save(); ctx.translate(TW / 2, TH * 0.70);
   ctx.strokeStyle = 'rgba(212,175,90,0.85)'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.arc(0, 0, 130, 0, 7); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 4;
   ctx.fillStyle = 'rgba(10,70,55,0.6)';
   ctx.beginPath();
   ctx.moveTo(0, -78); ctx.lineTo(66, 0); ctx.lineTo(0, 78); ctx.lineTo(-66, 0);
@@ -392,10 +391,6 @@ function makeInsideCoverTexture() {
   ctx.fillText('Bem-vindo,', TW / 2, 180);
   ctx.font = 'italic bold 58px Georgia, serif';
   ctx.fillText('caçador', TW / 2, 250);
-  ctx.fillStyle = 'rgba(60,45,25,0.8)';
-  ctx.font = 'italic 26px Georgia, serif';
-  const lines = ['Esta é a Ilha da Ganância.', 'Toque numa carta para invocar.'];
-  lines.forEach((l, i) => ctx.fillText(l, TW / 2, TH * 0.55 + i * 46));
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
   return tex;
@@ -419,7 +414,7 @@ function makeBackCoverInsideTexture() {
 }
 
 /* ============================================================
-   TEXTURAS DE HOLOGRAMA
+   HOLOGRAMAS
    ============================================================ */
 const holoTexCache = new Map();
 function getHoloCoreTex(emoji, tintHex = '#88ddff') {
@@ -467,12 +462,7 @@ function getHoloSilhouetteTex(emoji, colorHex) {
   holoTexCache.set(key, tex);
   return tex;
 }
-
-/* ============================================================
-   ★ NOVO: TEXTURA REDONDA PARA ESTRELAS DAS CONSTELAÇÕES
-   ============================================================ */
 function makeStarRoundTexture(hardness = 0.35) {
-  // hardness: 0 = muito suave, 1 = muito dura
   const S = 256;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
@@ -487,19 +477,14 @@ function makeStarRoundTexture(hardness = 0.35) {
   g.addColorStop(0.92, 'rgba(255,255,255,0.05)');
   g.addColorStop(1.0, 'rgba(255,255,255,0)');
   ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(c, c, c, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.fill();
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  tex.minFilter = THREE.LinearFilter;
-  tex.generateMipmaps = false;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   return tex;
 }
-// Duas versões: estrela (dura) e halo (suave)
-const STAR_TEX      = makeStarRoundTexture(0.55);   // núcleo nítido
-const STAR_HALO_TEX = makeStarRoundTexture(0.10);   // halo difuso
+const STAR_TEX      = makeStarRoundTexture(0.55);
+const STAR_HALO_TEX = makeStarRoundTexture(0.10);
 
 /* ============================================================
    CENA
@@ -538,7 +523,6 @@ controls.maxPolarAngle = Math.PI * 0.48;
 controls.enablePan = false;
 controls.update();
 
-/* LUZES */
 scene.add(new THREE.HemisphereLight(0xc8dcff, 0x0a1a10, 0.85));
 const keyLight = new THREE.DirectionalLight(0xfff2dc, 2.5);
 keyLight.position.set(8, 18, 10);
@@ -556,7 +540,6 @@ rimLight.position.set(-4, 4, -8); scene.add(rimLight);
 const coolLight = new THREE.PointLight(0x4fd5a8, 35, 30, 2);
 coolLight.position.set(6, 4, 8); scene.add(coolLight);
 
-/* chão */
 (function addGround() {
   const cv = document.createElement('canvas');
   cv.width = 512; cv.height = 512;
@@ -576,7 +559,7 @@ coolLight.position.set(6, 4, 8); scene.add(coolLight);
 })();
 
 /* ============================================================
-   CÉU CÓSMICO REALISTA
+   CÉU CÓSMICO
    ============================================================ */
 const SKY_RADIUS = 300;
 function makeSkyTexture() {
@@ -657,7 +640,6 @@ const skyMesh = new THREE.Mesh(
 skyMesh.renderOrder = -1000;
 scene.add(skyMesh);
 
-/* Constelações */
 const zodiacGroup = new THREE.Group();
 const extendedGroup = new THREE.Group();
 zodiacGroup.renderOrder = -999;
@@ -684,8 +666,6 @@ const extendedNames = [
   'Águia','Centauro','Cruzeiro do Sul','Carina','Hidra','Corvo','Cão Maior','Cão Menor',
   'Baleia','Pégaso','Dragão','Hércules','Fênix','Cocheiro','Eridano','Pavão'
 ];
-
-/* ★ AGORA USA SPRITES COM TEXTURA REDONDA */
 function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity = 0.9) {
   const group = new THREE.Group();
   const center = pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0,0]);
@@ -700,47 +680,27 @@ function buildConstellation(pts, name, scale = 1.0, color = 0xbcd8ff, intensity 
     lineMat
   ));
   localPts.forEach(p => {
-    // Halo suave externo (atrás)
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: STAR_HALO_TEX,
-      color: color,
-      transparent: true,
-      opacity: 0.55 * intensity,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      depthTest: false
+      map: STAR_HALO_TEX, color: color, transparent: true, opacity: 0.55 * intensity,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
     }));
     glow.scale.set(9, 9, 1);
     glow.position.set(p[0], p[1], -0.1);
     group.add(glow);
-
-    // Núcleo da estrela (redondo)
-    const core = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: STAR_TEX,
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.98 * intensity,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      depthTest: false
-    }));
-    core.scale.set(2.2, 2.2, 1);
-    core.position.set(p[0], p[1], 0);
-    group.add(core);
-
-    // Glow intermediário colorido
     const mid = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: STAR_TEX,
-      color: color,
-      transparent: true,
-      opacity: 0.65 * intensity,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      depthTest: false
+      map: STAR_TEX, color: color, transparent: true, opacity: 0.65 * intensity,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
     }));
     mid.scale.set(4.5, 4.5, 1);
     mid.position.set(p[0], p[1], -0.05);
     group.add(mid);
+    const core = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: STAR_TEX, color: 0xffffff, transparent: true, opacity: 0.98 * intensity,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
+    core.scale.set(2.2, 2.2, 1);
+    core.position.set(p[0], p[1], 0);
+    group.add(core);
   });
   group.userData.lineMat = lineMat;
   group.userData.phase = Math.random() * Math.PI * 2;
@@ -774,7 +734,6 @@ extendedNames.forEach((name, i) => {
   extendedGroup.add(g);
 });
 
-/* Estrelas cadentes */
 const shootingStars = [];
 function spawnShootingStar() {
   const startAz = Math.random() * Math.PI * 2;
@@ -818,8 +777,6 @@ let shootingStarTimer = 0;
 /* ============================================================
    ÁLBUM
    ============================================================ */
-// ⚠️ O álbum começa como filho da CENA (desktop).
-// Em VR ele vira filho da CÂMERA para acompanhar o headset.
 const bookGroup = new THREE.Group();
 bookGroup.position.set(0, 1.0, -1.5);
 scene.add(bookGroup);
@@ -921,6 +878,88 @@ const coverInfo = { pivot: coverPivot, originalY: Y_COVER, flippedY: Y_FLIP_COVE
   spine.castShadow = true;
   bookGroup.add(spine);
 })();
+
+/* ============================================================
+   ★ ZONAS DE VIRAR PÁGINA (clicando na própria página)
+   ============================================================ */
+const pageFlipZones = new THREE.Group();
+bookGroup.add(pageFlipZones);
+
+function makePageZone(side) {
+  const g = new THREE.Group();
+
+  // Seta visual no canto da página
+  const arrowCv = document.createElement('canvas');
+  arrowCv.width = 256; arrowCv.height = 256;
+  const ctx = arrowCv.getContext('2d');
+  ctx.clearRect(0, 0, 256, 256);
+
+  ctx.shadowColor = '#ffd060';
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = 'rgba(255,225,140,0.95)';
+  ctx.beginPath();
+  if (side === 'right') {
+    ctx.moveTo(200, 50);
+    ctx.lineTo(200, 206);
+    ctx.lineTo(56, 128);
+  } else {
+    ctx.moveTo(56, 50);
+    ctx.lineTo(56, 206);
+    ctx.lineTo(200, 128);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,250,230,1)';
+  ctx.lineWidth = 10;
+  ctx.stroke();
+
+  const arrowTex = new THREE.CanvasTexture(arrowCv);
+  arrowTex.colorSpace = THREE.SRGBColorSpace;
+
+  const arrow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.9, 0.9),
+    new THREE.MeshBasicMaterial({
+      map: arrowTex, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+    })
+  );
+  // Fica perto do canto superior externo da página
+  if (side === 'right') {
+    arrow.position.set(PW - 0.7, SHEET_T + 0.4, 0);
+  } else {
+    arrow.position.set(-PW + 0.7, SHEET_T + 0.4, 0);
+  }
+  arrow.rotation.x = -Math.PI / 2;
+  arrow.rotation.z = side === 'right' ? -Math.PI / 2 : Math.PI / 2;
+  g.add(arrow);
+
+  // Hitbox invisível que cobre a METADE EXTERNA da página
+  const hitW = PW * 0.45;
+  const hitH = PD * 0.85;
+  const hit = new THREE.Mesh(
+    new THREE.PlaneGeometry(hitW, hitH),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  );
+  if (side === 'right') {
+    hit.position.set(PW - hitW / 2, SHEET_T + 0.3, 0);
+  } else {
+    hit.position.set(-PW + hitW / 2, SHEET_T + 0.3, 0);
+  }
+  hit.rotation.x = -Math.PI / 2;
+  g.add(hit);
+
+  g.userData.isPageZone = true;
+  g.userData.side = side;
+  g.userData.hit = hit;
+  g.userData.arrow = arrow;
+  return g;
+}
+const pageZoneRight = makePageZone('right');
+const pageZoneLeft = makePageZone('left');
+pageFlipZones.add(pageZoneRight);
+pageFlipZones.add(pageZoneLeft);
+pageFlipZones.visible = false;   // só aparece em VR
 
 /* ============================================================
    HOLOGRAMA
@@ -1070,64 +1109,6 @@ function buildHologram(data) {
 }
 
 /* ============================================================
-   BOTÕES VR DE VIRAR PÁGINA
-   ============================================================ */
-function makePageButton(isNext) {
-  const g = new THREE.Group();
-  const cv = document.createElement('canvas');
-  cv.width = 256; cv.height = 256;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = 'rgba(20,60,45,0.9)';
-  ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#d4af5a'; ctx.lineWidth = 10;
-  ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.4)'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.arc(128, 128, 92, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = '#f4e9c8';
-  ctx.font = 'bold 140px Georgia, serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = '#d4af5a'; ctx.shadowBlur = 18;
-  ctx.fillText(isNext ? '▶' : '◀', 128, 136);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.06, 0.06),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide })
-  );
-  g.add(mesh);
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.045, 32),
-    new THREE.MeshBasicMaterial({
-      color: isNext ? 0x66aaff : 0xffaa66,
-      transparent: true, opacity: 0.35,
-      blending: THREE.AdditiveBlending, depthWrite: false
-    })
-  );
-  glow.position.z = -0.002;
-  g.add(glow);
-  g.userData.isPageButton = true;
-  g.userData.direction = isNext ? 1 : -1;
-  g.userData.mesh = mesh;
-  g.userData.glow = glow;
-  const hit = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.13, 0.13),
-    new THREE.MeshBasicMaterial({ visible: false })
-  );
-  g.add(hit);
-  g.userData.hit = hit;
-  return g;
-}
-const vrUIGroup = new THREE.Group();
-scene.add(vrUIGroup);
-const pageNextBtn = makePageButton(true);
-const pagePrevBtn = makePageButton(false);
-pageNextBtn.position.set(0.28, 0.16, 0.06);
-pagePrevBtn.position.set(-0.28, 0.16, 0.06);
-vrUIGroup.add(pageNextBtn);
-vrUIGroup.add(pagePrevBtn);
-vrUIGroup.visible = false;
-
-/* ============================================================
    TWEEN
    ============================================================ */
 const activeTweens = [];
@@ -1159,6 +1140,74 @@ function updateTweens(now) {
 }
 
 /* ============================================================
+   ★ SISTEMA DE TRANSFORMAÇÃO DO LIVRO EM VR
+   — O livro SEMPRE vive na CENA. Em VR, atualizamos sua
+     posição mundial cada frame baseado na referência.
+   ============================================================ */
+const bookRef = {
+  // Referência: 'camera' ou 'grip0' ou 'grip1'
+  refType: 'camera',
+  refGrip: null,
+  // Offset local na referência (interpolado)
+  offsetCur: new THREE.Vector3(VR_BOOK_X_CLOSED, VR_BOOK_Y, VR_BOOK_Z),
+  offsetTgt: new THREE.Vector3(VR_BOOK_X_CLOSED, VR_BOOK_Y, VR_BOOK_Z),
+  // Rotação local (interpolada)
+  quatCur: new THREE.Quaternion().setFromEuler(new THREE.Euler(VR_BOOK_TILT, 0, 0)),
+  quatTgt: new THREE.Quaternion().setFromEuler(new THREE.Euler(VR_BOOK_TILT, 0, 0)),
+  // Escala (interpolada)
+  scaleCur: VR_SCALE,
+  scaleTgt: VR_SCALE,
+  // Se está ativo (VR ou preview)
+  active: false
+};
+
+function setBookRefCamera() {
+  bookRef.refType = 'camera';
+  bookRef.refGrip = null;
+  const startX = (state.mode === 'closed') ? VR_BOOK_X_CLOSED : VR_BOOK_X_OPEN;
+  bookRef.offsetTgt.set(startX, VR_BOOK_Y, VR_BOOK_Z);
+  bookRef.quatTgt.setFromEuler(new THREE.Euler(VR_BOOK_TILT, 0, 0));
+  bookRef.scaleTgt = VR_SCALE;
+}
+function setBookRefGrip(index) {
+  bookRef.refType = 'grip' + index;
+  bookRef.refGrip = index === 0 ? grip0 : grip1;
+  const startX = (state.mode === 'closed') ? HAND_BOOK_X_CLOSED : HAND_BOOK_X_OPEN;
+  bookRef.offsetTgt.set(startX, HAND_BOOK_Y, HAND_BOOK_Z);
+  bookRef.quatTgt.setFromEuler(new THREE.Euler(HAND_BOOK_TILT, 0, 0));
+  bookRef.scaleTgt = VR_SCALE;
+}
+
+// Atualiza a posição mundial do livro baseado na referência atual
+function updateBookTransform(dt) {
+  if (!bookRef.active) return;
+
+  // Interpolação suave (k = quão rápido alcança o alvo)
+  const k = 1 - Math.pow(0.001, dt);
+  bookRef.offsetCur.lerp(bookRef.offsetTgt, k);
+  bookRef.quatCur.slerp(bookRef.quatTgt, k);
+  bookRef.scaleCur += (bookRef.scaleTgt - bookRef.scaleCur) * k;
+
+  // Pega o transform mundial da referência
+  let refObj;
+  if (bookRef.refType === 'camera') refObj = camera;
+  else if (bookRef.refType === 'grip0') refObj = grip0;
+  else if (bookRef.refType === 'grip1') refObj = grip1;
+  if (!refObj) return;
+
+  const refPos = new THREE.Vector3();
+  const refQuat = new THREE.Quaternion();
+  refObj.getWorldPosition(refPos);
+  refObj.getWorldQuaternion(refQuat);
+
+  // Aplica offset local no espaço da referência
+  const worldOffset = bookRef.offsetCur.clone().applyQuaternion(refQuat);
+  bookGroup.position.copy(refPos).add(worldOffset);
+  bookGroup.quaternion.copy(refQuat).multiply(bookRef.quatCur);
+  bookGroup.scale.setScalar(bookRef.scaleCur);
+}
+
+/* ============================================================
    ESTADO
    ============================================================ */
 const state = {
@@ -1167,7 +1216,7 @@ const state = {
   cardOriginalPos: null, cardOriginalQuat: null, cardOriginalScale: null,
   summoned: null, holoTime: 0,
   isVR: false, vrPreview: false,
-  bookInCamera: false
+  bookInHand: false, bookHandIndex: -1
 };
 const MAX_SPREAD = 3;
 
@@ -1217,13 +1266,19 @@ function openAlbum() {
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
   const vr = isVRActive();
-  const startX = bookGroup.position.x;
-  const endX = VR_BOOK_X_OPEN;
+
+  // Atualiza alvo do offset VR para o modo aberto
+  if (vr) {
+    if (state.bookInHand) {
+      bookRef.offsetTgt.x = HAND_BOOK_X_OPEN;
+    } else {
+      bookRef.offsetTgt.x = VR_BOOK_X_OPEN;
+    }
+  }
 
   animate(1200, (t) => {
     coverInfo.pivot.rotation.z = sR + (Math.PI - sR) * t;
     coverInfo.pivot.position.y = sY + (coverInfo.flippedY - sY) * t;
-    if (vr) bookGroup.position.x = startX + (endX - startX) * t;
     if (!vr) {
       camera.position.lerpVectors(camStart, CAM_OPEN, t);
       controls.target.lerpVectors(tgtStart, TARGET_OPEN, t);
@@ -1239,13 +1294,18 @@ function closeAlbum() {
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
   const vr = isVRActive();
-  const startX = bookGroup.position.x;
-  const endX = VR_BOOK_X_CLOSED;
+
+  if (vr) {
+    if (state.bookInHand) {
+      bookRef.offsetTgt.x = HAND_BOOK_X_CLOSED;
+    } else {
+      bookRef.offsetTgt.x = VR_BOOK_X_CLOSED;
+    }
+  }
 
   animate(1200, (t) => {
     coverInfo.pivot.rotation.z = sR * (1 - t);
     coverInfo.pivot.position.y = sY + (coverInfo.originalY - sY) * t;
-    if (vr) bookGroup.position.x = startX + (endX - startX) * t;
     if (!vr) {
       camera.position.lerpVectors(camStart, CAM_CLOSED, t);
       controls.target.lerpVectors(tgtStart, TARGET_CLOSED, t);
@@ -1288,7 +1348,7 @@ function flipBack(callback) {
 }
 
 /* ============================================================
-   RAYCAST / PICK
+   RAYCAST
    ============================================================ */
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -1308,19 +1368,6 @@ function pickCover() {
   raycaster.setFromCamera(pointer, camera);
   return raycaster.intersectObject(coverOutsidePlane, false).length > 0;
 }
-function pickVRPageButton() {
-  raycaster.setFromCamera(pointer, camera);
-  if (!vrUIGroup.visible) return null;
-  if (pageNextBtn.visible) {
-    const hits = raycaster.intersectObject(pageNextBtn.userData.hit, false);
-    if (hits.length > 0) return pageNextBtn;
-  }
-  if (pagePrevBtn.visible) {
-    const hits = raycaster.intersectObject(pagePrevBtn.userData.hit, false);
-    if (hits.length > 0) return pagePrevBtn;
-  }
-  return null;
-}
 function computeCardFacingQuat(cardPos, camPos) {
   const yDir = new THREE.Vector3().subVectors(camPos, cardPos).normalize();
   const zDir = new THREE.Vector3(0, -1, 0).projectOnPlane(yDir).normalize();
@@ -1339,14 +1386,14 @@ function summonHologram(card) {
   card.getWorldPosition(cardWorldPos);
   const holo = buildHologram(data);
   const vr = isVRActive();
-  // Em VR: 8cm acima da carta. Desktop: 2.1 unidades
-  const yOff = vr ? 0.08 : 2.1;
+  const yOff = vr ? 0.05 : 2.1;
   holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, yOff, 0));
   holo.scale.setScalar(0.01);
   scene.add(holo);
   state.summoned = holo;
   state.holoTime = 0;
-  const targetScale = vr ? 0.65 : 0.9;
+  // ★ Holograma MENOR em VR: 0.22 (antes 0.65)
+  const targetScale = vr ? 0.22 : 0.9;
   animate(750, (t) => { holo.scale.setScalar(0.01 + t * targetScale); },
     () => { holo.scale.setScalar(targetScale); }, easeOutCubic);
 }
@@ -1431,13 +1478,12 @@ function doInspect(card) {
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
   const vr = isVRActive();
-  const dist = vr ? 0.28 : 6.8;
+  const dist = vr ? 0.30 : 6.8;
   const targetPos = camPos.clone().addScaledVector(camDir, dist);
   const targetQuat = computeCardFacingQuat(targetPos, camPos);
   const startPos = card.position.clone();
   const startQuat = card.quaternion.clone();
   const startScale = card.scale.clone();
-  // Tamanho real da carta: ~7cm × 12cm
   const targetScale = vr
     ? new THREE.Vector3(0.05, 0.05, 0.05)
     : new THREE.Vector3(1.3, 1.3, 1.3);
@@ -1532,7 +1578,7 @@ function updateCardDrag(e) {
     const newPos = hit.clone().add(dragOffset);
     state.inspectedCard.position.copy(newPos);
     if (state.summoned) {
-      const yOff = isVRActive() ? 0.08 : 2.1;
+      const yOff = isVRActive() ? 0.05 : 2.1;
       state.summoned.position.copy(newPos).add(new THREE.Vector3(0, yOff, 0));
     }
   }
@@ -1545,18 +1591,9 @@ function endCardDrag(e) {
   if (didDrag) renderer.domElement.style.cursor = 'pointer';
 }
 
-/* EVENTOS MOUSE */
 function onPointerDown(e) {
   if (e.button !== 0 || state.isVR) return;
   setPointer(e);
-  if (state.vrPreview) {
-    const btn = pickVRPageButton();
-    if (btn) {
-      if (btn === pageNextBtn) flipForward();
-      else if (btn === pagePrevBtn) flipBack();
-      return;
-    }
-  }
   if (state.mode === 'closed') { if (pickCover()) openAlbum(); return; }
   if (state.mode === 'open') {
     const card = pickCard();
@@ -1573,12 +1610,6 @@ function onPointerDown(e) {
 function onPointerMove(e) {
   if (state.isVR) return;
   if (state.mode === 'inspecting' && pointerDownOnCard) { updateCardDrag(e); return; }
-  if (state.vrPreview) {
-    setPointer(e);
-    const btn = pickVRPageButton();
-    renderer.domElement.style.cursor = btn ? 'pointer' : 'default';
-    return;
-  }
   if (state.mode === 'closed') {
     setPointer(e);
     renderer.domElement.style.cursor = pickCover() ? 'pointer' : 'grab';
@@ -1610,6 +1641,9 @@ window.addEventListener('keydown', (e) => {
     if (state.mode === 'closed') openAlbum();
     else if (state.mode === 'open') closeAlbum();
   }
+  if ((e.key === 'a' || e.key === 'A') && (state.vrPreview || state.isVR)) {
+    onButtonA(state.vrPreview ? 1 : (state.bookHandIndex >= 0 ? state.bookHandIndex : 0));
+  }
 });
 
 openBtn.addEventListener('click', (e) => { e.stopPropagation(); openAlbum(); });
@@ -1618,57 +1652,6 @@ nextBtn.addEventListener('click', (e) => { e.stopPropagation(); flipForward(); }
 prevBtn.addEventListener('click', (e) => { e.stopPropagation(); flipBack(); });
 backBtn.addEventListener('click', (e) => { e.stopPropagation(); returnInspectedCard(); });
 desummonBtn.addEventListener('click', (e) => { e.stopPropagation(); desummonHologram(); });
-
-/* ============================================================
-   ★ POSICIONAMENTO VR — livro como filho da CÂMERA
-   ============================================================ */
-function attachBookToCamera() {
-  if (bookGroup.parent === camera) return;
-  // Preserva posição desktop como segurança, mas reparenta
-  scene.remove(bookGroup);
-  camera.add(bookGroup);
-  state.bookInCamera = true;
-}
-function attachBookToScene() {
-  if (bookGroup.parent === scene) return;
-  camera.remove(bookGroup);
-  scene.add(bookGroup);
-  state.bookInCamera = false;
-}
-
-/* Posiciona o livro em espaço LOCAL da câmera (fica na frente da cabeça) */
-function positionBookForVR() {
-  bookGroup.scale.setScalar(VR_SCALE);
-  bookGroup.position.set(VR_BOOK_X_CLOSED, VR_BOOK_Y, VR_BOOK_Z);
-  bookGroup.rotation.set(VR_BOOK_TILT, 0, 0);
-}
-
-/* Animação de aparição — em espaço local da câmera */
-function animateBookAppearance() {
-  const targetScale = VR_SCALE;
-  const targetPos = new THREE.Vector3(VR_BOOK_X_CLOSED, VR_BOOK_Y, VR_BOOK_Z);
-  const targetRotX = VR_BOOK_TILT;
-  const startPos = new THREE.Vector3(0, -0.5, -0.15);
-  const startRotX = 0.4;
-
-  bookGroup.scale.setScalar(0.001);
-  bookGroup.position.copy(startPos);
-  bookGroup.rotation.set(startRotX, -0.6, 0);
-
-  animate(1400, (t) => {
-    bookGroup.scale.setScalar(t * targetScale);
-    bookGroup.position.lerpVectors(startPos, targetPos, t);
-    bookGroup.rotation.set(
-      startRotX * (1 - t) + targetRotX * t,
-      -0.6 * (1 - t),
-      0.15 * Math.sin(t * Math.PI) * (1 - t)
-    );
-  }, () => {
-    bookGroup.scale.setScalar(targetScale);
-    bookGroup.position.copy(targetPos);
-    bookGroup.rotation.set(targetRotX, 0, 0);
-  }, easeOutBack);
-}
 
 /* ============================================================
    PREVIEW VR
@@ -1686,20 +1669,22 @@ function enterVRPreview() {
   savedTarget.copy(controls.target);
   savedControlsEnabled = controls.enabled;
 
-  // Camera na altura dos olhos, olhando um pouco para baixo
   camera.position.set(0, 1.65, 0);
   camera.quaternion.setFromEuler(new THREE.Euler(-0.25, 0, 0));
   controls.enabled = false;
 
-  // Livro vira filho da câmera
-  attachBookToCamera();
-  positionBookForVR();
-  animateBookAppearance();
+  // Ativa o sistema de transformação do livro em VR
+  bookRef.active = true;
+  state.bookInHand = false;
+  state.bookHandIndex = -1;
+  setBookRefCamera();
+  // Começa do zero e anima a entrada
+  bookRef.scaleCur = 0.001;
+  bookRef.offsetCur.set(0, -0.5, -0.15);
+  bookRef.quatCur.setFromEuler(new THREE.Euler(0.5, -0.6, 0));
 
-  // Céu cheio
   zodiacGroup.visible = true;
   extendedGroup.visible = true;
-
   vrPreviewOverlay.classList.add('active');
   vrExit.classList.add('active');
   refreshUI();
@@ -1710,13 +1695,14 @@ function exitVRPreview() {
   vrPreviewOverlay.classList.remove('active');
   vrExit.classList.remove('active');
 
-  // Livro volta para a cena
-  attachBookToScene();
+  // Desativa sistema VR
+  bookRef.active = false;
+  state.bookInHand = false;
+  state.bookHandIndex = -1;
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
 
-  // Câmera de volta
   camera.position.copy(savedCameraPos);
   camera.quaternion.copy(savedCameraQuat);
   controls.target.copy(savedTarget);
@@ -1768,7 +1754,6 @@ function buildVRBracelet() {
     new THREE.MeshStandardMaterial({ color: 0x2a1a0a, metalness: 0.9, roughness: 0.3 })
   );
   base.rotation.x = Math.PI / 2; g.add(base);
-
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(0.048, 0.004, 16, 32),
     new THREE.MeshStandardMaterial({
@@ -1785,7 +1770,6 @@ function buildVRBracelet() {
     new THREE.MeshStandardMaterial({ color: 0x1a1008, metalness: 0.9, roughness: 0.4 })
   );
   btnBase.rotation.x = Math.PI / 2; btnGroup.add(btnBase);
-
   const btnTop = new THREE.Mesh(
     new THREE.SphereGeometry(0.012, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2),
     new THREE.MeshStandardMaterial({
@@ -1795,7 +1779,6 @@ function buildVRBracelet() {
   );
   btnTop.rotation.x = Math.PI / 2; btnTop.position.z = 0.005;
   btnGroup.add(btnTop);
-
   const glowRing = new THREE.Mesh(
     new THREE.TorusGeometry(0.020, 0.002, 12, 24),
     new THREE.MeshBasicMaterial({
@@ -1813,7 +1796,7 @@ function buildVRBracelet() {
   lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
   lctx.fillStyle = '#ffe8a0';
   lctx.shadowColor = '#ffb040'; lctx.shadowBlur = 12;
-  lctx.fillText('ABRIR', 128, 32);
+  lctx.fillText('A = MÃO', 128, 32);
   const lTex = new THREE.CanvasTexture(lcv);
   lTex.colorSpace = THREE.SRGBColorSpace;
   const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -1823,7 +1806,6 @@ function buildVRBracelet() {
   labelSprite.scale.set(0.055, 0.014, 1);
   labelSprite.position.set(0, 0.028, 0.055);
   btnGroup.add(labelSprite);
-
   g.add(btnGroup);
 
   const hit = new THREE.Mesh(
@@ -1831,7 +1813,6 @@ function buildVRBracelet() {
     new THREE.MeshBasicMaterial({ visible: false })
   );
   g.add(hit);
-
   g.userData.btnGroup = btnGroup;
   g.userData.glowRing = glowRing;
   g.userData.btnTop = btnTop;
@@ -1850,6 +1831,52 @@ function toggleBookVR() {
 controller0.addEventListener('squeezestart', toggleBookVR);
 controller1.addEventListener('squeezestart', toggleBookVR);
 
+const controllerBtnStates = [
+  { a: false, b: false },
+  { a: false, b: false }
+];
+
+function pollControllerButtons() {
+  if (!renderer.xr.isPresenting) return;
+  [controller0, controller1].forEach((ctrl, i) => {
+    const src = ctrl.inputSource;
+    if (!src || !src.gamepad) return;
+    const gp = src.gamepad;
+    const aPressed = gp.buttons[4] ? gp.buttons[4].pressed : false;
+    if (aPressed && !controllerBtnStates[i].a) {
+      onButtonA(i);
+    }
+    controllerBtnStates[i].a = aPressed;
+    const bPressed = gp.buttons[5] ? gp.buttons[5].pressed : false;
+    if (bPressed && !controllerBtnStates[i].b) {
+      toggleBookVR();
+    }
+    controllerBtnStates[i].b = bPressed;
+  });
+}
+
+/* ★ Botão A: alterna entre mão e frente da câmera */
+function onButtonA(ctrlIndex) {
+  if (!renderer.xr.isPresenting && !state.vrPreview) return;
+
+  if (state.bookInHand && state.bookHandIndex === ctrlIndex) {
+    // Volta para frente da câmera
+    state.bookInHand = false;
+    state.bookHandIndex = -1;
+    setBookRefCamera();
+  } else {
+    // Vai para a mão
+    state.bookInHand = true;
+    state.bookHandIndex = ctrlIndex;
+    if (renderer.xr.isPresenting) {
+      setBookRefGrip(ctrlIndex);
+    } else {
+      // Preview: não tem grip real, simula com a câmera
+      setBookRefGrip(ctrlIndex);
+    }
+  }
+}
+
 function handleVRSelect(event) {
   const controller = event.target;
   const tempMatrix = new THREE.Matrix4();
@@ -1857,24 +1884,27 @@ function handleVRSelect(event) {
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
-  // 1) Botões de virar página
-  if (vrUIGroup.visible) {
-    if (pageNextBtn.visible && raycaster.intersectObject(pageNextBtn.userData.hit, false).length > 0) {
+  // 1) ★ NOVO: clicar nas páginas para virar
+  if (state.mode === 'open' && pageFlipZones.visible) {
+    if (pageZoneRight.visible && raycaster.intersectObject(pageZoneRight.userData.hit, false).length > 0) {
       flipForward(); return;
     }
-    if (pagePrevBtn.visible && raycaster.intersectObject(pagePrevBtn.userData.hit, false).length > 0) {
+    if (pageZoneLeft.visible && raycaster.intersectObject(pageZoneLeft.userData.hit, false).length > 0) {
       flipBack(); return;
     }
   }
+
   // 2) Bracelete
   if (raycaster.intersectObject(vrBraceletL.userData.hitbox, false).length > 0) {
     toggleBookVR(); return;
   }
+
   // 3) Capa
   if (state.mode === 'closed') {
     if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) openAlbum();
     return;
   }
+
   // 4) Cartas
   if (state.mode === 'open') {
     const allCards = [];
@@ -1883,7 +1913,8 @@ function handleVRSelect(event) {
     if (hits.length > 0) inspectCard(hits[0].object);
     return;
   }
-  // 5) Devolver
+
+  // 5) Devolver carta
   if (state.mode === 'inspecting') {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) {
       returnInspectedCard();
@@ -1901,16 +1932,21 @@ renderer.xr.addEventListener('sessionstart', () => {
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
 
-  // ⚠️ Livro vira filho da CÂMERA — fica sempre em frente ao usuário
-  attachBookToCamera();
+  // Ativa sistema de transformação do livro
+  bookRef.active = true;
+  state.bookInHand = false;
+  state.bookHandIndex = -1;
+  setBookRefCamera();
 
-  // Aguarda dois frames para o headset se posicionar
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      positionBookForVR();
-      animateBookAppearance();
-    });
-  });
+  // Começa do zero para animar a entrada
+  bookRef.scaleCur = 0.001;
+  bookRef.offsetCur.set(0, -0.5, -0.15);
+  bookRef.quatCur.setFromEuler(new THREE.Euler(0.5, -0.6, 0));
+
+  controllerBtnStates[0].a = false;
+  controllerBtnStates[1].a = false;
+  controllerBtnStates[0].b = false;
+  controllerBtnStates[1].b = false;
 
   refreshUI();
 });
@@ -1918,8 +1954,12 @@ renderer.xr.addEventListener('sessionend', () => {
   state.isVR = false;
   extendedGroup.visible = false;
 
-  // Devolve o livro à cena
-  attachBookToScene();
+  // Desativa sistema VR
+  bookRef.active = false;
+  state.bookInHand = false;
+  state.bookHandIndex = -1;
+
+  // Volta para posição desktop
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
@@ -1949,6 +1989,8 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
   updateTweens(now);
+
+  pollControllerButtons();
 
   skyMesh.rotation.y += dt * 0.002;
   const tGlobal = now * 0.001;
@@ -1997,35 +2039,34 @@ renderer.setAnimationLoop(() => {
     ss.tail.material.opacity = 0.55 * fade;
   }
 
-  // UI VR — atualiza posição/rotação dos botões
   const vrActive = renderer.xr.isPresenting || state.vrPreview;
-  if (vrActive) {
-    // Pega a posição mundial do livro (funciona mesmo sendo filho da câmera)
-    const bp = new THREE.Vector3();
-    bookGroup.getWorldPosition(bp);
 
-    vrUIGroup.position.copy(bp);
-    vrUIGroup.visible = state.mode === 'open';
+  // ★★★ ATUALIZA TRANSFORM DO LIVRO EM VR ★★★
+  if (vrActive && bookRef.active) {
+    updateBookTransform(dt);
+  }
 
-    const camWorldPos = new THREE.Vector3();
-    camera.getWorldPosition(camWorldPos);
-    pageNextBtn.lookAt(camWorldPos);
-    pagePrevBtn.lookAt(camWorldPos);
-
-    pageNextBtn.visible = state.spread < MAX_SPREAD;
-    pagePrevBtn.visible = state.spread > 1;
-
-    [pageNextBtn, pagePrevBtn].forEach((b, i) => {
+  // ★ Zonas de virar página: só aparecem em VR quando aberto
+  if (vrActive && state.mode === 'open') {
+    pageFlipZones.visible = true;
+    pageZoneRight.visible = state.spread < MAX_SPREAD;
+    pageZoneLeft.visible = state.spread > 1;
+    // Pulsa as setas
+    [pageZoneRight, pageZoneLeft].forEach((z, i) => {
+      if (!z.visible) return;
       const ph = i * 1.5;
-      if (b.userData.glow) {
-        b.userData.glow.material.opacity = 0.3 + Math.sin(tGlobal * 3 + ph) * 0.15;
-      }
-      if (b.userData.mesh) {
-        const s = 1 + Math.sin(tGlobal * 3 + ph) * 0.05;
-        b.userData.mesh.scale.set(s, s, 1);
+      if (z.userData.arrow) {
+        const s = 1 + Math.sin(tGlobal * 3 + ph) * 0.12;
+        z.userData.arrow.scale.set(s, s, 1);
+        z.userData.arrow.material.opacity = 0.7 + Math.sin(tGlobal * 3 + ph) * 0.3;
       }
     });
+  } else {
+    pageFlipZones.visible = false;
+  }
 
+  // Bracelete pulsando
+  if (vrActive) {
     [vrBraceletL, vrBraceletR].forEach((br, i) => {
       if (!br.userData) return;
       const glow = br.userData.glowRing;
@@ -2035,12 +2076,8 @@ renderer.setAnimationLoop(() => {
         glow.material.opacity = 0.6 + Math.sin(tGlobal * 3.5 + ph) * 0.4;
         glow.scale.setScalar(1 + Math.sin(tGlobal * 3.5 + ph) * 0.15);
       }
-      if (btnTop) {
-        btnTop.material.emissiveIntensity = 0.8 + Math.sin(tGlobal * 3.5 + ph) * 0.5;
-      }
+      if (btnTop) btnTop.material.emissiveIntensity = 0.8 + Math.sin(tGlobal * 3.5 + ph) * 0.5;
     });
-  } else {
-    vrUIGroup.visible = false;
   }
 
   // Holograma
@@ -2049,7 +2086,7 @@ renderer.setAnimationLoop(() => {
     const t = state.holoTime;
     const holo = state.summoned;
     if (!holo.userData.baseY) holo.userData.baseY = holo.position.y;
-    holo.position.y = holo.userData.baseY + Math.sin(t * 1.2) * 0.02;
+    holo.position.y = holo.userData.baseY + Math.sin(t * 1.2) * 0.015;
 
     const planes = holo.userData.holoPlanes;
     const yOff = holo.userData.y || 0.55;
@@ -2080,7 +2117,7 @@ renderer.setAnimationLoop(() => {
           const s = seeds[i];
           const a = s.a + t * s.speed;
           pos[i*3] = Math.cos(a) * s.r;
-          pos[i*3+1] = s.y + Math.sin(t * 1.8 + s.phase) * 0.05;
+          pos[i*3+1] = s.y + Math.sin(t * 1.8 + s.phase) * 0.03;
           pos[i*3+2] = Math.sin(a) * s.r;
         }
         o.geometry.attributes.position.needsUpdate = true;
