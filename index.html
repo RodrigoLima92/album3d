@@ -15,9 +15,9 @@
     background: rgba(10,24,30,.85); backdrop-filter: blur(14px);
     padding: 11px 26px; border-radius: 999px; font-size: 14px;
     border: 1px solid rgba(212,175,90,.35); pointer-events: none;
-    transition: opacity .4s, transform .4s; white-space: nowrap;
-    z-index: 5; color: #f4e9c8; letter-spacing: .3px; }
-  #hint.hidden { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    transition: opacity .4s; white-space: nowrap; z-index: 5;
+    color: #f4e9c8; letter-spacing: .3px; }
+  #hint.hidden { opacity: 0; }
   #ui {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 12px; align-items: center; z-index: 6;
@@ -51,6 +51,21 @@
     border-color: rgba(120,220,120,.6); }
   button.attack-btn { background: linear-gradient(135deg, #b71c1c 0%, #7f0000 100%);
     border-color: rgba(255,120,80,.6); }
+  #voiceStatus {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    padding: 8px 18px; border-radius: 999px; font-size: 13px;
+    background: rgba(10,40,34,.9); color: #7fffa0;
+    border: 1px solid rgba(120,255,150,.4);
+    z-index: 5; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #voiceStatus.listening { opacity: 1; }
+  #voiceStatus .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #7fffa0; margin-right: 8px;
+    animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
   #vrPreview {
     position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
   #vrPreview.active { display: block; }
@@ -81,6 +96,7 @@
 <div id="app"></div>
 <div id="vrPreview"></div>
 <div id="hint">Toque no álbum para abrir</div>
+<div id="voiceStatus"><span class="dot"></span>🎤 Ouvindo: diga "livro"</div>
 
 <div id="ui">
   <button id="openBtn" class="primary">Abrir Álbum</button>
@@ -91,7 +107,7 @@
   <button id="backBtn" class="primary">↩ Devolver carta</button>
   <button id="terrainBtn" class="terrain-btn">🌫️ Terreno</button>
   <button id="attackBtn" class="attack-btn">⚔️ Atacar</button>
-  <button id="modeBtn" class="mode-btn">🎯 Recentrar livro</button>
+  <button id="modeBtn" class="mode-btn">🎯 Recentrar</button>
   <button id="previewBtn" class="vr-btn">👓 Preview VR</button>
 </div>
 
@@ -276,8 +292,7 @@ function makeCardTexture(d, index) {
   vig.addColorStop(1, 'rgba(0,0,0,0.6)');
   ctx.fillStyle = vig; ctx.fillRect(0, 0, TW, TH);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
 
@@ -304,8 +319,7 @@ function makeBackTexture() {
   ctx.beginPath(); ctx.arc(0, 0, 18, 0, 7); ctx.fill();
   ctx.restore();
   _backTexCache = new THREE.CanvasTexture(cv);
-  _backTexCache.colorSpace = THREE.SRGBColorSpace;
-  _backTexCache.anisotropy = 8;
+  _backTexCache.colorSpace = THREE.SRGBColorSpace; _backTexCache.anisotropy = 8;
   return _backTexCache;
 }
 
@@ -374,9 +388,6 @@ function makeBackCoverInsideTexture() {
   return tex;
 }
 
-/* ============================================================
-   SLOT VAZIO
-   ============================================================ */
 const slotTexCache = new Map();
 function makeSlotTexture(cardIndex) {
   if (slotTexCache.has(cardIndex)) return slotTexCache.get(cardIndex);
@@ -388,11 +399,6 @@ function makeSlotTexture(cardIndex) {
   bg.addColorStop(0.55, '#020603');
   bg.addColorStop(1, '#0a1610');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, cv.width, cv.height);
-  const edgeShadow = ctx.createRadialGradient(128, 192, 60, 128, 192, 190);
-  edgeShadow.addColorStop(0, 'rgba(0,0,0,0)');
-  edgeShadow.addColorStop(0.7, 'rgba(0,0,0,0.55)');
-  edgeShadow.addColorStop(1, 'rgba(0,0,0,0.95)');
-  ctx.fillStyle = edgeShadow; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.strokeStyle = 'rgba(212,175,90,0.65)'; ctx.lineWidth = 3;
   ctx.setLineDash([12, 8]);
   roundRect(ctx, 22, 22, cv.width - 44, cv.height - 44, 10); ctx.stroke();
@@ -404,37 +410,25 @@ function makeSlotTexture(cardIndex) {
   ctx.font = 'bold 140px Georgia, serif';
   ctx.fillText(numStr, 128, 176);
   ctx.shadowBlur = 0;
-  ctx.font = 'italic 22px Georgia, serif';
-  ctx.fillStyle = 'rgba(212,175,90,0.7)';
-  ctx.fillText('— vazio —', 128, 292);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   slotTexCache.set(cardIndex, tex);
   return tex;
 }
 
-/* ============================================================
-   TERRENO
-   ============================================================ */
 function makeTerrainTexture() {
   const cv = document.createElement('canvas');
   cv.width = 256; cv.height = 384;
   const ctx = cv.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 0, cv.height);
-  g.addColorStop(0, '#3a6b1f');
-  g.addColorStop(0.5, '#1e3e0d');
-  g.addColorStop(1, '#0d2005');
+  g.addColorStop(0, '#3a6b1f'); g.addColorStop(0.5, '#1e3e0d'); g.addColorStop(1, '#0d2005');
   ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
   for (let i = 0; i < 1200; i++) {
-    const x = Math.random() * cv.width;
-    const y = Math.random() * cv.height;
-    const r = 0.5 + Math.random() * 2.5;
-    const b = Math.random() * 0.3;
+    const x = Math.random() * cv.width, y = Math.random() * cv.height;
+    const r = 0.5 + Math.random() * 2.5, b = Math.random() * 0.3;
     ctx.fillStyle = Math.random() > 0.55
       ? `rgba(80, 140, 40, ${b})`
-      : Math.random() > 0.5
-        ? `rgba(50, 30, 15, ${b})`
-        : `rgba(150, 200, 90, ${b * 0.5})`;
+      : Math.random() > 0.5 ? `rgba(50, 30, 15, ${b})` : `rgba(150, 200, 90, ${b * 0.5})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
   const vg = ctx.createRadialGradient(cv.width/2, cv.height/2, 40, cv.width/2, cv.height/2, 220);
@@ -448,9 +442,6 @@ function makeTerrainTexture() {
 }
 const TERRAIN_TEX = makeTerrainTexture();
 
-/* ============================================================
-   TEXTURAS DO HOLOGRAMA
-   ============================================================ */
 const holoTexCache = new Map();
 function getHoloCoreTex(emoji, tintHex) {
   const key = 'core_' + emoji + tintHex;
@@ -510,18 +501,13 @@ const STAR_POINT_TEX = (() => {
   return tex;
 })();
 
-/* ============================================================
-   CÉU
-   ============================================================ */
 function makeSkyDomeTexture() {
   const W = 2048, H = 1024;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0.00, '#02040c');
-  g.addColorStop(0.50, '#000000');
-  g.addColorStop(1.00, '#02040c');
+  g.addColorStop(0.00, '#02040c'); g.addColorStop(0.50, '#000000'); g.addColorStop(1.00, '#02040c');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 5000; i++) {
@@ -529,8 +515,7 @@ function makeSkyDomeTexture() {
     const r = Math.random() < 0.85 ? Math.random() * 0.6 + 0.15 : Math.random() * 1.2 + 0.4;
     const b = 0.15 + Math.random() * 0.5;
     const hue = Math.random() < 0.15 ? 30 + Math.random() * 30
-              : Math.random() < 0.30 ? 200 + Math.random() * 60
-              : 210 + Math.random() * 30;
+              : Math.random() < 0.30 ? 200 + Math.random() * 60 : 210 + Math.random() * 30;
     ctx.fillStyle = `hsla(${hue}, 40%, ${80 + Math.random() * 15}%, ${b})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
@@ -579,8 +564,7 @@ function makeNebulaTex(hue, seed) {
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
   for (let i = 0; i < 80; i++) {
-    const x = rnd(i * 2 + 100) * S;
-    const y = rnd(i * 2 + 200) * S;
+    const x = rnd(i * 2 + 100) * S, y = rnd(i * 2 + 200) * S;
     const r = 0.3 + rnd(i * 3 + 300) * 0.9;
     ctx.fillStyle = `rgba(255,255,255,${0.15 + rnd(i + 400) * 0.6})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
@@ -636,13 +620,11 @@ keyLight.shadow.mapSize.set(1024, 1024);
 keyLight.shadow.camera.left = -12; keyLight.shadow.camera.right = 12;
 keyLight.shadow.camera.top = 12; keyLight.shadow.camera.bottom = -12;
 keyLight.shadow.camera.near = 1; keyLight.shadow.camera.far = 40;
-keyLight.shadow.bias = -0.001;
 scene.add(keyLight);
 scene.add(new THREE.DirectionalLight(0x6a8dff, 0.7).translateX(-10).translateY(8).translateZ(-8));
 const rimLight = new THREE.PointLight(0xffb070, 35, 25, 2);
 rimLight.position.set(-4, 4, -8); scene.add(rimLight);
 
-/* chão */
 (function addGround() {
   const cv = document.createElement('canvas');
   cv.width = 256; cv.height = 256;
@@ -661,9 +643,6 @@ rimLight.position.set(-4, 4, -8); scene.add(rimLight);
   scene.add(g);
 })();
 
-/* ============================================================
-   CÉU CÓSMICO
-   ============================================================ */
 const SKY_RADIUS = 800;
 const skyMesh = new THREE.Mesh(
   new THREE.SphereGeometry(SKY_RADIUS, 64, 32),
@@ -686,7 +665,7 @@ function makeStarLayer(count, size, hueRange, distance, opacity) {
     const theta = 2 * Math.PI * u;
     const phi = Math.acos(2 * v - 1);
     const r = distance * (0.95 + Math.random() * 0.05);
-    pos[i*3]     = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
     pos[i*3 + 1] = r * Math.cos(phi);
     pos[i*3 + 2] = r * Math.sin(phi) * Math.sin(theta);
     const hue = hueRange[0] + Math.random() * (hueRange[1] - hueRange[0]);
@@ -711,22 +690,19 @@ starLayers.push(makeStarLayer(1200, 2, [190, 240], SKY_RADIUS * 0.92, 0.85));
 starLayers.push(makeStarLayer(500, 3, [200, 240], SKY_RADIUS * 0.90, 0.75));
 starLayers.push(makeStarLayer(250, 3.5, [30, 60], SKY_RADIUS * 0.91, 0.8));
 starLayers.push(makeStarLayer(150, 4, [10, 30], SKY_RADIUS * 0.89, 0.7));
-starLayers.push(makeStarLayer(50, 6, [180, 240], SKY_RADIUS * 0.88, 0.9));
 starLayers.forEach(l => scene.add(l));
 
 const nebulaGroup = new THREE.Group();
 scene.add(nebulaGroup);
 const NEBULAE_DEFS = [
-  { az: 0.40,  el:  0.20, hue: 210, size: 220, op: 0.55, rot: 0.0,  sx: 1.3, sy: 1.0 },
-  { az: 1.55,  el: -0.05, hue: 280, size: 260, op: 0.50, rot: 0.6,  sx: 1.4, sy: 0.9 },
-  { az: 2.70,  el:  0.35, hue: 340, size: 190, op: 0.42, rot: 1.2,  sx: 1.0, sy: 1.1 },
-  { az: 3.90,  el:  0.05, hue:  30, size: 240, op: 0.38, rot: 0.3,  sx: 1.2, sy: 1.0 },
-  { az: 5.00,  el:  0.32, hue: 190, size: 320, op: 0.58, rot: -0.5, sx: 2.0, sy: 0.5 },
-  { az: 5.90,  el:  0.10, hue: 220, size: 200, op: 0.42, rot: 1.8,  sx: 1.1, sy: 0.9 },
-  { az: 0.90,  el: -0.25, hue: 320, size: 230, op: 0.38, rot: 2.3,  sx: 1.5, sy: 0.7 },
-  { az: 4.40,  el:  0.55, hue: 260, size: 250, op: 0.45, rot: 0.8,  sx: 1.3, sy: 1.0 },
-  { az: 2.10,  el: -0.30, hue: 170, size: 180, op: 0.35, rot: 1.5,  sx: 1.0, sy: 1.0 },
-  { az: 3.30,  el:  0.50, hue: 300, size: 210, op: 0.40, rot: 2.8,  sx: 1.2, sy: 0.9 },
+  { az: 0.40, el: 0.20, hue: 210, size: 220, op: 0.55, sx: 1.3, sy: 1.0, rot: 0 },
+  { az: 1.55, el: -0.05, hue: 280, size: 260, op: 0.50, sx: 1.4, sy: 0.9, rot: 0.6 },
+  { az: 2.70, el: 0.35, hue: 340, size: 190, op: 0.42, sx: 1.0, sy: 1.1, rot: 1.2 },
+  { az: 3.90, el: 0.05, hue: 30, size: 240, op: 0.38, sx: 1.2, sy: 1.0, rot: 0.3 },
+  { az: 5.00, el: 0.32, hue: 190, size: 320, op: 0.58, sx: 2.0, sy: 0.5, rot: -0.5 },
+  { az: 5.90, el: 0.10, hue: 220, size: 200, op: 0.42, sx: 1.1, sy: 0.9, rot: 1.8 },
+  { az: 0.90, el: -0.25, hue: 320, size: 230, op: 0.38, sx: 1.5, sy: 0.7, rot: 2.3 },
+  { az: 4.40, el: 0.55, hue: 260, size: 250, op: 0.45, sx: 1.3, sy: 1.0, rot: 0.8 },
 ];
 NEBULAE_DEFS.forEach((def, i) => {
   const tex = makeNebulaTex(def.hue, i);
@@ -749,9 +725,6 @@ NEBULAE_DEFS.forEach((def, i) => {
 });
 nebulaGroup.renderOrder = -998;
 
-/* ============================================================
-   CONSTELAÇÕES
-   ============================================================ */
 const zodiacGroup = new THREE.Group();
 const extendedGroup = new THREE.Group();
 zodiacGroup.renderOrder = -997;
@@ -764,7 +737,6 @@ const EXTENDED_COLORS = [
   0x88bbff, 0xffaacc, 0xaaddff, 0xccddff, 0xffddaa, 0xbbeeff,
   0xddaaff, 0xaaffdd, 0xffccaa, 0xcccfff, 0xffbbee, 0xaab8ff,
   0xd4f0ff, 0xffddff, 0xbbeedd, 0xffe4b5, 0xa0d8ff, 0xffa8d8,
-  0xc8ffdd, 0xdfc8ff, 0xffd0d0, 0xc8e8ff, 0xfff0a0, 0xa0ffe0,
 ];
 const GOLD_COLOR = 0xffd966;
 const ZODIAC = [
@@ -863,12 +835,8 @@ extendedNames.forEach((name, i) => {
   extendedGroup.add(g);
 });
 
-/* ============================================================
-   ESTRELAS CADENTES
-   ============================================================ */
 const shootingStars = [];
 const SHOOTING_COLORS = ['#aaddff', '#ffe4aa', '#ffaacc', '#aaffdd', '#d4b8ff', '#ffffff'];
-
 const SHOOTING_TRAIL_TEX = (() => {
   const W = 256, H = 32;
   const cv = document.createElement('canvas');
@@ -890,7 +858,6 @@ const SHOOTING_TRAIL_TEX = (() => {
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   return tex;
 })();
-
 const TRAIL_GEO = new THREE.PlaneGeometry(1, 4);
 
 function spawnShootingStar() {
@@ -986,7 +953,6 @@ function createCard(data, globalIndex) {
   card.userData.isCard = true;
   card.userData.cardData = data;
   card.userData.cardIndex = globalIndex;
-
   const terrainOverlay = new THREE.Mesh(TERRAIN_PLANE_GEO, TERRAIN_MAT);
   terrainOverlay.rotation.x = -Math.PI / 2;
   terrainOverlay.position.y = CARD_T / 2 + 0.001;
@@ -1002,13 +968,9 @@ function createSlot(cardIndex) {
     SLOT_PLANE_GEO,
     new THREE.MeshBasicMaterial({
       map: makeSlotTexture(cardIndex),
-      transparent: true,
-      depthWrite: false,
-      depthTest: true,
+      transparent: true, depthWrite: false, depthTest: true,
       side: THREE.DoubleSide,
-      polygonOffset: true,
-      polygonOffsetFactor: -8,
-      polygonOffsetUnits: -8
+      polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8
     })
   );
   slot.renderOrder = 20;
@@ -1097,34 +1059,23 @@ const coverInfo = { pivot: coverPivot, originalY: Y_COVER, flippedY: Y_FLIP_COVE
   bookGroup.add(spine);
 })();
 
-/* ============================================================
-   ★ HITBOXES DAS PÁGINAS (para clicar e virar em VR)
-   ============================================================ */
 const pageHitboxLeft = new THREE.Mesh(
-  new THREE.PlaneGeometry(PW * 0.98, PD * 0.98),
-  new THREE.MeshBasicMaterial({ visible: false })
+  new THREE.PlaneGeometry(PW * 0.94, PD * 0.94),
+  new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
 );
 pageHitboxLeft.rotation.x = -Math.PI / 2;
 pageHitboxLeft.position.set(-PW / 2, Y_SHEET1 + 0.05, 0);
-pageHitboxLeft.userData.isPageHit = true;
-pageHitboxLeft.userData.side = 'left';
-pageHitboxLeft.visible = false;
 bookGroup.add(pageHitboxLeft);
 
 const pageHitboxRight = new THREE.Mesh(
-  new THREE.PlaneGeometry(PW * 0.98, PD * 0.98),
-  new THREE.MeshBasicMaterial({ visible: false })
+  new THREE.PlaneGeometry(PW * 0.94, PD * 0.94),
+  new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
 );
 pageHitboxRight.rotation.x = -Math.PI / 2;
 pageHitboxRight.position.set(PW / 2, Y_SHEET1 + 0.05, 0);
-pageHitboxRight.userData.isPageHit = true;
-pageHitboxRight.userData.side = 'right';
-pageHitboxRight.visible = false;
 bookGroup.add(pageHitboxRight);
 
-/* ============================================================
-   HOLOGRAMA
-   ============================================================ */
+/* HOLOGRAMA */
 function buildHologram(data) {
   const group = new THREE.Group();
   const c1 = new THREE.Color(data.c1);
@@ -1243,9 +1194,6 @@ function buildHologram(data) {
   return group;
 }
 
-/* ============================================================
-   TWEEN
-   ============================================================ */
 const activeTweens = [];
 function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
@@ -1287,7 +1235,8 @@ const bookVR = {
   pos: new THREE.Vector3(),
   quat: new THREE.Quaternion(),
   targetPos: new THREE.Vector3(),
-  targetQuat: new THREE.Quaternion()
+  targetQuat: new THREE.Quaternion(),
+  visible: false
 };
 
 function placeBookInFrontOfCamera() {
@@ -1300,24 +1249,33 @@ function placeBookInFrontOfCamera() {
   const localRot = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 - 0.32, 0, 0));
   bookVR.targetQuat.copy(camQuat).multiply(localRot);
 }
-function enableBookVR() {
+
+/* ★ Mostra o livro em frente com animação ★ */
+function showAlbumInFront() {
   bookVR.active = true;
-  bookVR.scale = 0.001;
-  bookVR.targetScale = BOOK_VR_SCALE;
+  bookVR.visible = true;
+  bookGroup.visible = true;
   placeBookInFrontOfCamera();
+  // Aplica imediatamente
   bookVR.pos.copy(bookVR.targetPos);
   bookVR.quat.copy(bookVR.targetQuat);
   bookGroup.position.copy(bookVR.pos);
   bookGroup.quaternion.copy(bookVR.quat);
-  bookGroup.scale.setScalar(0.001);
-  bookGroup.visible = true;
+  bookGroup.scale.setScalar(BOOK_VR_SCALE);
+  state.mode = 'closed';
+  state.spread = 0;
+  coverInfo.pivot.rotation.z = 0;
+  coverInfo.pivot.position.y = coverInfo.originalY;
+  sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
+  sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
+  refreshUI();
 }
-function hideBook() {
-  bookVR.active = false;
-  bookGroup.visible = false;
-}
+
+function enableBookVR() { showAlbumInFront(); }
+
 function disableBookVR() {
   bookVR.active = false;
+  bookVR.visible = false;
   isGrabbingBook = false;
   grabbingController = null;
   bookGroup.visible = true;
@@ -1325,14 +1283,15 @@ function disableBookVR() {
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
 }
+
 function resetBookPosition() {
   isGrabbingBook = false;
   grabbingController = null;
-  bookGroup.visible = true;
-  placeBookInFrontOfCamera();
+  showAlbumInFront();
 }
+
 function updateBookVRTransform(dt) {
-  if (!bookVR.active || !bookGroup.visible) return;
+  if (!bookVR.active || !bookVR.visible) return;
   const k = 1 - Math.pow(0.0005, dt);
   bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
   if (!isGrabbingBook) {
@@ -1377,7 +1336,6 @@ function updateBookGrab() {
 }
 function endBookGrab() { isGrabbingBook = false; grabbingController = null; }
 
-/* GRAB da carta */
 let isGrabbingCard = false;
 let grabbingCardController = null;
 let cardWasManuallyPlaced = false;
@@ -1418,9 +1376,6 @@ function updateCardGrab() {
 }
 function endCardGrab() { isGrabbingCard = false; grabbingCardController = null; }
 
-/* ============================================================
-   ESTADO
-   ============================================================ */
 const state = {
   mode: 'closed', spread: 0,
   inspectedCard: null, cardOriginalParent: null,
@@ -1434,9 +1389,6 @@ const MAX_SPREAD = 3;
 const cardTargetPos = new THREE.Vector3();
 const cardTargetQuat = new THREE.Quaternion();
 
-/* ============================================================
-   UI
-   ============================================================ */
 const hintEl = document.getElementById('hint');
 const openBtn = document.getElementById('openBtn');
 const closeBtn = document.getElementById('closeBtn');
@@ -1450,6 +1402,7 @@ const previewBtn = document.getElementById('previewBtn');
 const modeBtn = document.getElementById('modeBtn');
 const vrExit = document.getElementById('vrExit');
 const vrPreviewOverlay = document.getElementById('vrPreview');
+const voiceStatusEl = document.getElementById('voiceStatus');
 
 function refreshUI() {
   const m = state.mode;
@@ -1476,9 +1429,6 @@ function refreshUI() {
   else hintEl.textContent = 'Folheando…';
 }
 
-/* ============================================================
-   ABRIR / FECHAR / FOLHEAR
-   ============================================================ */
 function isVRActive() { return renderer.xr.isPresenting || state.vrPreview; }
 
 function openAlbum() {
@@ -1548,9 +1498,6 @@ function flipBack(callback) {
   });
 }
 
-/* ============================================================
-   RAYCAST
-   ============================================================ */
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 function setPointer(e) {
@@ -1591,9 +1538,6 @@ function computeTerrainQuat(cardPos, camPos) {
   return yawQuat.multiply(tiltQuat);
 }
 
-/* ============================================================
-   INVOCAR / DESINVOCAR
-   ============================================================ */
 function summonHologram(card) {
   const data = card.userData.cardData;
   const inVR = isVRActive();
@@ -1622,7 +1566,6 @@ function desummonHologram(onComplete) {
       () => { TERRAIN_MAT.opacity = 0; overlay.visible = false; });
   }
   state.isAttacking = false;
-
   if (!state.summoned) { if (onComplete) onComplete(); return; }
   const holo = state.summoned;
   state.summoned = null;
@@ -1689,13 +1632,9 @@ function desummonHologram(onComplete) {
   });
 }
 
-/* ============================================================
-   ATAQUE
-   ============================================================ */
 function triggerAttack() {
   if (!state.summoned || !state.inspectedCard || state.isAttacking) return;
   state.isAttacking = true;
-
   const holo = state.summoned;
   const cardPos = new THREE.Vector3();
   state.inspectedCard.getWorldPosition(cardPos);
@@ -1774,9 +1713,6 @@ function triggerAttack() {
   if (state.cardLayout !== 'terrain') toggleCardTerrain();
 }
 
-/* ============================================================
-   TOGGLE TERRENO
-   ============================================================ */
 function toggleCardTerrain() {
   if (!state.inspectedCard || !state.summoned) return;
   if (state.cardLayout === 'face') state.cardLayout = 'terrain';
@@ -1784,7 +1720,6 @@ function toggleCardTerrain() {
   updateCardTargets(true);
   refreshUI();
 }
-
 function updateCardTargets(animated = false) {
   if (!state.inspectedCard) return;
   const camPos = new THREE.Vector3();
@@ -1792,13 +1727,11 @@ function updateCardTargets(animated = false) {
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
   const inVR = isVRActive();
-  const dist = inVR ? 0.55 : 6.8;
+  const dist = inVR ? 0.50 : 6.8;
   const newTargetPos = camPos.clone().addScaledVector(camDir, dist);
-  if (inVR) newTargetPos.y -= 0.12;
   const newTargetQuat = state.cardLayout === 'terrain'
     ? computeTerrainQuat(newTargetPos, camPos)
     : computeCardFacingQuat(newTargetPos, camPos);
-
   if (animated) {
     const startPos = state.inspectedCard.position.clone();
     const startQuat = state.inspectedCard.quaternion.clone();
@@ -1815,9 +1748,6 @@ function updateCardTargets(animated = false) {
   }
 }
 
-/* ============================================================
-   INSPECIONAR / DEVOLVER
-   ============================================================ */
 function inspectCard(card) {
   if (state.summoned) { desummonHologram(() => doInspect(card)); return; }
   doInspect(card);
@@ -1831,11 +1761,8 @@ function doInspect(card) {
   state.cardOriginalPos = card.position.clone();
   state.cardOriginalQuat = card.quaternion.clone();
   state.cardOriginalScale = card.scale.clone();
-
   if (card.userData.slot) card.userData.slot.visible = true;
-
   scene.attach(card);
-
   const camPos = new THREE.Vector3();
   camera.getWorldPosition(camPos);
   const camDir = new THREE.Vector3();
@@ -1850,7 +1777,6 @@ function doInspect(card) {
   const targetScale = inVR
     ? new THREE.Vector3(0.18, 0.18, 0.18)
     : new THREE.Vector3(1.3, 1.3, 1.3);
-
   controls.enabled = false;
   refreshUI();
   animate(600, (t) => {
@@ -1910,16 +1836,12 @@ function returnCardToAlbum(card) {
   });
 }
 
-/* ============================================================
-   DRAG DESKTOP
-   ============================================================ */
 let pointerDownOnCard = false;
 let pointerDownScreen = new THREE.Vector2();
 let pointerDownTime = 0;
 let didDrag = false;
 const DRAG_THRESHOLD_PX = 6;
 const cardDragStartQuat = new THREE.Quaternion();
-
 function startCardDrag(e, card) {
   pointerDownOnCard = true;
   pointerDownScreen.set(e.clientX, e.clientY);
@@ -1936,8 +1858,7 @@ function updateCardDrag(e) {
     renderer.domElement.style.cursor = 'grabbing';
   }
   if (!didDrag) return;
-  const rotSpeed = 0.010;
-  const eul = new THREE.Euler(dy * rotSpeed, dx * rotSpeed, 0, 'YXZ');
+  const eul = new THREE.Euler(dy * 0.01, dx * 0.01, 0, 'YXZ');
   const delta = new THREE.Quaternion().setFromEuler(eul);
   state.inspectedCard.quaternion.copy(cardDragStartQuat).multiply(delta);
   cardTargetQuat.copy(state.inspectedCard.quaternion);
@@ -1949,7 +1870,6 @@ function endCardDrag() {
   if (wasClick && state.inspectedCard) { returnInspectedCard(); return; }
   if (didDrag) renderer.domElement.style.cursor = 'pointer';
 }
-
 function onPointerDown(e) {
   if (e.button !== 0 || renderer.xr.isPresenting) return;
   setPointer(e);
@@ -1982,7 +1902,6 @@ function onPointerMove(e) {
       raycaster.intersectObject(state.inspectedCard, false).length > 0 ? 'grab' : 'default';
   }
 }
-
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('pointermove', onPointerMove);
 window.addEventListener('pointerup', endCardDrag);
@@ -2015,7 +1934,6 @@ modeBtn.addEventListener('click', (e) => { e.stopPropagation(); resetBookPositio
 const savedCamera = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
 let savedTarget = new THREE.Vector3();
 let savedControlsEnabled = true;
-
 function enterVRPreview() {
   if (state.vrPreview || renderer.xr.isPresenting) return;
   state.vrPreview = true;
@@ -2046,8 +1964,7 @@ function exitVRPreview() {
   controls.enabled = savedControlsEnabled;
   controls.update();
   extendedGroup.visible = false;
-  state.mode = 'closed';
-  state.spread = 0;
+  state.mode = 'closed'; state.spread = 0;
   coverInfo.pivot.rotation.z = 0;
   coverInfo.pivot.position.y = coverInfo.originalY;
   sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
@@ -2065,16 +1982,29 @@ const controller1 = renderer.xr.getController(1);
 const grip0 = renderer.xr.getControllerGrip(0);
 const grip1 = renderer.xr.getControllerGrip(1);
 const controllerModelFactory = new XRControllerModelFactory();
-grip0.add(controllerModelFactory.createControllerModel(grip0));
-grip1.add(controllerModelFactory.createControllerModel(grip1));
-
-const handModelFactory = new XRHandModelFactory();
-const hand0 = renderer.xr.getHand(0);
-const hand1 = renderer.xr.getHand(1);
 try {
-  hand0.add(handModelFactory.createHandModel(hand0, 'mesh'));
-  hand1.add(handModelFactory.createHandModel(hand1, 'mesh'));
-} catch (e) { console.warn('Hand tracking indisponível:', e); }
+  grip0.add(controllerModelFactory.createControllerModel(grip0));
+  grip1.add(controllerModelFactory.createControllerModel(grip1));
+} catch (e) { console.warn('Controller model error:', e); }
+
+scene.add(controller0, controller1, grip0, grip1);
+
+/* ★ HAND TRACKING — setup correto ★ */
+let hand0 = null;
+let hand1 = null;
+try {
+  hand0 = renderer.xr.getHand(0);
+  hand1 = renderer.xr.getHand(1);
+  const handModelFactory = new XRHandModelFactory();
+  // Adiciona modelo como filho do hand (não do wrist joint diretamente)
+  const handModel0 = handModelFactory.createHandModel(hand0, 'mesh');
+  const handModel1 = handModelFactory.createHandModel(hand1, 'mesh');
+  hand0.add(handModel0);
+  hand1.add(handModel1);
+  scene.add(hand0, hand1);
+} catch (e) {
+  console.warn('Hand tracking não disponível:', e);
+}
 
 const RAY_GEO = new THREE.BufferGeometry().setFromPoints([
   new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -4)
@@ -2084,34 +2014,80 @@ const RAY_MAT = new THREE.LineBasicMaterial({
 });
 controller0.add(new THREE.Line(RAY_GEO, RAY_MAT));
 controller1.add(new THREE.Line(RAY_GEO, RAY_MAT));
-scene.add(controller0, controller1, grip0, grip1, hand0, hand1);
 
 /* ============================================================
-   ★ BRACELETE "INVOCAR ÁLBUM" ★
+   ★ BRACELETE COM ÍCONE DE ÁLBUM ★
    ============================================================ */
 function makeBraceletTexture() {
   const cv = document.createElement('canvas');
-  cv.width = 512; cv.height = 128;
+  cv.width = 512; cv.height = 256;
   const ctx = cv.getContext('2d');
-  // fundo do bracelete
-  const g = ctx.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, '#2a1a0a');
-  g.addColorStop(0.5, '#4a3010');
-  g.addColorStop(1, '#2a1a0a');
+
+  // Fundo de couro escuro
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#1e1008');
+  g.addColorStop(0.5, '#3a2010');
+  g.addColorStop(1, '#1e1008');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 128);
-  // moldura dourada
-  ctx.strokeStyle = 'rgba(212,175,90,1)'; ctx.lineWidth = 6;
-  roundRect(ctx, 8, 8, 512 - 16, 128 - 16, 12); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.5)'; ctx.lineWidth = 2;
-  roundRect(ctx, 16, 16, 512 - 32, 128 - 32, 8); ctx.stroke();
-  // texto
-  ctx.fillStyle = '#ffe8a0';
-  ctx.font = 'bold 52px Georgia, serif';
+  ctx.fillRect(0, 0, 512, 256);
+
+  // Moldura dourada
+  ctx.strokeStyle = 'rgba(212,175,90,1)'; ctx.lineWidth = 8;
+  roundRect(ctx, 12, 12, 512 - 24, 256 - 24, 20); ctx.stroke();
+  ctx.strokeStyle = 'rgba(212,175,90,0.4)'; ctx.lineWidth = 3;
+  roundRect(ctx, 26, 26, 512 - 52, 256 - 52, 14); ctx.stroke();
+
+  // Ícone de álbum (livro) à esquerda
+  const bx = 60, by = 55, bw = 130, bh = 146;
+  // Capa
+  ctx.fillStyle = 'rgba(10,60,40,0.9)';
+  ctx.strokeStyle = 'rgba(212,175,90,0.95)';
+  ctx.lineWidth = 5;
+  roundRect(ctx, bx, by, bw, bh, 10);
+  ctx.fill(); ctx.stroke();
+  // Lombada
+  ctx.beginPath();
+  ctx.moveTo(bx + 22, by);
+  ctx.lineTo(bx + 22, by + bh);
+  ctx.strokeStyle = 'rgba(212,175,90,0.85)';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // Páginas (linhas)
+  ctx.strokeStyle = 'rgba(240,220,180,0.5)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(bx + 34, by + 24 + i * 20);
+    ctx.lineTo(bx + bw - 14, by + 24 + i * 20);
+    ctx.stroke();
+  }
+  // Emblema G.I na capa
+  ctx.fillStyle = 'rgba(212,175,90,1)';
+  ctx.font = 'bold 26px Georgia, serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(212,175,90,1)'; ctx.shadowBlur = 20;
-  ctx.fillText('INVOCAR ÁLBUM', 256, 64);
+  ctx.fillText('G·I', bx + bw / 2, by + bh - 30);
+
+  // Texto à direita
+  ctx.fillStyle = '#ffe8a0';
+  ctx.font = 'bold 44px Georgia, serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(212,175,90,1)'; ctx.shadowBlur = 16;
+  ctx.fillText('INVOCAR', 220, 100);
+  ctx.font = 'bold 52px Georgia, serif';
+  ctx.fillStyle = '#ffd966';
+  ctx.fillText('ÁLBUM', 220, 158);
   ctx.shadowBlur = 0;
+
+  // Pequena seta / indicador
+  ctx.fillStyle = 'rgba(212,175,90,0.7)';
+  ctx.beginPath();
+  ctx.moveTo(220, 195);
+  ctx.lineTo(360, 195);
+  ctx.lineTo(360, 200);
+  ctx.lineTo(220, 200);
+  ctx.closePath();
+  ctx.fill();
+
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
@@ -2121,154 +2097,238 @@ const BRACELET_TEX = makeBraceletTexture();
 
 function buildBracelet() {
   const g = new THREE.Group();
-  // base (cilindro aberto, virado para fora)
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.055, 0.055, 0.04, 24, 1, true),
-    new THREE.MeshStandardMaterial({
-      map: BRACELET_TEX, roughness: 0.5, metalness: 0.4,
-      side: THREE.DoubleSide, emissive: 0x3a2a10, emissiveIntensity: 0.4
-    })
-  );
-  // rotaciona o cilindro para ficar em torno do pulso
-  base.rotation.z = Math.PI / 2;
+
+  // Base do bracelete — cilindro aberto (anel ao redor do pulso)
+  const baseGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.05, 24, 1, true);
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: 0x2a1a0a, roughness: 0.6, metalness: 0.4,
+    side: THREE.DoubleSide, emissive: 0x2a1005, emissiveIntensity: 0.3
+  });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.rotation.z = Math.PI / 2; // eixo do cilindro segue X (o pulso)
   g.add(base);
-  // anel dourado por cima
+
+  // Anel dourado
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.058, 0.006, 8, 24),
+    new THREE.TorusGeometry(0.058, 0.006, 10, 32),
     new THREE.MeshStandardMaterial({
       color: 0xd4af5a, metalness: 1.0, roughness: 0.2,
-      emissive: 0xd4af5a, emissiveIntensity: 0.5
+      emissive: 0xd4af5a, emissiveIntensity: 0.6
     })
   );
   ring.rotation.y = Math.PI / 2;
   g.add(ring);
-  // aura brilhante
-  const aura = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 16, 12),
+
+  // ★ Ícone/placa com o desenho do álbum ★
+  // Posicionado na parte externa do pulso (frente da mão)
+  const iconPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.09, 0.045),
     new THREE.MeshBasicMaterial({
-      color: 0xffd966, transparent: true, opacity: 0.15,
+      map: BRACELET_TEX, transparent: true, side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  iconPlane.position.set(0, 0.055, 0);
+  iconPlane.rotation.x = -Math.PI / 2;
+  g.add(iconPlane);
+
+  // Aura brilhante
+  const aura = new THREE.Mesh(
+    new THREE.SphereGeometry(0.10, 16, 12),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd966, transparent: true, opacity: 0.12,
       blending: THREE.AdditiveBlending, depthWrite: false
     })
   );
+  aura.rotation.z = Math.PI / 2;
   g.add(aura);
-  // hitbox invisível para detectar toque
+
+  // Hitbox maior para facilitar clique
   const hitbox = new THREE.Mesh(
-    new THREE.SphereGeometry(0.11, 8, 6),
+    new THREE.SphereGeometry(0.12, 10, 8),
     new THREE.MeshBasicMaterial({ visible: false })
   );
   g.add(hitbox);
+
   g.userData.hitbox = hitbox;
   g.userData.aura = aura;
-  g.userData.isBracelet = true;
+  g.userData.iconPlane = iconPlane;
   return g;
 }
 
-// Braceletes nas duas mãos/controles
-const bracelet0 = buildBracelet();
-const bracelet1 = buildBracelet();
-grip0.add(bracelet0);
-grip1.add(bracelet1);
-// Anexa também ao pulso das mãos (hand tracking) - um clone
-const braceletHand0 = buildBracelet();
-const braceletHand1 = buildBracelet();
-if (hand0.joints && hand0.joints['wrist']) {
-  hand0.joints['wrist'].add(braceletHand0);
-}
-if (hand1.joints && hand1.joints['wrist']) {
-  hand1.joints['wrist'].add(braceletHand1);
+// Cria 2 braceletes — vão ser posicionados dinamicamente
+const braceletL = buildBracelet();
+const braceletR = buildBracelet();
+braceletL.visible = false;
+braceletR.visible = false;
+scene.add(braceletL, braceletR);
+
+/* ============================================================
+   ★ POSICIONAMENTO DO BRACELETE (mão ou controle) ★
+   ============================================================ */
+function updateBraceletTransform(hand, controller, grip, bracelet) {
+  if (!isVRActive()) {
+    bracelet.visible = false;
+    return;
+  }
+
+  // Verifica se hand tracking está ativo para este inputSource
+  const inputSource = controller.inputSource;
+  const usingHand = inputSource && inputSource.hand && !inputSource.gamepad;
+
+  if (usingHand && hand && hand.joints) {
+    // Tenta usar o wrist joint
+    const wrist = hand.joints['wrist'];
+    if (wrist) {
+      const wristPos = new THREE.Vector3();
+      const wristQuat = new THREE.Quaternion();
+      wrist.getWorldPosition(wristPos);
+      wrist.getWorldQuaternion(wristQuat);
+      bracelet.position.copy(wristPos);
+      bracelet.quaternion.copy(wristQuat);
+      bracelet.visible = true;
+      return;
+    }
+  }
+
+  // Fallback: controller grip
+  if (grip && grip.visible !== false) {
+    const gripPos = new THREE.Vector3();
+    const gripQuat = new THREE.Quaternion();
+    grip.getWorldPosition(gripPos);
+    grip.getWorldQuaternion(gripQuat);
+    bracelet.position.copy(gripPos);
+    bracelet.quaternion.copy(gripQuat);
+    bracelet.visible = true;
+    return;
+  }
+
+  bracelet.visible = false;
 }
 
 /* ============================================================
-   ★ DETECÇÃO DE PINCH (hand tracking) ★
+   ★ VOZ — Reconhecimento de fala "livro" ★
    ============================================================ */
-const pinchState = [{ active: false, wasActive: false }, { active: false, wasActive: false }];
-const PINCH_THRESHOLD = 0.025; // 2.5cm
+let speechRecognition = null;
+let voiceActive = false;
 
-function checkPinch(hand, index) {
-  if (!hand || !hand.joints) return;
-  const thumb = hand.joints['thumb-tip'];
-  const indexFinger = hand.joints['index-finger-tip'];
-  if (!thumb || !indexFinger) return;
-  const p1 = new THREE.Vector3();
-  const p2 = new THREE.Vector3();
-  thumb.getWorldPosition(p1);
-  indexFinger.getWorldPosition(p2);
-  const dist = p1.distanceTo(p2);
-  pinchState[index].wasActive = pinchState[index].active;
-  pinchState[index].active = dist < PINCH_THRESHOLD;
+function initVoiceRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    console.warn('Reconhecimento de voz não suportado neste navegador');
+    voiceStatusEl.textContent = '⚠️ Voz indisponível';
+    return false;
+  }
+  try {
+    speechRecognition = new SR();
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = false;
+    speechRecognition.lang = 'pt-BR';
+    speechRecognition.maxAlternatives = 1;
+
+    speechRecognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          const text = event.results[i][0].transcript.toLowerCase().trim();
+          console.log('🎤 Voz detectada:', text);
+          if (text.includes('livro') || text.includes('álbum') || text.includes('album') || text.includes('abrir')) {
+            console.log('✅ Comando reconhecido — mostrando álbum');
+            showAlbumInFront();
+            // Feedback visual
+            voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Álbum invocado!';
+            setTimeout(() => {
+              voiceStatusEl.innerHTML = '<span class="dot"></span>🎤 Ouvindo: diga "livro"';
+            }, 2000);
+          }
+        }
+      }
+    };
+
+    speechRecognition.onerror = (e) => {
+      if (e.error === 'not-allowed') {
+        console.warn('Permissão de microfone negada');
+        voiceStatusEl.innerHTML = '⚠️ Microfone bloqueado';
+      } else if (e.error !== 'no-speech') {
+        console.warn('Erro de voz:', e.error);
+      }
+    };
+
+    speechRecognition.onend = () => {
+      if (voiceActive) {
+        // Reinicia automaticamente
+        try { speechRecognition.start(); } catch (e) {}
+      }
+    };
+
+    return true;
+  } catch (e) {
+    console.warn('Erro ao iniciar voz:', e);
+    return false;
+  }
 }
 
-/* Verifica se um pinch começou agora */
-function pinchJustStarted(index) {
-  return pinchState[index].active && !pinchState[index].wasActive;
+function startVoice() {
+  if (!speechRecognition) {
+    if (!initVoiceRecognition()) return;
+  }
+  if (speechRecognition && !voiceActive) {
+    try {
+      speechRecognition.start();
+      voiceActive = true;
+      voiceStatusEl.classList.add('listening');
+      console.log('🎤 Voz ativa');
+    } catch (e) {
+      console.warn('Erro ao iniciar voz:', e);
+    }
+  }
 }
 
-/* Verifica se um pinch terminou agora */
-function pinchJustEnded(index) {
-  return !pinchState[index].active && pinchState[index].wasActive;
+function stopVoice() {
+  if (speechRecognition && voiceActive) {
+    voiceActive = false;
+    try { speechRecognition.stop(); } catch (e) {}
+    voiceStatusEl.classList.remove('listening');
+    console.log('🔇 Voz desativada');
+  }
 }
+
+// Inicia voz no primeiro clique do usuário (navegadores exigem interação)
+document.body.addEventListener('click', () => {
+  if (!voiceActive) startVoice();
+}, { once: true });
+
+// Também inicia no Preview VR
+previewBtn.addEventListener('click', () => { setTimeout(startVoice, 300); });
 
 /* ============================================================
-   ★ INTERAÇÃO COM O BRACELETE (invocar álbum) ★
+   CONTROLES VR — SELECT e BOTÕES
    ============================================================ */
-function tryActivateBracelet(controller, rayOrigin, rayDir) {
-  if (!controller) return false;
-  raycaster.set(rayOrigin, rayDir);
-  // Verifica os 4 braceletes
-  const bracelets = [bracelet0, bracelet1, braceletHand0, braceletHand1];
+const tempMatrix = new THREE.Matrix4();
+
+function checkBraceletHit(origin, dir) {
+  raycaster.set(origin, dir);
+  const bracelets = [braceletL, braceletR];
   for (let i = 0; i < bracelets.length; i++) {
     const b = bracelets[i];
-    if (!b.userData.hitbox) continue;
-    const hits = raycaster.intersectObject(b.userData.hitbox, false);
-    if (hits.length > 0) {
-      // Ativa: mostra o livro
-      bookGroup.visible = true;
-      resetBookPosition();
+    if (!b.visible) continue;
+    if (raycaster.intersectObject(b.userData.hitbox, false).length > 0) {
       return true;
     }
   }
   return false;
 }
 
-/* ============================================================
-   ★ INTERAÇÃO COM AS PÁGINAS (folhear) ★
-   ============================================================ */
-function tryFlipPage(raycaster) {
-  if (state.mode !== 'open' && state.mode !== 'flipping') return false;
-  // Testa as hitboxes das páginas
-  pageHitboxLeft.visible = true;
-  pageHitboxRight.visible = true;
-  pageHitboxLeft.updateMatrixWorld(true);
-  pageHitboxRight.updateMatrixWorld(true);
-
-  const hitsL = raycaster.intersectObject(pageHitboxLeft, false);
-  const hitsR = raycaster.intersectObject(pageHitboxRight, false);
-
-  pageHitboxLeft.visible = false;
-  pageHitboxRight.visible = false;
-
-  if (hitsR.length > 0 && state.spread < MAX_SPREAD) {
-    flipForward();
-    return true;
-  }
-  if (hitsL.length > 0 && state.spread > 1) {
-    flipBack();
-    return true;
-  }
-  return false;
-}
-
-/* ============================================================
-   HANDLERS DE SELEÇÃO (controle + hand tracking)
-   ============================================================ */
-function handleSelectStart(controller, index) {
-  // 1) Bracelete (invocar álbum)
-  const tempMatrix = new THREE.Matrix4();
+function handleSelectStart(event) {
+  const controller = event.target;
   tempMatrix.identity().extractRotation(controller.matrixWorld);
-  const origin = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
-  const dir = new THREE.Vector3(0, 0, -1).applyMatrix4(tempMatrix);
+  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
-  if (tryActivateBracelet(controller, origin, dir)) return;
+  // 1) Bracelete → invocar álbum
+  if (checkBraceletHit(raycaster.ray.origin, raycaster.ray.direction)) {
+    showAlbumInFront();
+    return;
+  }
 
   // 2) Carta inspecionada (agarrar)
   if (tryStartCardGrab(controller)) return;
@@ -2276,15 +2336,17 @@ function handleSelectStart(controller, index) {
   // 3) Livro (agarrar)
   if (tryStartBookGrab(controller)) return;
 
-  // 4) Páginas do álbum (folhear)
-  raycaster.set(origin, dir);
-  if (tryFlipPage(raycaster)) return;
+  // 4) Páginas (folhear)
+  if (state.mode === 'open' || state.mode === 'flipping') {
+    const hitsL = raycaster.intersectObject(pageHitboxLeft, false);
+    const hitsR = raycaster.intersectObject(pageHitboxRight, false);
+    if (hitsR.length > 0 && state.spread < MAX_SPREAD) { flipForward(); return; }
+    if (hitsL.length > 0 && state.spread > 1) { flipBack(); return; }
+  }
 
-  // 5) Cartas no álbum
+  // 5) Ações normais
   if (state.mode === 'closed') {
-    if (bookGroup.visible && raycaster.intersectObject(coverOutsidePlane, false).length > 0) {
-      openAlbum();
-    }
+    if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) openAlbum();
     return;
   }
   if (state.mode === 'open') {
@@ -2298,20 +2360,15 @@ function handleSelectStart(controller, index) {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) returnInspectedCard();
   }
 }
-
 function handleSelectEnd() {
   endCardGrab();
   endBookGrab();
 }
-
-controller0.addEventListener('selectstart', (e) => handleSelectStart(e.target, 0));
+controller0.addEventListener('selectstart', handleSelectStart);
 controller0.addEventListener('selectend', handleSelectEnd);
-controller1.addEventListener('selectstart', (e) => handleSelectStart(e.target, 1));
+controller1.addEventListener('selectstart', handleSelectStart);
 controller1.addEventListener('selectend', handleSelectEnd);
 
-/* ============================================================
-   BOTÕES DOS CONTROLES
-   ============================================================ */
 const controllerBtnStates = [{ a: false, b: false, squeeze: false }, { a: false, b: false, squeeze: false }];
 function pollControllerButtons() {
   if (!renderer.xr.isPresenting) return;
@@ -2325,7 +2382,7 @@ function pollControllerButtons() {
 
     if (aPressed && !controllerBtnStates[i].a) {
       if (state.mode === 'inspecting' && state.summoned) toggleCardTerrain();
-      else resetBookPosition();
+      else showAlbumInFront();
     }
     if (bPressed && !controllerBtnStates[i].b) {
       if (state.mode === 'inspecting' && state.summoned) triggerAttack();
@@ -2333,9 +2390,7 @@ function pollControllerButtons() {
       else if (state.mode === 'open') closeAlbum();
     }
     if (squeezePressed && !controllerBtnStates[i].squeeze) {
-      // squeeze mostra o livro (mesmo efeito do bracelete)
-      bookGroup.visible = true;
-      resetBookPosition();
+      showAlbumInFront();
     }
     controllerBtnStates[i].a = aPressed;
     controllerBtnStates[i].b = bPressed;
@@ -2343,94 +2398,17 @@ function pollControllerButtons() {
   });
 }
 
-/* ============================================================
-   PINCH HANDLERS (chamados a cada frame)
-   ============================================================ */
-function handlePinch(index, hand) {
-  if (pinchJustStarted(index)) {
-    // Pinça começou — simula um "selectstart"
-    // Usa a posição do index finger como origem
-    const indexTip = hand.joints['index-finger-tip'];
-    if (!indexTip) return;
-    const origin = new THREE.Vector3();
-    indexTip.getWorldPosition(origin);
-    // Direção: do pulso para o index finger
-    const wrist = hand.joints['wrist'];
-    const wristPos = new THREE.Vector3();
-    if (wrist) wrist.getWorldPosition(wristPos);
-    const dir = origin.clone().sub(wristPos).normalize();
-    if (dir.lengthSq() < 0.001) dir.set(0, 0, -1);
-
-    raycaster.set(origin, dir);
-
-    // 1) Bracelete
-    const bracelets = [bracelet0, bracelet1, braceletHand0, braceletHand1];
-    for (let i = 0; i < bracelets.length; i++) {
-      const b = bracelets[i];
-      if (!b.userData.hitbox) continue;
-      if (raycaster.intersectObject(b.userData.hitbox, false).length > 0) {
-        bookGroup.visible = true;
-        resetBookPosition();
-        return;
-      }
-    }
-
-    // 2) Páginas (folhear)
-    if (tryFlipPage(raycaster)) return;
-
-    // 3) Cartas (pegar)
-    if (state.mode === 'open') {
-      const allCards = [];
-      bookGroup.traverse(o => { if (o.userData.isCard) allCards.push(o); });
-      const hits = raycaster.intersectObjects(allCards, false);
-      if (hits.length > 0) {
-        inspectCard(hits[0].object);
-        return;
-      }
-    }
-
-    // 4) Se está inspecionando e clicou fora, devolve
-    if (state.mode === 'inspecting' && state.inspectedCard) {
-      if (raycaster.intersectObject(state.inspectedCard, true).length > 0) {
-        // Tentar pegar a carta com hand tracking (movê-la no cenário)
-        // Para hand tracking, usamos um "grab virtual": salvamos offsets
-        isGrabbingCard = true;
-        grabbingCardController = hand;
-        cardWasManuallyPlaced = true;
-        const cardPos = new THREE.Vector3();
-        const cardQuat = new THREE.Quaternion();
-        state.inspectedCard.getWorldPosition(cardPos);
-        state.inspectedCard.getWorldQuaternion(cardQuat);
-        cardGrabOffsetPos.copy(cardPos).sub(origin);
-        cardGrabOffsetQuat.copy(cardQuat);
-      } else {
-        returnInspectedCard();
-      }
-    }
-  }
-  if (pinchJustEnded(index)) {
-    endCardGrab();
-  }
-}
-
-/* ============================================================
-   SESSÃO VR
-   ============================================================ */
+/* SESSÃO VR */
 renderer.xr.addEventListener('sessionstart', () => {
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
-  bookGroup.visible = false; // escondido até invocar pelo bracelete
-  bookVR.active = true;
-  controllerBtnStates[0].a = false;
-  controllerBtnStates[0].b = false;
-  controllerBtnStates[0].squeeze = false;
-  controllerBtnStates[1].a = false;
-  controllerBtnStates[1].b = false;
-  controllerBtnStates[1].squeeze = false;
-  pinchState[0].active = false;
-  pinchState[0].wasActive = false;
-  pinchState[1].active = false;
-  pinchState[1].wasActive = false;
+  showAlbumInFront();
+  controllerBtnStates[0] = { a: false, b: false, squeeze: false };
+  controllerBtnStates[1] = { a: false, b: false, squeeze: false };
+
+  // Inicia voz
+  setTimeout(startVoice, 1000);
+
   refreshUI();
 });
 renderer.xr.addEventListener('sessionend', () => {
@@ -2438,8 +2416,8 @@ renderer.xr.addEventListener('sessionend', () => {
   disableBookVR();
   endBookGrab();
   endCardGrab();
-  state.mode = 'closed';
-  state.spread = 0;
+  stopVoice();
+  state.mode = 'closed'; state.spread = 0;
   coverInfo.pivot.rotation.z = 0;
   coverInfo.pivot.position.y = coverInfo.originalY;
   sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
@@ -2451,9 +2429,7 @@ renderer.xr.addEventListener('sessionend', () => {
   refreshUI();
 });
 
-/* ============================================================
-   RESIZE + LOOP
-   ============================================================ */
+/* RESIZE */
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
@@ -2462,7 +2438,6 @@ window.addEventListener('resize', () => {
 });
 refreshUI();
 let lastTime = performance.now();
-
 const _tmpV1 = new THREE.Vector3();
 const _tmpV2 = new THREE.Vector3();
 const _tmpV3 = new THREE.Vector3();
@@ -2476,41 +2451,41 @@ renderer.setAnimationLoop(() => {
 
   updateTweens(now);
   pollControllerButtons();
-
-  // Pinch detection (hand tracking)
-  if (renderer.xr.isPresenting) {
-    checkPinch(hand0, 0);
-    checkPinch(hand1, 1);
-    handlePinch(0, hand0);
-    handlePinch(1, hand1);
-  }
-
   updateBookGrab();
   updateCardGrab();
   updateBookVRTransform(dt);
 
-  // Animação do bracelete (pulsação)
-  const bracelets = [bracelet0, bracelet1, braceletHand0, braceletHand1];
-  for (let i = 0; i < bracelets.length; i++) {
-    const b = bracelets[i];
+  // ★ Atualiza posição dos braceletes ★
+  if (hand0 && hand1) {
+    updateBraceletTransform(hand0, controller0, grip0, braceletL);
+    updateBraceletTransform(hand1, controller1, grip1, braceletR);
+  } else {
+    // Sem hand tracking: usa apenas controles
+    if (grip0) {
+      grip0.getWorldPosition(braceletL.position);
+      grip0.getWorldQuaternion(braceletL.quaternion);
+      braceletL.visible = isVRActive();
+    }
+    if (grip1) {
+      grip1.getWorldPosition(braceletR.position);
+      grip1.getWorldQuaternion(braceletR.quaternion);
+      braceletR.visible = isVRActive();
+    }
+  }
+
+  // Animação dos braceletes
+  [braceletL, braceletR].forEach((b, i) => {
+    if (!b.visible) return;
     if (b.userData.aura) {
       const s = 1 + Math.sin(tGlobal * 3 + i) * 0.15;
       b.userData.aura.scale.setScalar(s);
       b.userData.aura.material.opacity = 0.10 + Math.sin(tGlobal * 3 + i) * 0.08;
     }
-  }
-
-  // Visibilidade dos braceletes: mostra só o do input ativo
-  if (renderer.xr.isPresenting) {
-    const src0 = controller0.inputSource;
-    const src1 = controller1.inputSource;
-    const isHand0 = src0 && src0.hand;
-    const isHand1 = src1 && src1.hand;
-    bracelet0.visible = !isHand0;
-    bracelet1.visible = !isHand1;
-    braceletHand0.visible = !!isHand0;
-    braceletHand1.visible = !!isHand1;
-  }
+    if (b.userData.iconPlane) {
+      // Leve flutuação
+      b.userData.iconPlane.position.y = 0.055 + Math.sin(tGlobal * 2 + i) * 0.003;
+    }
+  });
 
   skyMesh.rotation.y += dt * 0.0015;
 
@@ -2520,7 +2495,6 @@ renderer.setAnimationLoop(() => {
       (0.75 + Math.sin(tGlobal * layer.userData.pulseSpeed + layer.userData.pulsePhase) * 0.25);
     layer.rotation.y += dt * (0.001 + i * 0.0004);
   }
-
   for (let i = 0; i < allPulsingStars.length; i++) {
     const s = allPulsingStars[i];
     const base = s.userData.baseScale;
@@ -2529,7 +2503,6 @@ renderer.setAnimationLoop(() => {
     s.material.opacity = s.userData.baseOpacity *
       (0.65 + Math.sin(tGlobal * s.userData.pulseSpeed * 1.3 + s.userData.pulsePhase) * 0.35);
   }
-
   [zodiacGroup, extendedGroup].forEach(grp => {
     if (!grp.visible) return;
     for (let i = 0; i < grp.children.length; i++) {
@@ -2540,7 +2513,6 @@ renderer.setAnimationLoop(() => {
       }
     }
   });
-
   const nebs = nebulaGroup.children;
   for (let i = 0; i < nebs.length; i++) {
     const n = nebs[i];
@@ -2576,7 +2548,6 @@ renderer.setAnimationLoop(() => {
     ss.trailMat.opacity = 0.95 * fade;
   }
 
-  // Billboard da carta
   if (state.inspectedCard && (renderer.xr.isPresenting || state.vrPreview)
       && !isGrabbingCard && !cardWasManuallyPlaced
       && state.cardLayout === 'face') {
@@ -2586,7 +2557,6 @@ renderer.setAnimationLoop(() => {
     cardTargetQuat.copy(state.inspectedCard.quaternion);
   }
 
-  // Holograma
   if (state.summoned && state.inspectedCard) {
     state.holoTime += dt;
     const t = state.holoTime;
@@ -2595,14 +2565,12 @@ renderer.setAnimationLoop(() => {
     const inVR = isVRActive();
     let yOff = inVR ? 0.22 : 2.1;
     if (state.cardLayout === 'terrain') yOff = inVR ? 0.35 : 2.2;
-
     const bob = Math.sin(t * 1.4) * 0.10;
     const swayX = Math.sin(t * 0.6) * 0.05;
     const swayZ = Math.cos(t * 0.5) * 0.05;
     const targetX = _tmpV1.x + swayX;
     const targetY = _tmpV1.y + yOff + bob;
     const targetZ = _tmpV1.z + swayZ;
-
     if (!holo.userData.initialized) {
       holo.position.set(targetX, targetY, targetZ);
       holo.userData.initialized = true;
@@ -2611,7 +2579,6 @@ renderer.setAnimationLoop(() => {
       holo.position.y += (targetY - holo.position.y) * 0.15;
       holo.position.z += (targetZ - holo.position.z) * 0.15;
     }
-
     const planes = holo.userData.planes;
     const yOffLocal = holo.userData.y || 1.75;
     if (planes) {
