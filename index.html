@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ilha da Ganância — Hologramas HD</title>
+<title>Ilha da Ganância — Álbum Arcano</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden;
-    background: #02040a;
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #02040a;
     font-family: 'Segoe UI', system-ui, sans-serif; color: #e8edf7; }
   #app { position: fixed; inset: 0; }
   canvas { display: block; }
@@ -15,51 +14,49 @@
     position: fixed; top: 26px; left: 50%; transform: translateX(-50%);
     background: rgba(10,24,30,.85); backdrop-filter: blur(14px);
     padding: 11px 26px; border-radius: 999px; font-size: 14px;
-    letter-spacing: .3px; border: 1px solid rgba(212,175,90,.35);
-    pointer-events: none; transition: opacity .4s, transform .4s;
-    white-space: nowrap; z-index: 5; color: #f4e9c8; }
+    border: 1px solid rgba(212,175,90,.35); pointer-events: none;
+    transition: opacity .4s, transform .4s; white-space: nowrap;
+    z-index: 5; color: #f4e9c8; letter-spacing: .3px; }
   #hint.hidden { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   #ui {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 12px; align-items: center; z-index: 6; }
+    display: flex; gap: 12px; align-items: center; z-index: 6;
+    flex-wrap: wrap; justify-content: center; max-width: 92vw; }
   button {
     padding: 13px 26px; border-radius: 999px;
     border: 1px solid rgba(212,175,90,.35);
     background: rgba(10,40,34,.85); backdrop-filter: blur(14px);
     color: #f4e9c8; font-size: 15px; font-weight: 600;
-    font-family: inherit; letter-spacing: .4px;
-    cursor: pointer; transition: all .25s ease;
-    opacity: 0; pointer-events: none; transform: translateY(14px); }
+    font-family: inherit; letter-spacing: .4px; cursor: pointer;
+    transition: all .25s ease; opacity: 0; pointer-events: none;
+    transform: translateY(14px); }
   button.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
   button:hover:not(:disabled) {
-    background: rgba(20,80,60,.95);
-    border-color: rgba(212,175,90,.7);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(212,175,90,.25); }
+    background: rgba(20,80,60,.95); border-color: rgba(212,175,90,.7);
+    transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,175,90,.25); }
   button:active:not(:disabled) { transform: translateY(0) scale(.96); }
   button:disabled { opacity: .35; cursor: not-allowed; }
-  button.primary {
-    background: linear-gradient(135deg, #0d5c45 0%, #063c2c 100%);
+  button.primary { background: linear-gradient(135deg, #0d5c45 0%, #063c2c 100%);
     border-color: rgba(212,175,90,.6); }
   button.nav-btn { padding: 13px 18px; min-width: 52px; font-size: 18px; }
-  button.danger {
-    background: linear-gradient(135deg, #7c2b1e 0%, #401008 100%);
+  button.danger { background: linear-gradient(135deg, #7c2b1e 0%, #401008 100%);
     border-color: rgba(255,120,80,.6); }
   button.danger:hover:not(:disabled) {
     background: linear-gradient(135deg, #9c3b2e 0%, #5a1a10 100%); }
-  button.vr-btn {
-    background: linear-gradient(135deg, #4f6dff 0%, #7c4dff 100%);
+  button.vr-btn { background: linear-gradient(135deg, #4f6dff 0%, #7c4dff 100%);
     border-color: rgba(180,200,255,.6); }
-  button.mode-btn {
-    background: linear-gradient(135deg, #6d4fff 0%, #4f2bcc 100%);
+  button.mode-btn { background: linear-gradient(135deg, #6d4fff 0%, #4f2bcc 100%);
     border-color: rgba(180,200,255,.6); }
+  button.terrain-btn { background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    border-color: rgba(120,220,120,.6); }
+  button.attack-btn { background: linear-gradient(135deg, #b71c1c 0%, #7f0000 100%);
+    border-color: rgba(255,120,80,.6); }
   #vrPreview {
-    position: fixed; inset: 0; pointer-events: none;
-    z-index: 10; display: none; }
+    position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
   #vrPreview.active { display: block; }
   #vrPreview::before, #vrPreview::after {
     content: ''; position: absolute; top: 0; bottom: 0; width: 50%;
-    box-shadow: inset 0 0 120px rgba(0,0,0,0.85); }
+    box-shadow: inset 0 0 140px rgba(0,0,0,0.9); }
   #vrPreview::before { left: 0; border-right: 1px solid rgba(0,0,0,0.6); }
   #vrPreview::after { right: 0; border-left: 1px solid rgba(0,0,0,0.6); }
   #vrExit {
@@ -92,12 +89,13 @@
   <button id="nextBtn" class="nav-btn">▶</button>
   <button id="desummonBtn" class="danger">✕ Desinvocar</button>
   <button id="backBtn" class="primary">↩ Devolver carta</button>
-  <button id="modeBtn" class="mode-btn">📌 Modo</button>
+  <button id="terrainBtn" class="terrain-btn">🌫️ Terreno</button>
+  <button id="attackBtn" class="attack-btn">⚔️ Atacar</button>
+  <button id="modeBtn" class="mode-btn">🎯 Recentrar livro</button>
   <button id="previewBtn" class="vr-btn">👓 Preview VR</button>
 </div>
 
 <button id="vrExit">✕ Sair do Preview VR</button>
-
 <div id="loading">CARREGANDO O CÉU CÓSMICO…</div>
 
 <script type="importmap">
@@ -114,6 +112,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
 /* ============================================================
    DADOS
@@ -146,9 +145,9 @@ const CARD_DATA = [
 ];
 
 /* ============================================================
-   TEXTURAS DE CARTA
+   HELPERS
    ============================================================ */
-const TW = 640, TH = 960;
+const TW = 512, TH = 768;
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -159,7 +158,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 function wrapCentered(ctx, text, cx, cy, maxW, lh) {
-  const words = text.split(' '); const lines = []; let line = '';
+  const words = text.split(' '), lines = []; let line = '';
   for (const w of words) {
     const t = line ? line + ' ' + w : w;
     if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; }
@@ -170,8 +169,7 @@ function wrapCentered(ctx, text, cx, cy, maxW, lh) {
   lines.forEach((l, i) => ctx.fillText(l, cx, startY + i * lh));
 }
 function drawGoldCorner(ctx, x, y, s, flip = false) {
-  ctx.save();
-  ctx.translate(x, y);
+  ctx.save(); ctx.translate(x, y);
   if (flip) ctx.scale(-1, 1);
   ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 3;
   ctx.beginPath();
@@ -182,8 +180,7 @@ function drawGoldCorner(ctx, x, y, s, flip = false) {
   ctx.beginPath();
   ctx.moveTo(s * 0.18, s * 0.75); ctx.lineTo(s * 0.18, s * 0.35);
   ctx.quadraticCurveTo(s * 0.18, s * 0.18, s * 0.35, s * 0.18);
-  ctx.lineTo(s * 0.75, s * 0.18);
-  ctx.stroke();
+  ctx.lineTo(s * 0.75, s * 0.18); ctx.stroke();
   ctx.fillStyle = 'rgba(212,175,90,0.9)';
   ctx.beginPath();
   ctx.moveTo(s * 0.18, s * 0.18 - 6);
@@ -213,44 +210,24 @@ function drawRarityGem(ctx, cx, cy, r, power) {
   ctx.shadowColor = 'rgba(212,175,90,0.9)'; ctx.shadowBlur = 8;
   ctx.fillText(String(power), 0, 1); ctx.restore();
 }
+
+/* ============================================================
+   TEXTURAS
+   ============================================================ */
 function makeCardTexture(d, index) {
   const cv = document.createElement('canvas');
   cv.width = TW; cv.height = TH;
   const ctx = cv.getContext('2d');
   const bg = ctx.createLinearGradient(0, 0, TW, TH);
-  bg.addColorStop(0.00, d.c1); bg.addColorStop(0.55, d.c2); bg.addColorStop(1.00, '#05070d');
+  bg.addColorStop(0, d.c1); bg.addColorStop(0.55, d.c2); bg.addColorStop(1, '#05070d');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH);
   const light = ctx.createRadialGradient(TW*0.5, TH*0.30, 20, TW*0.5, TH*0.42, TH*0.75);
   light.addColorStop(0, 'rgba(255,255,255,0.42)');
   light.addColorStop(0.35, 'rgba(255,255,255,0.12)');
   light.addColorStop(1, 'rgba(0,0,0,0.35)');
   ctx.fillStyle = light; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.06;
-  for (let i = -3; i < 14; i++) {
-    const x = i * (TW / 8);
-    ctx.fillStyle = i % 2 ? '#fff' : '#000';
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x + 30, 0);
-    ctx.lineTo(x - 90, TH); ctx.lineTo(x - 120, TH);
-    ctx.closePath(); ctx.fill();
-  }
-  ctx.restore();
-  ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
-  for (let y = -TH; y < TH * 2; y += 34) {
-    for (let x = -TW; x < TW * 2; x += 34) {
-      ctx.beginPath();
-      ctx.moveTo(x, y - 12); ctx.lineTo(x + 12, y);
-      ctx.lineTo(x, y + 12); ctx.lineTo(x - 12, y);
-      ctx.closePath(); ctx.stroke();
-    }
-  }
-  ctx.restore();
   ctx.strokeStyle = 'rgba(240,210,140,0.85)'; ctx.lineWidth = 5;
   roundRect(ctx, 22, 22, TW - 44, TH - 44, 30); ctx.stroke();
-  ctx.strokeStyle = 'rgba(240,210,140,0.35)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 38, 38, TW - 76, TH - 76, 22); ctx.stroke();
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
-  roundRect(ctx, 46, 46, TW - 92, TH - 92, 18); ctx.stroke();
   const cs = 34;
   drawGoldCorner(ctx, 50, 50, cs, false);
   drawGoldCorner(ctx, TW - 50, 50, cs, true);
@@ -258,22 +235,17 @@ function makeCardTexture(d, index) {
   drawGoldCorner(ctx, 0, 0, cs, false); ctx.restore();
   ctx.save(); ctx.translate(TW - 50, TH - 50); ctx.rotate(Math.PI);
   drawGoldCorner(ctx, 0, 0, cs, false); ctx.restore();
-  const bannerY = 60, bannerH = 92;
+  const bY = 60, bH = 92;
   ctx.fillStyle = 'rgba(10,14,24,0.72)';
-  roundRect(ctx, 60, bannerY, TW - 120, bannerH, 14); ctx.fill();
+  roundRect(ctx, 60, bY, TW - 120, bH, 14); ctx.fill();
   ctx.strokeStyle = 'rgba(240,210,140,0.75)'; ctx.lineWidth = 2;
-  roundRect(ctx, 60, bannerY, TW - 120, bannerH, 14); ctx.stroke();
+  roundRect(ctx, 60, bY, TW - 120, bH, 14); ctx.stroke();
   ctx.fillStyle = '#f4e9c8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 44px Georgia, serif';
+  ctx.font = 'bold 36px Georgia, serif';
   ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 10;
-  ctx.fillText(d.name.toUpperCase(), TW / 2, bannerY + bannerH / 2 + 2);
+  ctx.fillText(d.name.toUpperCase(), TW / 2, bY + bH / 2 + 2);
   ctx.shadowBlur = 0;
-  const pCX = TW / 2, pCY = TH * 0.52, pR = 175;
-  const aura = ctx.createRadialGradient(pCX, pCY, pR * 0.5, pCX, pCY, pR * 1.35);
-  aura.addColorStop(0, 'rgba(255,255,255,0.18)');
-  aura.addColorStop(0.6, `${d.c1}55`);
-  aura.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(pCX, pCY, pR * 1.35, 0, 7); ctx.fill();
+  const pCX = TW / 2, pCY = TH * 0.52, pR = 140;
   const glass = ctx.createRadialGradient(pCX - 40, pCY - 60, 20, pCX, pCY, pR);
   glass.addColorStop(0, 'rgba(255,255,255,0.42)');
   glass.addColorStop(0.55, 'rgba(255,255,255,0.08)');
@@ -281,58 +253,34 @@ function makeCardTexture(d, index) {
   ctx.fillStyle = glass; ctx.beginPath(); ctx.arc(pCX, pCY, pR, 0, 7); ctx.fill();
   ctx.strokeStyle = 'rgba(240,210,140,0.95)'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.arc(pCX, pCY, pR, 0, 7); ctx.stroke();
-  ctx.strokeStyle = 'rgba(240,210,140,0.5)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(pCX, pCY, pR - 12, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(pCX, pCY, pR + 10, 0, 7); ctx.stroke();
-  ctx.save(); ctx.translate(pCX, pCY);
-  ctx.strokeStyle = 'rgba(240,210,140,0.65)';
-  ctx.fillStyle = 'rgba(240,210,140,0.85)'; ctx.lineWidth = 2;
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    const r1 = pR + 22, r2 = pR + 30;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
-    ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(Math.cos(a) * (pR + 40), Math.sin(a) * (pR + 40), 3, 0, 7);
-    ctx.fill();
-  }
-  ctx.restore();
-  ctx.font = '210px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
+  ctx.font = '170px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = d.c1; ctx.shadowBlur = 60;
-  ctx.fillText(d.emoji, pCX, pCY + 6);
-  ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 8;
+  ctx.shadowColor = d.c1; ctx.shadowBlur = 50;
   ctx.fillText(d.emoji, pCX, pCY + 6);
   ctx.shadowBlur = 0;
-  const descY = TH - 175, descH = 118;
+  const dY = TH - 145, dH = 95;
   ctx.fillStyle = 'rgba(10,14,24,0.78)';
-  roundRect(ctx, 60, descY, TW - 120, descH, 14); ctx.fill();
+  roundRect(ctx, 60, dY, TW - 120, dH, 14); ctx.fill();
   ctx.strokeStyle = 'rgba(240,210,140,0.7)'; ctx.lineWidth = 2;
-  roundRect(ctx, 60, descY, TW - 120, descH, 14); ctx.stroke();
-  ctx.fillStyle = 'rgba(240,210,140,0.85)';
-  ctx.font = '22px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('❖', TW / 2, descY + 12);
+  roundRect(ctx, 60, dY, TW - 120, dH, 14); ctx.stroke();
   ctx.fillStyle = 'rgba(255,250,235,0.95)';
-  ctx.font = 'italic 26px Georgia, serif';
-  wrapCentered(ctx, d.desc, TW / 2, descY + descH * 0.62, TW - 150, 32);
-  drawRarityGem(ctx, TW - 92, 92, 32, d.power);
+  ctx.font = 'italic 22px Georgia, serif';
+  wrapCentered(ctx, d.desc, TW / 2, dY + dH * 0.6, TW - 130, 28);
+  drawRarityGem(ctx, TW - 76, 76, 26, d.power);
   ctx.fillStyle = 'rgba(240,210,140,0.85)';
-  ctx.font = 'bold 22px Georgia, serif';
+  ctx.font = 'bold 20px Georgia, serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('Nº ' + String(index + 1).padStart(2, '0'), 88, 92);
-  ctx.font = '16px Georgia, serif';
-  ctx.fillStyle = 'rgba(240,210,140,0.55)';
-  ctx.fillText('ARCANA', 88, 118);
+  ctx.fillText('Nº ' + String(index + 1).padStart(2, '0'), 76, 76);
   const vig = ctx.createRadialGradient(TW/2, TH/2, TH*0.35, TW/2, TH/2, TH*0.75);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
   vig.addColorStop(1, 'rgba(0,0,0,0.6)');
   ctx.fillStyle = vig; ctx.fillRect(0, 0, TW, TH);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
   return tex;
 }
+
 let _backTexCache = null;
 function makeBackTexture() {
   if (_backTexCache) return _backTexCache;
@@ -342,64 +290,25 @@ function makeBackTexture() {
   const bg = ctx.createLinearGradient(0, 0, TW, TH);
   bg.addColorStop(0, '#0d2a20'); bg.addColorStop(0.5, '#041410'); bg.addColorStop(1, '#0d2a20');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH);
-  const halo = ctx.createRadialGradient(TW/2, TH/2, 10, TW/2, TH/2, TH*0.6);
-  halo.addColorStop(0, 'rgba(212,175,90,0.22)');
-  halo.addColorStop(0.6, 'rgba(100,160,100,0.08)');
-  halo.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = halo; ctx.fillRect(0, 0, TW, TH);
-  for (let i = 0; i < 220; i++) {
+  for (let i = 0; i < 150; i++) {
     const x = Math.random() * TW, y = Math.random() * TH;
-    const r = Math.random() * 1.4 + 0.2;
     ctx.fillStyle = `rgba(230,240,210,${Math.random() * 0.5 + 0.15})`;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, Math.random() * 1.4 + 0.2, 0, 7); ctx.fill();
   }
-  ctx.strokeStyle = 'rgba(212,175,90,0.75)'; ctx.lineWidth = 5;
-  roundRect(ctx, 22, 22, TW - 44, TH - 44, 30); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.30)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 40, 40, TW - 80, TH - 80, 22); ctx.stroke();
+  ctx.strokeStyle = 'rgba(212,175,90,0.75)'; ctx.lineWidth = 4;
+  roundRect(ctx, 18, 18, TW - 36, TH - 36, 24); ctx.stroke();
   ctx.save(); ctx.translate(TW/2, TH/2);
-  const gold = 'rgba(212,175,90,0.9)', goldSoft = 'rgba(212,175,90,0.35)', emerald = 'rgba(80,220,150,0.75)';
-  ctx.strokeStyle = gold; ctx.lineWidth = 2;
-  [260, 220, 180, 140, 100].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); });
-  ctx.strokeStyle = goldSoft; ctx.lineWidth = 1;
-  [240, 200, 160, 120, 80].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); });
-  ctx.strokeStyle = emerald; ctx.lineWidth = 2;
-  ctx.fillStyle = 'rgba(80,220,150,0.10)';
-  for (let i = 0; i < 16; i++) {
-    const a1 = (i / 16) * Math.PI * 2, a2 = ((i + 0.5) / 16) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(a1) * 260, Math.sin(a1) * 260);
-    ctx.lineTo(Math.cos(a2) * 240, Math.sin(a2) * 240);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
-  ctx.strokeStyle = gold; ctx.lineWidth = 3;
-  ctx.fillStyle = 'rgba(212,175,90,0.10)';
-  ctx.beginPath();
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2 - Math.PI / 2;
-    const r = i % 2 === 0 ? 140 : 55;
-    const x = Math.cos(a) * r, y = Math.sin(a) * r;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = gold; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.arc(0, 0, 55, 0, 7); ctx.stroke();
-  ctx.fillStyle = gold;
-  ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
-  ctx.fillStyle = '#041410';
-  ctx.font = 'bold 32px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('✦', 0, 2);
+  ctx.strokeStyle = 'rgba(212,175,90,0.9)'; ctx.lineWidth = 2;
+  [210, 175, 140, 105, 70].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); });
+  ctx.fillStyle = 'rgba(212,175,90,0.9)';
+  ctx.beginPath(); ctx.arc(0, 0, 18, 0, 7); ctx.fill();
   ctx.restore();
-  ctx.fillStyle = 'rgba(212,175,90,0.7)';
-  ctx.font = '18px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('✦  ILHA DA GANÂNCIA  ✦', TW / 2, 90);
-  ctx.fillText('✦  SLOT 0 / 100  ✦', TW / 2, TH - 90);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
-  _backTexCache = tex;
-  return tex;
+  _backTexCache = new THREE.CanvasTexture(cv);
+  _backTexCache.colorSpace = THREE.SRGBColorSpace;
+  _backTexCache.anisotropy = 8;
+  return _backTexCache;
 }
+
 function makeCoverTexture() {
   const cv = document.createElement('canvas');
   cv.width = TW; cv.height = TH;
@@ -408,121 +317,47 @@ function makeCoverTexture() {
   bg.addColorStop(0, '#0a4535'); bg.addColorStop(0.35, '#052820');
   bg.addColorStop(0.65, '#031a14'); bg.addColorStop(1, '#0a4535');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.08;
-  for (let i = 0; i < 9000; i++) {
-    const x = Math.random() * TW, y = Math.random() * TH;
-    ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
-    ctx.beginPath(); ctx.arc(x, y, Math.random() * 1.6, 0, 7); ctx.fill();
-  }
-  ctx.restore();
-  ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = '#d4af5a'; ctx.lineWidth = 1;
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(TW/2, TH/2);
-    ctx.lineTo(TW/2 + Math.cos(a) * 800, TH/2 + Math.sin(a) * 800);
-    ctx.stroke();
-  }
-  for (let r = 80; r < 500; r += 70) {
-    ctx.beginPath(); ctx.arc(TW/2, TH/2, r, 0, 7); ctx.stroke();
-  }
-  ctx.restore();
-  ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 8;
-  roundRect(ctx, 30, 30, TW - 60, TH - 60, 22); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.55)'; ctx.lineWidth = 2;
-  roundRect(ctx, 50, 50, TW - 100, TH - 100, 18); ctx.stroke();
-  const cs = 60;
-  drawGoldCorner(ctx, 56, 56, cs, false);
-  drawGoldCorner(ctx, TW - 56, 56, cs, true);
-  ctx.save(); ctx.translate(56, TH - 56); ctx.rotate(-Math.PI / 2);
+  ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 7;
+  roundRect(ctx, 24, 24, TW - 48, TH - 48, 20); ctx.stroke();
+  const cs = 48;
+  drawGoldCorner(ctx, 50, 50, cs, false);
+  drawGoldCorner(ctx, TW - 50, 50, cs, true);
+  ctx.save(); ctx.translate(50, TH - 50); ctx.rotate(-Math.PI / 2);
   drawGoldCorner(ctx, 0, 0, cs, false); ctx.restore();
-  ctx.save(); ctx.translate(TW - 56, TH - 56); ctx.rotate(Math.PI);
+  ctx.save(); ctx.translate(TW - 50, TH - 50); ctx.rotate(Math.PI);
   drawGoldCorner(ctx, 0, 0, cs, false); ctx.restore();
   ctx.save();
-  ctx.shadowColor = 'rgba(255,220,140,0.7)'; ctx.shadowBlur = 30;
+  ctx.shadowColor = 'rgba(255,220,140,0.7)'; ctx.shadowBlur = 25;
   ctx.fillStyle = '#f4e9c8';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'italic bold 88px Georgia, serif';
+  ctx.font = 'italic bold 70px Georgia, serif';
   ctx.fillText('ILHA', TW / 2, TH * 0.32);
-  ctx.font = 'italic bold 62px Georgia, serif';
+  ctx.font = 'italic bold 50px Georgia, serif';
   ctx.fillText('DA GANÂNCIA', TW / 2, TH * 0.40);
   ctx.restore();
-  ctx.font = 'italic 26px Georgia, serif';
-  ctx.fillStyle = 'rgba(212,175,90,0.75)';
-  ctx.fillText('✦  Greed Island  ✦', TW / 2, TH * 0.455);
-  ctx.save(); ctx.translate(TW / 2, TH * 0.70);
-  ctx.strokeStyle = 'rgba(212,175,90,0.85)'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.arc(0, 0, 130, 0, 7); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.5)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(0, 0, 112, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(0, 0, 96, 0, 7); ctx.stroke();
-  ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 4;
-  ctx.fillStyle = 'rgba(10,70,55,0.6)';
-  ctx.beginPath();
-  ctx.moveTo(0, -78); ctx.lineTo(66, 0); ctx.lineTo(0, 78); ctx.lineTo(-66, 0);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#f4e9c8';
-  ctx.font = 'italic bold 44px Georgia, serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(212,175,90,0.9)'; ctx.shadowBlur = 14;
-  ctx.fillText('G·I', 0, 2);
-  ctx.restore();
-  ctx.fillStyle = 'rgba(212,175,90,0.7)';
-  ctx.font = 'italic 22px Georgia, serif'; ctx.textAlign = 'center';
-  ctx.fillText('✦  Edição Limitada  ✦', TW / 2, TH - 120);
-  ctx.font = '18px Georgia, serif';
-  ctx.fillStyle = 'rgba(212,175,90,0.5)';
-  ctx.fillText('SLOT 0 / 100', TW / 2, TH - 88);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
+
 function makeInsideCoverTexture() {
   const cv = document.createElement('canvas');
   cv.width = TW; cv.height = TH;
   const ctx = cv.getContext('2d');
-  ctx.translate(TW, TH); ctx.rotate(Math.PI);
   const g = ctx.createLinearGradient(0, 0, TW, TH);
   g.addColorStop(0, '#f6ecd6'); g.addColorStop(1, '#e2d0a8');
   ctx.fillStyle = g; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = '#8a6f4a'; ctx.lineWidth = 1;
-  for (let y = 0; y < TH; y += 22) {
-    ctx.beginPath();
-    for (let x = 0; x <= TW; x += 10) {
-      const yy = y + Math.sin(x * 0.02 + y * 0.04) * 8 + Math.sin(x * 0.09) * 3;
-      x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
-  ctx.strokeStyle = 'rgba(138,111,74,0.55)'; ctx.lineWidth = 3;
-  roundRect(ctx, 30, 30, TW - 60, TH - 60, 24); ctx.stroke();
-  ctx.strokeStyle = 'rgba(138,111,74,0.28)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 44, 44, TW - 88, TH - 88, 18); ctx.stroke();
   ctx.fillStyle = '#5c4527';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'italic bold 42px Georgia, serif';
-  ctx.fillText('Bem-vindo,', TW / 2, 180);
-  ctx.font = 'italic bold 58px Georgia, serif';
-  ctx.fillText('caçador', TW / 2, 250);
-  ctx.fillStyle = 'rgba(138,111,74,0.7)';
-  ctx.font = '34px Georgia, serif';
-  ctx.fillText('❦', TW / 2, 320);
-  ctx.fillStyle = 'rgba(60,45,25,0.8)';
-  ctx.font = 'italic 26px Georgia, serif';
-  const lines = [
-    'Esta é a Ilha da Ganância.',
-    'Cada carta invoca um holograma',
-    'do ser que nela habita.',
-    '',
-    'Botão A: alterna entre Mão e Mundo.',
-    'Modo Mundo: pegue com o gatilho.'
-  ];
-  lines.forEach((l, i) => ctx.fillText(l, TW / 2, TH * 0.52 + i * 46));
+  ctx.font = 'italic bold 36px Georgia, serif';
+  ctx.fillText('Bem-vindo,', TW / 2, 200);
+  ctx.font = 'italic bold 48px Georgia, serif';
+  ctx.fillText('caçador', TW / 2, 260);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
+
 function makeBackCoverInsideTexture() {
   const cv = document.createElement('canvas');
   cv.width = TW; cv.height = TH;
@@ -530,296 +365,224 @@ function makeBackCoverInsideTexture() {
   const g = ctx.createLinearGradient(0, 0, TW, TH);
   g.addColorStop(0, '#efe3ca'); g.addColorStop(1, '#d4bf99');
   ctx.fillStyle = g; ctx.fillRect(0, 0, TW, TH);
-  ctx.save(); ctx.globalAlpha = 0.06;
-  for (let i = 0; i < 3000; i++) {
-    const x = Math.random() * TW, y = Math.random() * TH;
-    ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#4a3520';
-    ctx.beginPath(); ctx.arc(x, y, Math.random() * 2, 0, 7); ctx.fill();
-  }
-  ctx.restore();
-  ctx.strokeStyle = 'rgba(138,111,74,0.55)'; ctx.lineWidth = 3;
-  roundRect(ctx, 30, 30, TW - 60, TH - 60, 24); ctx.stroke();
-  ctx.strokeStyle = 'rgba(138,111,74,0.28)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 46, 46, TW - 92, TH - 92, 18); ctx.stroke();
   ctx.fillStyle = '#5c4527';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'italic bold 40px Georgia, serif';
-  ctx.fillText('Fim da coleção', TW / 2, TH * 0.42);
-  ctx.font = 'italic 26px Georgia, serif';
-  ctx.fillStyle = 'rgba(92,69,39,0.75)';
-  ctx.fillText('que a magia acompanhe', TW / 2, TH * 0.50);
-  ctx.fillText('seus próximos passos', TW / 2, TH * 0.50 + 40);
-  ctx.save(); ctx.translate(TW / 2, TH * 0.72);
-  ctx.strokeStyle = 'rgba(138,111,74,0.6)'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.arc(0, 0, 90, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(0, 0, 66, 0, 7); ctx.stroke();
-  ctx.fillStyle = 'rgba(138,111,74,0.6)';
-  ctx.beginPath(); ctx.arc(0, 0, 28, 0, 7); ctx.fill();
-  ctx.fillStyle = '#f6ecd6';
-  ctx.font = 'bold 30px Georgia, serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('✦', 0, 2);
-  ctx.restore();
+  ctx.font = 'italic bold 34px Georgia, serif';
+  ctx.fillText('Fim da coleção', TW / 2, TH * 0.44);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
+
+/* ============================================================
+   SLOT VAZIO
+   ============================================================ */
+const slotTexCache = new Map();
+function makeSlotTexture(cardIndex) {
+  if (slotTexCache.has(cardIndex)) return slotTexCache.get(cardIndex);
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 384;
+  const ctx = cv.getContext('2d');
+  const bg = ctx.createRadialGradient(128, 192, 10, 128, 192, 200);
+  bg.addColorStop(0, '#000000');
+  bg.addColorStop(0.55, '#020603');
+  bg.addColorStop(1, '#0a1610');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, cv.width, cv.height);
+  const edgeShadow = ctx.createRadialGradient(128, 192, 60, 128, 192, 190);
+  edgeShadow.addColorStop(0, 'rgba(0,0,0,0)');
+  edgeShadow.addColorStop(0.7, 'rgba(0,0,0,0.55)');
+  edgeShadow.addColorStop(1, 'rgba(0,0,0,0.95)');
+  ctx.fillStyle = edgeShadow; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = 'rgba(212,175,90,0.65)'; ctx.lineWidth = 3;
+  ctx.setLineDash([12, 8]);
+  roundRect(ctx, 22, 22, cv.width - 44, cv.height - 44, 10); ctx.stroke();
+  ctx.setLineDash([]);
+  const numStr = String(cardIndex + 1).padStart(2, '0');
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(212,175,90,1)'; ctx.shadowBlur = 40;
+  ctx.fillStyle = 'rgba(230,195,110,1)';
+  ctx.font = 'bold 140px Georgia, serif';
+  ctx.fillText(numStr, 128, 176);
+  ctx.shadowBlur = 0;
+  ctx.font = 'italic 22px Georgia, serif';
+  ctx.fillStyle = 'rgba(212,175,90,0.7)';
+  ctx.fillText('— vazio —', 128, 292);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  slotTexCache.set(cardIndex, tex);
+  return tex;
+}
+
+/* ============================================================
+   TERRENO
+   ============================================================ */
+function makeTerrainTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 384;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, cv.height);
+  g.addColorStop(0, '#3a6b1f');
+  g.addColorStop(0.5, '#1e3e0d');
+  g.addColorStop(1, '#0d2005');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+  for (let i = 0; i < 1200; i++) {
+    const x = Math.random() * cv.width;
+    const y = Math.random() * cv.height;
+    const r = 0.5 + Math.random() * 2.5;
+    const b = Math.random() * 0.3;
+    ctx.fillStyle = Math.random() > 0.55
+      ? `rgba(80, 140, 40, ${b})`
+      : Math.random() > 0.5
+        ? `rgba(50, 30, 15, ${b})`
+        : `rgba(150, 200, 90, ${b * 0.5})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+  const vg = ctx.createRadialGradient(cv.width/2, cv.height/2, 40, cv.width/2, cv.height/2, 220);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(0.7, 'rgba(0,0,0,0.35)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.9)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, cv.width, cv.height);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  return tex;
+}
+const TERRAIN_TEX = makeTerrainTexture();
 
 /* ============================================================
    TEXTURAS DO HOLOGRAMA
    ============================================================ */
 const holoTexCache = new Map();
-function getHoloCoreTex(emoji, tintHex = '#88ddff') {
+function getHoloCoreTex(emoji, tintHex) {
   const key = 'core_' + emoji + tintHex;
   if (holoTexCache.has(key)) return holoTexCache.get(key);
-  const S = 1024;
+  const S = 512;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
   ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = tintHex; ctx.shadowBlur = 140;
-  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = tintHex; ctx.shadowBlur = 70;
+  ctx.fillStyle = '#fff';
   ctx.fillText(emoji, S/2, S/2); ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowColor = 'rgba(220,245,255,0.98)'; ctx.shadowBlur = 60;
+  ctx.shadowColor = 'rgba(220,245,255,0.98)'; ctx.shadowBlur = 30;
   ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowColor = 'rgba(240,250,255,1)'; ctx.shadowBlur = 22;
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 0; ctx.fillStyle = '#ffffff';
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.globalCompositeOperation = 'source-atop';
-  const sl = 6;
-  for (let y = 0; y < S; y += sl * 2) {
-    ctx.fillStyle = 'rgba(0,10,25,0.32)';
-    ctx.fillRect(0, y, S, sl);
-  }
-  ctx.fillStyle = 'rgba(180,240,255,0.55)';
-  for (let i = 0; i < 7; i++) {
-    const gy = Math.floor(Math.random() * S);
-    const gh = 1 + Math.floor(Math.random() * 3);
-    ctx.fillRect(0, gy, S, gh);
-  }
-  ctx.globalCompositeOperation = 'color-burn';
-  ctx.fillStyle = 'rgba(40,120,200,0.32)'; ctx.fillRect(0, 0, S, S);
-  ctx.globalCompositeOperation = 'overlay';
-  ctx.fillStyle = 'rgba(90,190,255,0.28)'; ctx.fillRect(0, 0, S, S);
-  ctx.globalCompositeOperation = 'source-over';
+  ctx.shadowBlur = 0; ctx.fillText(emoji, S/2, S/2);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  holoTexCache.set(key, tex);
-  return tex;
+  holoTexCache.set(key, tex); return tex;
 }
 function getHoloSilhouetteTex(emoji, colorHex) {
   const key = 'sil_' + emoji + colorHex;
   if (holoTexCache.has(key)) return holoTexCache.get(key);
-  const S = 512;
+  const S = 256;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
   ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = colorHex; ctx.shadowBlur = 80; ctx.fillStyle = colorHex;
+  ctx.shadowColor = colorHex; ctx.shadowBlur = 40; ctx.fillStyle = colorHex;
   ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 40; ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 18; ctx.fillText(emoji, S/2, S/2);
+  ctx.shadowBlur = 20; ctx.fillText(emoji, S/2, S/2);
   ctx.shadowBlur = 0; ctx.fillText(emoji, S/2, S/2);
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  holoTexCache.set(key, tex);
-  return tex;
-}
-function getHoloEdgeTex(emoji, colorHex) {
-  const key = 'edge_' + emoji + colorHex;
-  if (holoTexCache.has(key)) return holoTexCache.get(key);
-  const S = 512;
-  const cv = document.createElement('canvas');
-  cv.width = S; cv.height = S;
-  const ctx = cv.getContext('2d');
-  ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = colorHex;
-  const offs = [[-5,0],[5,0],[0,-5],[0,5],[-4,-4],[4,4],[-4,4],[4,-4],[-3,0],[3,0],[0,-3],[0,3]];
-  offs.forEach(([ox, oy]) => ctx.fillText(emoji, S/2 + ox, S/2 + oy));
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = '#000'; ctx.fillText(emoji, S/2, S/2);
-  ctx.globalCompositeOperation = 'source-over';
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  holoTexCache.set(key, tex);
-  return tex;
-}
-function getHoloHotTex(emoji) {
-  const key = 'hot_' + emoji;
-  if (holoTexCache.has(key)) return holoTexCache.get(key);
-  const S = 512;
-  const cv = document.createElement('canvas');
-  cv.width = S; cv.height = S;
-  const ctx = cv.getContext('2d');
-  ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(255,255,255,1)'; ctx.shadowBlur = 12;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(emoji, S/2, S/2); ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 0; ctx.fillText(emoji, S/2, S/2);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  holoTexCache.set(key, tex);
-  return tex;
+  holoTexCache.set(key, tex); return tex;
 }
 
-/* ============================================================
-   TEXTURAS DE ESTRELAS / NEBULOSAS
-   ============================================================ */
-function makeStarSoftTexture(hardness) {
-  const S = 256;
+const STAR_POINT_TEX = (() => {
+  const S = 64;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
   const c = S / 2;
   const g = ctx.createRadialGradient(c, c, 0, c, c, c);
   g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(hardness * 0.5, 'rgba(255,255,255,1)');
-  g.addColorStop(hardness, 'rgba(255,255,255,0.8)');
+  g.addColorStop(0.35, 'rgba(255,255,255,0.8)');
   g.addColorStop(0.75, 'rgba(255,255,255,0.22)');
-  g.addColorStop(0.92, 'rgba(255,255,255,0.04)');
-  g.addColorStop(1.0, 'rgba(255,255,255,0)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.fill();
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   return tex;
-}
-function makeBrightStarTexture() {
-  const S = 512;
-  const cv = document.createElement('canvas');
-  cv.width = S; cv.height = S;
-  const ctx = cv.getContext('2d');
-  const c = S / 2;
-  const core = ctx.createRadialGradient(c, c, 0, c, c, c * 0.35);
-  core.addColorStop(0, 'rgba(255,255,255,1)');
-  core.addColorStop(0.3, 'rgba(255,255,255,0.9)');
-  core.addColorStop(0.6, 'rgba(255,255,255,0.35)');
-  core.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = core;
-  ctx.beginPath(); ctx.arc(c, c, c * 0.35, 0, 7); ctx.fill();
-  const halo = ctx.createRadialGradient(c, c, 0, c, c, c);
-  halo.addColorStop(0, 'rgba(255,255,255,0.35)');
-  halo.addColorStop(0.4, 'rgba(255,255,255,0.10)');
-  halo.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = halo;
-  ctx.beginPath(); ctx.arc(c, c, c, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,1)';
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(0, c); ctx.lineTo(S, c);
-  ctx.moveTo(c, 0); ctx.lineTo(c, S);
-  ctx.stroke();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.save();
-  ctx.translate(c, c);
-  ctx.rotate(Math.PI / 4);
-  ctx.beginPath();
-  ctx.moveTo(-c * 0.7, 0); ctx.lineTo(c * 0.7, 0);
-  ctx.moveTo(0, -c * 0.7); ctx.lineTo(0, c * 0.7);
-  ctx.stroke();
-  ctx.restore();
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  return tex;
-}
-function makeShootingHeadTexture(colorHex) {
-  const S = 256;
-  const cv = document.createElement('canvas');
-  cv.width = S; cv.height = S;
-  const ctx = cv.getContext('2d');
-  const c = S / 2;
-  const g = ctx.createRadialGradient(c, c, 0, c, c, c);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.15, 'rgba(255,255,255,1)');
-  g.addColorStop(0.35, colorHex + 'cc');
-  g.addColorStop(0.6, colorHex + '60');
-  g.addColorStop(0.85, colorHex + '15');
-  g.addColorStop(1, colorHex + '00');
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(c, c, c, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-c * 0.8, c); ctx.lineTo(c * 1.8, c);
-  ctx.moveTo(c, -c * 0.8); ctx.lineTo(c, c * 1.8);
-  ctx.stroke();
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  return tex;
-}
-function makeShootingTrailTexture() {
-  const W = 512, H = 64;
+})();
+
+/* ============================================================
+   CÉU
+   ============================================================ */
+function makeSkyDomeTexture() {
+  const W = 2048, H = 1024;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  const g = ctx.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0, 'rgba(255,255,255,0)');
-  g.addColorStop(0.35, 'rgba(200,230,255,0.25)');
-  g.addColorStop(0.75, 'rgba(230,245,255,0.75)');
-  g.addColorStop(1, 'rgba(255,255,255,1)');
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0.00, '#02040c');
+  g.addColorStop(0.50, '#000000');
+  g.addColorStop(1.00, '#02040c');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const vg = ctx.createLinearGradient(0, 0, 0, H);
-  vg.addColorStop(0, 'rgba(0,0,0,1)');
-  vg.addColorStop(0.5, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,1)');
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5000; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    const r = Math.random() < 0.85 ? Math.random() * 0.6 + 0.15 : Math.random() * 1.2 + 0.4;
+    const b = 0.15 + Math.random() * 0.5;
+    const hue = Math.random() < 0.15 ? 30 + Math.random() * 30
+              : Math.random() < 0.30 ? 200 + Math.random() * 60
+              : 210 + Math.random() * 30;
+    ctx.fillStyle = `hsla(${hue}, 40%, ${80 + Math.random() * 15}%, ${b})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+  for (let i = 0; i < 350; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    const r = 1 + Math.random() * 1.2;
+    const b = 0.5 + Math.random() * 0.4;
+    const hue = Math.random() < 0.20 ? 30 : 200 + Math.random() * 50;
+    const halo = ctx.createRadialGradient(x, y, 0, x, y, r * 6);
+    halo.addColorStop(0, `hsla(${hue}, 60%, 90%, ${b * 0.5})`);
+    halo.addColorStop(1, 'transparent');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(x, y, r * 6, 0, 7); ctx.fill();
+    ctx.fillStyle = `hsla(${hue}, 70%, 95%, ${b})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   return tex;
 }
-function makeNebulaTexture(hue, seed = 0) {
-  const S = 512;
+
+function makeNebulaTex(hue, seed) {
+  const S = 384;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
-  const c = S / 2;
-  const core = ctx.createRadialGradient(c, c, 0, c, c, c * 0.35);
-  core.addColorStop(0, `hsla(${hue}, 90%, 82%, 0.75)`);
-  core.addColorStop(0.4, `hsla(${hue}, 85%, 65%, 0.35)`);
+  const rnd = (n) => { const x = Math.sin((seed + 1) * n * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  ctx.globalCompositeOperation = 'lighter';
+  const core = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S * 0.35);
+  core.addColorStop(0, `hsla(${hue}, 90%, 82%, 0.65)`);
+  core.addColorStop(0.4, `hsla(${hue}, 85%, 65%, 0.25)`);
   core.addColorStop(1, 'transparent');
   ctx.fillStyle = core;
-  ctx.beginPath(); ctx.arc(c, c, c * 0.35, 0, 7); ctx.fill();
-  const halo = ctx.createRadialGradient(c, c, 0, c, c, c);
-  halo.addColorStop(0, `hsla(${hue}, 80%, 60%, 0.28)`);
-  halo.addColorStop(0.45, `hsla(${hue + 30}, 70%, 45%, 0.12)`);
-  halo.addColorStop(0.75, `hsla(${hue + 60}, 60%, 35%, 0.04)`);
-  halo.addColorStop(1, 'transparent');
-  ctx.fillStyle = halo;
-  ctx.beginPath(); ctx.arc(c, c, c, 0, 7); ctx.fill();
-  const rnd = (n) => { const x = Math.sin((seed + 1) * n * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  ctx.beginPath(); ctx.arc(S/2, S/2, S * 0.35, 0, 7); ctx.fill();
   for (let i = 0; i < 12; i++) {
-    const x = c + (rnd(i + 1) - 0.5) * c * 1.2;
-    const y = c + (rnd(i + 20) - 0.5) * c * 1.2;
-    const r = 40 + rnd(i + 40) * 90;
+    const x = S/2 + (rnd(i + 1) - 0.5) * S * 0.9;
+    const y = S/2 + (rnd(i + 20) - 0.5) * S * 0.9;
+    const r = 30 + rnd(i + 40) * 90;
+    const h = hue + (rnd(i + 60) - 0.5) * 50;
     const b = ctx.createRadialGradient(x, y, 0, x, y, r);
-    const h2 = hue + (rnd(i + 60) - 0.5) * 40;
-    b.addColorStop(0, `hsla(${h2}, 80%, 60%, 0.18)`);
+    b.addColorStop(0, `hsla(${h}, 80%, 65%, ${0.10 + rnd(i + 80) * 0.12})`);
     b.addColorStop(1, 'transparent');
     ctx.fillStyle = b;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 80; i++) {
     const x = rnd(i * 2 + 100) * S;
     const y = rnd(i * 2 + 200) * S;
-    const r = 0.4 + rnd(i * 3 + 300) * 1.0;
-    ctx.fillStyle = `rgba(255,255,255,${0.15 + rnd(i + 400) * 0.5})`;
+    const r = 0.3 + rnd(i * 3 + 300) * 0.9;
+    ctx.fillStyle = `rgba(255,255,255,${0.15 + rnd(i + 400) * 0.6})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
   const tex = new THREE.CanvasTexture(cv);
@@ -828,20 +591,14 @@ function makeNebulaTexture(hue, seed = 0) {
   return tex;
 }
 
-const STAR_CORE_TEX = makeStarSoftTexture(0.55);
-const STAR_GLOW_TEX = makeStarSoftTexture(0.10);
-const STAR_MID_TEX  = makeStarSoftTexture(0.30);
-const BRIGHT_STAR_TEX = makeBrightStarTexture();
-const SHOOTING_TRAIL_TEX = makeShootingTrailTexture();
-
 /* ============================================================
-   CENA / RENDERER
+   CENA
    ============================================================ */
 const app = document.getElementById('app');
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x02040a, 0.0045);
+scene.fog = new THREE.FogExp2(0x010203, 0.0035);
 
-const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.05, 500);
+const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.05, 2000);
 camera.position.set(7.5, 9.5, 9);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -850,7 +607,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.15;
 renderer.xr.enabled = true;
 app.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
@@ -871,129 +628,122 @@ controls.maxPolarAngle = Math.PI * 0.48;
 controls.enablePan = false;
 controls.update();
 
-/* LUZES */
-scene.add(new THREE.HemisphereLight(0xc8dcff, 0x0a1a10, 0.85));
-const keyLight = new THREE.DirectionalLight(0xfff2dc, 2.5);
+scene.add(new THREE.HemisphereLight(0xb8d0ff, 0x0a1018, 0.75));
+const keyLight = new THREE.DirectionalLight(0xfff2dc, 2.4);
 keyLight.position.set(8, 18, 10);
 keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(2048, 2048);
-keyLight.shadow.camera.left = -14; keyLight.shadow.camera.right = 14;
-keyLight.shadow.camera.top = 14; keyLight.shadow.camera.bottom = -14;
-keyLight.shadow.camera.near = 1; keyLight.shadow.camera.far = 50;
-keyLight.shadow.bias = -0.0009; keyLight.shadow.radius = 3;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.left = -12; keyLight.shadow.camera.right = 12;
+keyLight.shadow.camera.top = 12; keyLight.shadow.camera.bottom = -12;
+keyLight.shadow.camera.near = 1; keyLight.shadow.camera.far = 40;
+keyLight.shadow.bias = -0.001;
 scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0x6a8dff, 0.8);
-fillLight.position.set(-10, 8, -8);
-scene.add(fillLight);
-const rimLight = new THREE.PointLight(0xffb070, 40, 30, 2);
-rimLight.position.set(-4, 4, -8);
-scene.add(rimLight);
-const coolLight = new THREE.PointLight(0x4fd5a8, 35, 30, 2);
-coolLight.position.set(6, 4, 8);
-scene.add(coolLight);
+scene.add(new THREE.DirectionalLight(0x6a8dff, 0.7).translateX(-10).translateY(8).translateZ(-8));
+const rimLight = new THREE.PointLight(0xffb070, 35, 25, 2);
+rimLight.position.set(-4, 4, -8); scene.add(rimLight);
 
+/* chão */
 (function addGround() {
   const cv = document.createElement('canvas');
-  cv.width = 512; cv.height = 512;
+  cv.width = 256; cv.height = 256;
   const c = cv.getContext('2d');
-  const rg = c.createRadialGradient(256, 256, 20, 256, 256, 256);
-  rg.addColorStop(0, 'rgba(20,40,30,0.6)');
-  rg.addColorStop(0.6, 'rgba(10,20,15,0.25)');
+  const rg = c.createRadialGradient(128, 128, 10, 128, 128, 128);
+  rg.addColorStop(0, 'rgba(20,40,30,0.5)');
   rg.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = rg; c.fillRect(0, 0, 512, 512);
+  c.fillStyle = rg; c.fillRect(0, 0, 256, 256);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(26, 22),
+  const g = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 26),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.35;
-  scene.add(ground);
+  g.rotation.x = -Math.PI / 2; g.position.y = -0.35;
+  scene.add(g);
 })();
 
 /* ============================================================
    CÉU CÓSMICO
    ============================================================ */
-const SKY_RADIUS = 180;
-function makeSkyTexture() {
-  const cv = document.createElement('canvas');
-  cv.width = 2048; cv.height = 1024;
-  const ctx = cv.getContext('2d');
-  const g = ctx.createLinearGradient(0, 0, 0, cv.height);
-  g.addColorStop(0, '#0a1230'); g.addColorStop(0.45, '#040812');
-  g.addColorStop(0.55, '#040812'); g.addColorStop(1, '#0a1230');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
-  for (let i = 0; i < 26; i++) {
-    const x = Math.random() * cv.width;
-    const y = Math.random() * cv.height;
-    const r = 150 + Math.random() * 400;
-    const hue = 200 + Math.random() * 100;
-    const neb = ctx.createRadialGradient(x, y, 0, x, y, r);
-    neb.addColorStop(0, `hsla(${hue}, 80%, 55%, 0.10)`);
-    neb.addColorStop(0.5, `hsla(${hue}, 70%, 45%, 0.04)`);
-    neb.addColorStop(1, 'transparent');
-    ctx.fillStyle = neb;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  for (let i = 0; i < 3500; i++) {
-    const x = Math.random() * cv.width;
-    const y = Math.random() * cv.height;
-    const r = Math.random() * 1.6 + 0.2;
-    const b = Math.random() * 0.7 + 0.2;
-    const hue = Math.random() < 0.15 ? 200 + Math.random() * 60 : 40 + Math.random() * 20;
-    ctx.fillStyle = `hsla(${hue}, 60%, ${70 + Math.random() * 25}%, ${b})`;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-    if (r > 1.0) {
-      ctx.fillStyle = `hsla(${hue}, 80%, 80%, ${b * 0.25})`;
-      ctx.beginPath(); ctx.arc(x, y, r * 3.5, 0, 7); ctx.fill();
-    }
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
-}
+const SKY_RADIUS = 800;
 const skyMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(SKY_RADIUS, 64, 40),
+  new THREE.SphereGeometry(SKY_RADIUS, 64, 32),
   new THREE.MeshBasicMaterial({
-    map: makeSkyTexture(), side: THREE.BackSide,
-    depthWrite: false, transparent: true, opacity: 0.95
+    map: makeSkyDomeTexture(), side: THREE.BackSide,
+    depthWrite: false, fog: false
   })
 );
+skyMesh.renderOrder = -1000;
 scene.add(skyMesh);
 
-/* ============================================================
-   NEBULOSAS
-   ============================================================ */
+const starLayers = [];
+function makeStarLayer(count, size, hueRange, distance, opacity) {
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < count; i++) {
+    const u = Math.random(), v = Math.random();
+    const theta = 2 * Math.PI * u;
+    const phi = Math.acos(2 * v - 1);
+    const r = distance * (0.95 + Math.random() * 0.05);
+    pos[i*3]     = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3 + 1] = r * Math.cos(phi);
+    pos[i*3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+    const hue = hueRange[0] + Math.random() * (hueRange[1] - hueRange[0]);
+    c.setHSL(hue / 360, 0.5 + Math.random() * 0.4, 0.85 + Math.random() * 0.15);
+    colors[i*3] = c.r; colors[i*3 + 1] = c.g; colors[i*3 + 2] = c.b;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.PointsMaterial({
+    size, sizeAttenuation: false, map: STAR_POINT_TEX,
+    vertexColors: true, transparent: true, opacity,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
+  });
+  const points = new THREE.Points(geo, mat);
+  points.renderOrder = -999;
+  points.userData.baseOpacity = opacity;
+  points.userData.pulseSpeed = 0.3 + Math.random() * 0.4;
+  points.userData.pulsePhase = Math.random() * Math.PI * 2;
+  return points;
+}
+starLayers.push(makeStarLayer(1200, 2, [190, 240], SKY_RADIUS * 0.92, 0.85));
+starLayers.push(makeStarLayer(500, 3, [200, 240], SKY_RADIUS * 0.90, 0.75));
+starLayers.push(makeStarLayer(250, 3.5, [30, 60], SKY_RADIUS * 0.91, 0.8));
+starLayers.push(makeStarLayer(150, 4, [10, 30], SKY_RADIUS * 0.89, 0.7));
+starLayers.push(makeStarLayer(50, 6, [180, 240], SKY_RADIUS * 0.88, 0.9));
+starLayers.forEach(l => scene.add(l));
+
 const nebulaGroup = new THREE.Group();
 scene.add(nebulaGroup);
 const NEBULAE_DEFS = [
-  { az: 0.4,  el:  0.15, hue: 200, size: 90,  op: 0.55, rot: 0,    stretch: [1.2, 1.0] },
-  { az: 1.6,  el: -0.05, hue: 280, size: 110, op: 0.50, rot: 0.6,  stretch: [1.3, 0.9] },
-  { az: 2.7,  el:  0.35, hue: 340, size: 80,  op: 0.42, rot: 1.2,  stretch: [1.0, 1.1] },
-  { az: 3.9,  el:  0.05, hue: 30,  size: 100, op: 0.38, rot: 0.3,  stretch: [1.1, 1.0] },
-  { az: 5.0,  el:  0.30, hue: 190, size: 130, op: 0.55, rot: -0.5, stretch: [1.8, 0.55] },
-  { az: 5.9,  el:  0.10, hue: 220, size: 75,  op: 0.42, rot: 1.8,  stretch: [1.1, 0.9] },
-  { az: 0.9,  el: -0.20, hue: 320, size: 95,  op: 0.35, rot: 2.3,  stretch: [1.4, 0.7] },
-  { az: 4.4,  el:  0.55, hue: 260, size: 105, op: 0.45, rot: 0.8,  stretch: [1.2, 1.0] },
+  { az: 0.40,  el:  0.20, hue: 210, size: 220, op: 0.55, rot: 0.0,  sx: 1.3, sy: 1.0 },
+  { az: 1.55,  el: -0.05, hue: 280, size: 260, op: 0.50, rot: 0.6,  sx: 1.4, sy: 0.9 },
+  { az: 2.70,  el:  0.35, hue: 340, size: 190, op: 0.42, rot: 1.2,  sx: 1.0, sy: 1.1 },
+  { az: 3.90,  el:  0.05, hue:  30, size: 240, op: 0.38, rot: 0.3,  sx: 1.2, sy: 1.0 },
+  { az: 5.00,  el:  0.32, hue: 190, size: 320, op: 0.58, rot: -0.5, sx: 2.0, sy: 0.5 },
+  { az: 5.90,  el:  0.10, hue: 220, size: 200, op: 0.42, rot: 1.8,  sx: 1.1, sy: 0.9 },
+  { az: 0.90,  el: -0.25, hue: 320, size: 230, op: 0.38, rot: 2.3,  sx: 1.5, sy: 0.7 },
+  { az: 4.40,  el:  0.55, hue: 260, size: 250, op: 0.45, rot: 0.8,  sx: 1.3, sy: 1.0 },
+  { az: 2.10,  el: -0.30, hue: 170, size: 180, op: 0.35, rot: 1.5,  sx: 1.0, sy: 1.0 },
+  { az: 3.30,  el:  0.50, hue: 300, size: 210, op: 0.40, rot: 2.8,  sx: 1.2, sy: 0.9 },
 ];
 NEBULAE_DEFS.forEach((def, i) => {
-  const tex = makeNebulaTexture(def.hue, i);
+  const tex = makeNebulaTex(def.hue, i);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: tex, transparent: true, opacity: def.op,
-    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
   }));
-  const dist = 150;
+  const dist = SKY_RADIUS * 0.85;
   sprite.position.set(
     dist * Math.cos(def.el) * Math.cos(def.az),
     dist * Math.sin(def.el),
     dist * Math.cos(def.el) * Math.sin(def.az)
   );
-  sprite.scale.set(def.size * def.stretch[0], def.size * def.stretch[1], 1);
+  sprite.scale.set(def.size * def.sx, def.size * def.sy, 1);
   sprite.material.rotation = def.rot;
   sprite.userData.baseOpacity = def.op;
-  sprite.userData.pulseSpeed = 0.15 + Math.random() * 0.2;
+  sprite.userData.pulseSpeed = 0.12 + Math.random() * 0.15;
   sprite.userData.pulsePhase = Math.random() * Math.PI * 2;
   nebulaGroup.add(sprite);
 });
@@ -1016,50 +766,49 @@ const EXTENDED_COLORS = [
   0xd4f0ff, 0xffddff, 0xbbeedd, 0xffe4b5, 0xa0d8ff, 0xffa8d8,
   0xc8ffdd, 0xdfc8ff, 0xffd0d0, 0xc8e8ff, 0xfff0a0, 0xa0ffe0,
 ];
-
+const GOLD_COLOR = 0xffd966;
 const ZODIAC = [
-  { name: 'Áries', pts: [[0,0],[0.6,-0.4],[1.2,-0.3],[1.8,-0.1],[2.4,-0.4]] },
-  { name: 'Touro', pts: [[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5],[2.4,0.8]] },
-  { name: 'Gêmeos', pts: [[0,0],[0.3,0.5],[0.6,1.0],[1.0,1.2],[1.4,1.0],[1.7,0.6],[2.0,0.2]] },
-  { name: 'Câncer', pts: [[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5]] },
-  { name: 'Leão', pts: [[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.0],[1.4,1.1],[1.7,0.9],[2.0,0.5],[1.6,0.2],[1.0,0]] },
-  { name: 'Virgem', pts: [[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.7],[2.0,0.8],[2.4,0.6],[2.5,0.2]] },
-  { name: 'Libra', pts: [[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.3],[2.0,0.5]] },
-  { name: 'Escorpião', pts: [[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.1],[1.3,1.4],[1.6,1.6],[1.9,1.7],[2.1,1.5]] },
-  { name: 'Sagitário', pts: [[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.7,1.2],[2.0,1.1]] },
-  { name: 'Capricórnio', pts: [[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6]] },
-  { name: 'Aquário', pts: [[0,0],[0.4,0.3],[0.8,0.5],[1.3,0.6],[1.7,0.4],[2.1,0.7]] },
-  { name: 'Peixes', pts: [[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.3],[2.0,0.5],[2.4,0.8]] },
+  { name:'Áries',      pts:[[0,0],[0.6,-0.4],[1.2,-0.3],[1.8,-0.1],[2.4,-0.4]] },
+  { name:'Touro',      pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5],[2.4,0.8]] },
+  { name:'Gêmeos',     pts:[[0,0],[0.3,0.5],[0.6,1.0],[1.0,1.2],[1.4,1.0],[1.7,0.6],[2.0,0.2]] },
+  { name:'Câncer',     pts:[[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5]] },
+  { name:'Leão',       pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.0],[1.4,1.1],[1.7,0.9],[2.0,0.5],[1.6,0.2],[1.0,0]] },
+  { name:'Virgem',     pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.7],[2.0,0.8],[2.4,0.6],[2.5,0.2]] },
+  { name:'Libra',      pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.3],[2.0,0.5]] },
+  { name:'Escorpião',  pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.1],[1.3,1.4],[1.6,1.6],[1.9,1.7],[2.1,1.5]] },
+  { name:'Sagitário',  pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.7,1.2],[2.0,1.1]] },
+  { name:'Capricórnio',pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6]] },
+  { name:'Aquário',    pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.3,0.6],[1.7,0.4],[2.1,0.7]] },
+  { name:'Peixes',     pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.3],[2.0,0.5],[2.4,0.8]] },
 ];
 const extendedNames = [
   'Órion','Ursa Maior','Ursa Menor','Cassiopeia','Perseu','Andrômeda','Cisne','Lira',
   'Águia','Centauro','Cruzeiro do Sul','Carina','Hidra','Corvo','Cão Maior','Cão Menor',
   'Baleia','Pégaso','Dragão','Hércules','Fênix','Cocheiro','Eridano','Pavão'
 ];
-
 const allPulsingStars = [];
 
-function buildConstellation(pts, name, scale, color, intensity, isZodiac) {
+function buildConstellation(pts, scale, color, intensity, isZodiac) {
   const group = new THREE.Group();
   const center = pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0,0]);
   center[0] /= pts.length; center[1] /= pts.length;
   const localPts = pts.map(p => [(p[0] - center[0]) * 6 * scale, (p[1] - center[1]) * 6 * scale]);
-  const linePts = localPts.map(p => new THREE.Vector3(p[0], p[1], 0));
   const lineMat = new THREE.LineBasicMaterial({
     color, transparent: true, opacity: 0.45 * intensity,
-    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
   });
-  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), lineMat);
-  group.add(line);
+  group.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(localPts.map(p => new THREE.Vector3(p[0], p[1], 0))),
+    lineMat
+  ));
   group.userData.lineMat = lineMat;
   group.userData.baseLineOpacity = 0.45 * intensity;
   group.userData.phase = Math.random() * Math.PI * 2;
-
   localPts.forEach(p => {
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: STAR_GLOW_TEX, color: color, transparent: true,
+      map: STAR_POINT_TEX, color, transparent: true,
       opacity: 0.55 * intensity, blending: THREE.AdditiveBlending,
-      depthWrite: false, depthTest: false
+      depthWrite: false, depthTest: false, fog: false
     }));
     halo.scale.set(7, 7, 1);
     halo.position.set(p[0], p[1], -0.08);
@@ -1069,57 +818,24 @@ function buildConstellation(pts, name, scale, color, intensity, isZodiac) {
     halo.userData.pulsePhase = Math.random() * Math.PI * 2;
     allPulsingStars.push(halo);
     group.add(halo);
-
-    const mid = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: STAR_MID_TEX, color: color, transparent: true,
-      opacity: 0.75 * intensity, blending: THREE.AdditiveBlending,
-      depthWrite: false, depthTest: false
-    }));
-    mid.scale.set(3.6, 3.6, 1);
-    mid.position.set(p[0], p[1], -0.03);
-    mid.userData.baseScale = 3.6;
-    mid.userData.baseOpacity = 0.75 * intensity;
-    mid.userData.pulseSpeed = 0.8 + Math.random() * 0.9;
-    mid.userData.pulsePhase = Math.random() * Math.PI * 2 + 1.3;
-    allPulsingStars.push(mid);
-    group.add(mid);
-
-    const coreTex = isZodiac ? BRIGHT_STAR_TEX : STAR_CORE_TEX;
     const core = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: coreTex, color: isZodiac ? 0xffffff : color, transparent: true,
+      map: STAR_POINT_TEX, color: isZodiac ? 0xfff5d0 : color, transparent: true,
       opacity: 0.98 * intensity, blending: THREE.AdditiveBlending,
-      depthWrite: false, depthTest: false
+      depthWrite: false, depthTest: false, fog: false
     }));
-    const coreSize = isZodiac ? 3.5 : 2.0;
-    core.scale.set(coreSize, coreSize, 1);
+    const cs = isZodiac ? 3.5 : 2.2;
+    core.scale.set(cs, cs, 1);
     core.position.set(p[0], p[1], 0);
-    core.userData.baseScale = coreSize;
+    core.userData.baseScale = cs;
     core.userData.baseOpacity = 0.98 * intensity;
     core.userData.pulseSpeed = 1.0 + Math.random() * 1.0;
     core.userData.pulsePhase = Math.random() * Math.PI * 2 + 2.7;
     allPulsingStars.push(core);
     group.add(core);
-
-    if (isZodiac) {
-      const coreWhite = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: BRIGHT_STAR_TEX, color: 0xfff5d0, transparent: true,
-        opacity: 0.9, blending: THREE.AdditiveBlending,
-        depthWrite: false, depthTest: false
-      }));
-      coreWhite.scale.set(2.5, 2.5, 1);
-      coreWhite.position.set(p[0], p[1], 0.02);
-      coreWhite.userData.baseScale = 2.5;
-      coreWhite.userData.baseOpacity = 0.9;
-      coreWhite.userData.pulseSpeed = 1.5 + Math.random() * 0.8;
-      coreWhite.userData.pulsePhase = Math.random() * Math.PI * 2;
-      allPulsingStars.push(coreWhite);
-      group.add(coreWhite);
-    }
   });
-  group.userData.isZodiac = isZodiac;
   return group;
 }
-function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.75) {
+function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.72) {
   group.position.set(
     dist * Math.cos(elevation) * Math.cos(azimuth),
     dist * Math.sin(elevation),
@@ -1127,9 +843,8 @@ function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.75)
   );
   group.lookAt(0, 0, 0);
 }
-const GOLD_COLOR = 0xffd966;
 ZODIAC.forEach((z, i) => {
-  const g = buildConstellation(z.pts, z.name, 1.15, GOLD_COLOR, 1.15, true);
+  const g = buildConstellation(z.pts, 1.2, GOLD_COLOR, 1.2, true);
   placeConstellation(g, (i / ZODIAC.length) * Math.PI * 2, 0.35 + (i % 3) * 0.18);
   zodiacGroup.add(g);
 });
@@ -1143,8 +858,7 @@ extendedNames.forEach((name, i) => {
     cy += (rnd(j + 9) - 0.5) * 2.4;
     pts.push([cx, cy]);
   }
-  const color = EXTENDED_COLORS[i % EXTENDED_COLORS.length];
-  const g = buildConstellation(pts, name, 0.75, color, 0.85, false);
+  const g = buildConstellation(pts, 0.75, EXTENDED_COLORS[i % EXTENDED_COLORS.length], 0.85, false);
   placeConstellation(g, (i / extendedNames.length) * Math.PI * 2 + 0.3, 0.15 + (i % 4) * 0.14);
   extendedGroup.add(g);
 });
@@ -1154,13 +868,38 @@ extendedNames.forEach((name, i) => {
    ============================================================ */
 const shootingStars = [];
 const SHOOTING_COLORS = ['#aaddff', '#ffe4aa', '#ffaacc', '#aaffdd', '#d4b8ff', '#ffffff'];
+
+const SHOOTING_TRAIL_TEX = (() => {
+  const W = 256, H = 32;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(0.75, 'rgba(230,245,255,0.75)');
+  g.addColorStop(1, 'rgba(255,255,255,1)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const vg = ctx.createLinearGradient(0, 0, 0, H);
+  vg.addColorStop(0, 'rgba(0,0,0,1)');
+  vg.addColorStop(0.5, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,1)');
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  return tex;
+})();
+
+const TRAIL_GEO = new THREE.PlaneGeometry(1, 4);
+
 function spawnShootingStar() {
   const color = SHOOTING_COLORS[Math.floor(Math.random() * SHOOTING_COLORS.length)];
   const startAz = Math.random() * Math.PI * 2;
   const startEl = 0.5 + Math.random() * 0.5;
   const dirAz = startAz + (Math.random() - 0.5) * 1.0;
   const dirEl = startEl - 0.4 - Math.random() * 0.4;
-  const dist = SKY_RADIUS * 0.8;
+  const dist = SKY_RADIUS * 0.85;
   const startPos = new THREE.Vector3(
     dist * Math.cos(startEl) * Math.cos(startAz),
     dist * Math.sin(startEl),
@@ -1172,56 +911,32 @@ function spawnShootingStar() {
     dist * Math.cos(dirEl) * Math.sin(dirAz)
   );
   const tailDir = new THREE.Vector3().subVectors(endPos, startPos).normalize();
-
-  const headTex = makeShootingHeadTexture(color);
   const head = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: headTex, transparent: true, opacity: 1,
-    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
-    color: 0xffffff
+    color, transparent: true, opacity: 1,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false,
+    map: STAR_POINT_TEX
   }));
-  head.scale.set(6, 6, 1);
-
-  const trailLen = 30 + Math.random() * 30;
-  const trailGeo = new THREE.PlaneGeometry(trailLen, 3.5);
+  head.scale.set(14, 14, 1);
+  const trailLen = 40 + Math.random() * 40;
   const trailMat = new THREE.MeshBasicMaterial({
     map: SHOOTING_TRAIL_TEX, transparent: true, opacity: 0.95,
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
-    side: THREE.DoubleSide, color: color
+    side: THREE.DoubleSide, color, fog: false
   });
-  const trailMesh = new THREE.Mesh(trailGeo, trailMat);
+  const trailMesh = new THREE.Mesh(TRAIL_GEO, trailMat);
+  trailMesh.scale.set(trailLen, 1, 1);
   trailMesh.position.set(-trailLen / 2, 0, 0);
-
   const group = new THREE.Group();
   group.add(head);
   group.add(trailMesh);
-
-  const sparkCount = 20;
-  const sGeo = new THREE.BufferGeometry();
-  const sPos = new Float32Array(sparkCount * 3);
-  for (let i = 0; i < sparkCount; i++) {
-    sPos[i*3] = -Math.random() * trailLen;
-    sPos[i*3+1] = (Math.random() - 0.5) * 2.5;
-    sPos[i*3+2] = (Math.random() - 0.5) * 2.5;
-  }
-  sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
-  const sMat = new THREE.PointsMaterial({
-    color: color, size: 0.6, transparent: true, opacity: 0.85,
-    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
-  });
-  const sparks = new THREE.Points(sGeo, sMat);
-  group.add(sparks);
-
   scene.add(group);
   shootingStars.push({
-    group, head, trailMesh, trailMat, headTex, sparks, sMat, sGeo, sparkCount,
-    startPos, endPos, tailDir,
-    t: 0, speed: 0.5 + Math.random() * 0.4,
-    life: 1.6 + Math.random() * 1.2,
-    trailLen, color
+    group, head, trailMat, startPos, endPos, tailDir,
+    t: 0, life: 1.6 + Math.random() * 1.2
   });
 }
 let shootingStarTimer = 0;
-const shootingStarInterval = 1.6;
+const SHOOTING_INTERVAL = 1.8;
 
 /* ============================================================
    ÁLBUM
@@ -1233,11 +948,21 @@ scene.add(bookGroup);
 const PW = 5.4, PD = 7.4, SHEET_T = 0.045;
 const COVER_W = 5.65, COVER_D = 7.65, COVER_T = 0.09;
 const CARD_W = 1.35, CARD_D = 2.5, CARD_T = 0.06;
-const Y_BACK = 0.0, Y_SHEET2 = 0.075, Y_SHEET1 = 0.13, Y_COVER = 0.20;
+const Y_BACK = 0, Y_SHEET2 = 0.075, Y_SHEET1 = 0.13, Y_COVER = 0.20;
 const Y_FLIP_COVER = 0.045, Y_FLIP_SHEET1 = 0.10, Y_FLIP_SHEET2 = 0.155;
 
-const leatherMat = new THREE.MeshStandardMaterial({ color: 0x0a281c, roughness: 0.75, metalness: 0.15 });
-const backCover = new THREE.Mesh(new THREE.BoxGeometry(COVER_W, COVER_T, COVER_D), leatherMat);
+const CARD_BOX_GEO = new THREE.BoxGeometry(CARD_W, CARD_T, CARD_D);
+const SLOT_PLANE_GEO = new THREE.PlaneGeometry(CARD_W * 0.98, CARD_D * 0.98);
+const TERRAIN_PLANE_GEO = new THREE.PlaneGeometry(CARD_W * 0.98, CARD_D * 0.98);
+const CARD_EDGE_MAT = new THREE.MeshStandardMaterial({ color: 0xf7f4ec, roughness: 0.5 });
+const CARD_BACK_MAT = new THREE.MeshStandardMaterial({ map: makeBackTexture(), roughness: 0.45, metalness: 0.3 });
+const TERRAIN_MAT = new THREE.MeshBasicMaterial({
+  map: TERRAIN_TEX, transparent: true, opacity: 0,
+  depthWrite: false, side: THREE.DoubleSide
+});
+const LEATHER_MAT = new THREE.MeshStandardMaterial({ color: 0x0a281c, roughness: 0.75, metalness: 0.15 });
+
+const backCover = new THREE.Mesh(new THREE.BoxGeometry(COVER_W, COVER_T, COVER_D), LEATHER_MAT);
 backCover.position.set(COVER_W / 2, Y_BACK, 0);
 backCover.receiveShadow = true; backCover.castShadow = true;
 bookGroup.add(backCover);
@@ -1248,24 +973,50 @@ const backInsidePlane = new THREE.Mesh(
 );
 backInsidePlane.rotation.x = -Math.PI / 2;
 backInsidePlane.position.set(COVER_W / 2, Y_BACK + COVER_T / 2 + 0.003, 0);
-backInsidePlane.receiveShadow = true;
 bookGroup.add(backInsidePlane);
 
-const BACK_TEX = makeBackTexture();
-function createCard(data, index) {
+function createCard(data, globalIndex) {
   const faceMat = new THREE.MeshStandardMaterial({
-    map: makeCardTexture(data, index % 24), roughness: 0.38, metalness: 0.15
+    map: makeCardTexture(data, globalIndex), roughness: 0.38, metalness: 0.15
   });
-  const edgeMat = new THREE.MeshStandardMaterial({ color: 0xf7f4ec, roughness: 0.5 });
-  const backMat = new THREE.MeshStandardMaterial({ map: BACK_TEX, roughness: 0.45, metalness: 0.3 });
-  const geo = new THREE.BoxGeometry(CARD_W, CARD_T, CARD_D);
-  const card = new THREE.Mesh(geo, [edgeMat, edgeMat, faceMat, backMat, edgeMat, edgeMat]);
+  const card = new THREE.Mesh(CARD_BOX_GEO, [
+    CARD_EDGE_MAT, CARD_EDGE_MAT, faceMat, CARD_BACK_MAT, CARD_EDGE_MAT, CARD_EDGE_MAT
+  ]);
   card.castShadow = true; card.receiveShadow = true;
   card.userData.isCard = true;
   card.userData.cardData = data;
+  card.userData.cardIndex = globalIndex;
+
+  const terrainOverlay = new THREE.Mesh(TERRAIN_PLANE_GEO, TERRAIN_MAT);
+  terrainOverlay.rotation.x = -Math.PI / 2;
+  terrainOverlay.position.y = CARD_T / 2 + 0.001;
+  terrainOverlay.renderOrder = 6;
+  terrainOverlay.visible = false;
+  card.add(terrainOverlay);
+  card.userData.terrainOverlay = terrainOverlay;
   return card;
 }
-function createSheet(yPos, frontCards, backCards) {
+
+function createSlot(cardIndex) {
+  const slot = new THREE.Mesh(
+    SLOT_PLANE_GEO,
+    new THREE.MeshBasicMaterial({
+      map: makeSlotTexture(cardIndex),
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -8,
+      polygonOffsetUnits: -8
+    })
+  );
+  slot.renderOrder = 20;
+  slot.userData.isSlot = true;
+  return slot;
+}
+
+function createSheet(yPos, frontCards, backCards, startIdxFront, startIdxBack) {
   const pivot = new THREE.Group();
   pivot.position.set(0, yPos, 0);
   bookGroup.add(pivot);
@@ -1278,31 +1029,48 @@ function createSheet(yPos, frontCards, backCards) {
   mesh.position.set(PW / 2, 0, 0);
   mesh.castShadow = true; mesh.receiveShadow = true;
   pivot.add(mesh);
+
   const cols = [-1.7, 0, 1.7], rows = [-1.6, 1.6];
   const positions = [];
   for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) positions.push({ x: cols[c], z: rows[r] });
+
   if (frontCards) frontCards.forEach((d, i) => {
-    const card = createCard(d, i);
+    const globalIdx = startIdxFront + i;
+    const card = createCard(d, globalIdx);
     card.position.set(positions[i].x, SHEET_T / 2 + CARD_T / 2, positions[i].z);
     mesh.add(card);
+    const slot = createSlot(globalIdx);
+    slot.rotation.set(-Math.PI / 2, 0, 0);
+    slot.position.set(positions[i].x, SHEET_T / 2 + 0.012, positions[i].z);
+    slot.visible = false;
+    mesh.add(slot);
+    card.userData.slot = slot;
   });
   if (backCards) backCards.forEach((d, i) => {
-    const card = createCard(d, i + 100);
+    const globalIdx = startIdxBack + i;
+    const card = createCard(d, globalIdx);
     card.position.set(positions[i].x, -SHEET_T / 2 - CARD_T / 2, positions[i].z);
     card.rotation.z = Math.PI;
     mesh.add(card);
+    const slot = createSlot(globalIdx);
+    slot.rotation.set(Math.PI / 2, 0, Math.PI);
+    slot.position.set(positions[i].x, -SHEET_T / 2 - 0.012, positions[i].z);
+    slot.visible = false;
+    mesh.add(slot);
+    card.userData.slot = slot;
   });
   return { pivot, mesh };
 }
-const sheet1 = createSheet(Y_SHEET1, CARD_DATA.slice(0, 6), CARD_DATA.slice(6, 12));
-const sheet2 = createSheet(Y_SHEET2, CARD_DATA.slice(12, 18), CARD_DATA.slice(18, 24));
+
+const sheet1 = createSheet(Y_SHEET1, CARD_DATA.slice(0, 6), CARD_DATA.slice(6, 12), 0, 6);
+const sheet2 = createSheet(Y_SHEET2, CARD_DATA.slice(12, 18), CARD_DATA.slice(18, 24), 12, 18);
 sheet1.originalY = Y_SHEET1; sheet1.flippedY = Y_FLIP_SHEET1;
 sheet2.originalY = Y_SHEET2; sheet2.flippedY = Y_FLIP_SHEET2;
 
 const coverPivot = new THREE.Group();
 coverPivot.position.set(0, Y_COVER, 0);
 bookGroup.add(coverPivot);
-const coverMesh = new THREE.Mesh(new THREE.BoxGeometry(COVER_W, COVER_T, COVER_D), leatherMat);
+const coverMesh = new THREE.Mesh(new THREE.BoxGeometry(COVER_W, COVER_T, COVER_D), LEATHER_MAT);
 coverMesh.position.set(COVER_W / 2, 0, 0);
 coverMesh.castShadow = true; coverMesh.receiveShadow = true;
 coverPivot.add(coverMesh);
@@ -1312,7 +1080,6 @@ const coverOutsidePlane = new THREE.Mesh(
 );
 coverOutsidePlane.rotation.x = -Math.PI / 2;
 coverOutsidePlane.position.set(COVER_W / 2, COVER_T / 2 + 0.003, 0);
-coverOutsidePlane.castShadow = true;
 coverPivot.add(coverOutsidePlane);
 const coverInsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
@@ -1324,23 +1091,36 @@ coverPivot.add(coverInsidePlane);
 const coverInfo = { pivot: coverPivot, originalY: Y_COVER, flippedY: Y_FLIP_COVER };
 
 (function addSpine() {
-  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.35, COVER_D), leatherMat);
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.35, COVER_D), LEATHER_MAT);
   spine.position.set(0, 0.10, 0);
   spine.castShadow = true;
   bookGroup.add(spine);
 })();
 
-/* ★ Anel de "modo mundo" — brilha quando o livro está fixo no cenário ★ */
-const worldModeRing = new THREE.Mesh(
-  new THREE.TorusGeometry(COVER_D * 0.55, 0.02, 12, 64),
-  new THREE.MeshBasicMaterial({
-    color: 0x9a7dff, transparent: true, opacity: 0,
-    blending: THREE.AdditiveBlending, depthWrite: false
-  })
+/* ============================================================
+   ★ HITBOXES DAS PÁGINAS (para clicar e virar em VR)
+   ============================================================ */
+const pageHitboxLeft = new THREE.Mesh(
+  new THREE.PlaneGeometry(PW * 0.98, PD * 0.98),
+  new THREE.MeshBasicMaterial({ visible: false })
 );
-worldModeRing.rotation.x = -Math.PI / 2;
-worldModeRing.position.set(COVER_W / 2, -0.05, 0);
-bookGroup.add(worldModeRing);
+pageHitboxLeft.rotation.x = -Math.PI / 2;
+pageHitboxLeft.position.set(-PW / 2, Y_SHEET1 + 0.05, 0);
+pageHitboxLeft.userData.isPageHit = true;
+pageHitboxLeft.userData.side = 'left';
+pageHitboxLeft.visible = false;
+bookGroup.add(pageHitboxLeft);
+
+const pageHitboxRight = new THREE.Mesh(
+  new THREE.PlaneGeometry(PW * 0.98, PD * 0.98),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+pageHitboxRight.rotation.x = -Math.PI / 2;
+pageHitboxRight.position.set(PW / 2, Y_SHEET1 + 0.05, 0);
+pageHitboxRight.userData.isPageHit = true;
+pageHitboxRight.userData.side = 'right';
+pageHitboxRight.visible = false;
+bookGroup.add(pageHitboxRight);
 
 /* ============================================================
    HOLOGRAMA
@@ -1352,201 +1132,93 @@ function buildHologram(data) {
   const tintHex = '#' + tint.getHexString();
   const bright = c1.clone().lerp(new THREE.Color(0xffffff), 0.65);
   const coreTex = getHoloCoreTex(data.emoji, tintHex);
-  const silTex  = getHoloSilhouetteTex(data.emoji, tintHex);
-  const edgeTex = getHoloEdgeTex(data.emoji, tintHex);
-  const hotTex  = getHoloHotTex(data.emoji);
+  const silTex = getHoloSilhouetteTex(data.emoji, tintHex);
   const Y = 1.75;
 
-  const auraCanvas = document.createElement('canvas');
-  auraCanvas.width = 512; auraCanvas.height = 512;
-  const actx = auraCanvas.getContext('2d');
-  const rg = actx.createRadialGradient(256, 256, 20, 256, 256, 250);
-  rg.addColorStop(0, `rgba(${Math.round(c1.r*255)},${Math.round(c1.g*255)},${Math.round(c1.b*255)},0.55)`);
-  rg.addColorStop(0.5, `rgba(${Math.round(c1.r*255)},${Math.round(c1.g*255)},${Math.round(c1.b*255)},0.15)`);
-  rg.addColorStop(1, 'rgba(0,0,0,0)');
-  actx.fillStyle = rg; actx.fillRect(0, 0, 512, 512);
-  const auraTex = new THREE.CanvasTexture(auraCanvas);
-  auraTex.colorSpace = THREE.SRGBColorSpace;
-  const auraSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: auraTex, transparent: true, opacity: 0.9,
-    blending: THREE.AdditiveBlending, depthWrite: false
-  }));
-  auraSprite.scale.set(6, 6, 1);
-  auraSprite.position.y = Y;
-  group.add(auraSprite);
-
-  const silMat = new THREE.MeshBasicMaterial({
-    map: silTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.9, side: THREE.DoubleSide,
-    color: tint.clone().multiplyScalar(1.4)
-  });
-  const silPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6), silMat);
-  silPlane.position.y = Y;
-  group.add(silPlane);
-
-  const edgeMat1 = new THREE.MeshBasicMaterial({
-    map: edgeTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.75, side: THREE.DoubleSide, color: bright
-  });
-  const edgePlane1 = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 3.0), edgeMat1);
-  edgePlane1.position.set(0, Y, 0.02);
-  group.add(edgePlane1);
-
-  const edgeMat2 = new THREE.MeshBasicMaterial({
-    map: edgeTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.5, side: THREE.DoubleSide, color: tint
-  });
-  const edgePlane2 = new THREE.Mesh(new THREE.PlaneGeometry(3.15, 3.15), edgeMat2);
-  edgePlane2.position.set(0, Y, 0.01);
-  group.add(edgePlane2);
-
-  const redMat = new THREE.MeshBasicMaterial({
-    map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.42, color: 0xff4477, side: THREE.DoubleSide
-  });
-  const redPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.85, 2.85), redMat);
-  redPlane.position.set(0.07, Y, 0.03);
-  group.add(redPlane);
-
-  const blueMat = new THREE.MeshBasicMaterial({
-    map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.42, color: 0x44aaff, side: THREE.DoubleSide
-  });
-  const bluePlane = new THREE.Mesh(new THREE.PlaneGeometry(2.85, 2.85), blueMat);
-  bluePlane.position.set(-0.07, Y, 0.03);
-  group.add(bluePlane);
-
-  const coreMat = new THREE.MeshBasicMaterial({
-    map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.98, side: THREE.DoubleSide,
-    color: bright.clone()
-  });
-  const corePlane = new THREE.Mesh(new THREE.PlaneGeometry(2.75, 2.75), coreMat);
-  corePlane.position.set(0, Y, 0.05);
-  group.add(corePlane);
-
-  const hotMat = new THREE.MeshBasicMaterial({
-    map: hotTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.6, side: THREE.DoubleSide, color: 0xffffff
-  });
-  const hotPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), hotMat);
-  hotPlane.position.set(0, Y, 0.07);
-  group.add(hotPlane);
-
-  const scanCv = document.createElement('canvas');
-  scanCv.width = 128; scanCv.height = 512;
-  const sctx = scanCv.getContext('2d');
-  for (let y = 0; y < scanCv.height; y += 4) {
-    sctx.fillStyle = 'rgba(180,240,255,0.28)';
-    sctx.fillRect(0, y, scanCv.width, 1);
-  }
-  const scanTex = new THREE.CanvasTexture(scanCv);
-  scanTex.wrapS = scanTex.wrapT = THREE.RepeatWrapping;
-  scanTex.repeat.set(4, 4);
-  const scanMat = new THREE.MeshBasicMaterial({
-    map: scanTex, transparent: true, blending: THREE.AdditiveBlending,
-    depthWrite: false, opacity: 0.35, side: THREE.DoubleSide
-  });
-  const scanPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2), scanMat);
-  scanPlane.position.set(0, Y, 0.09);
-  group.add(scanPlane);
-
-  const discMat = new THREE.MeshBasicMaterial({
-    color: c1, transparent: true, opacity: 0.7,
-    blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
-  });
-  const disc = new THREE.Mesh(new THREE.RingGeometry(0.6, 1.3, 64), discMat);
-  disc.rotation.x = -Math.PI / 2;
-  group.add(disc);
-
-  const innerDisc = new THREE.Mesh(
-    new THREE.RingGeometry(0.18, 0.55, 48),
+  const silPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.6, 3.6),
     new THREE.MeshBasicMaterial({
-      color: bright, transparent: true, opacity: 0.8,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
+      map: silTex, transparent: true, blending: THREE.AdditiveBlending,
+      depthWrite: false, opacity: 0.9, side: THREE.DoubleSide,
+      color: tint.clone().multiplyScalar(1.4)
     })
   );
-  innerDisc.rotation.x = -Math.PI / 2;
-  innerDisc.position.y = 0.01;
-  group.add(innerDisc);
+  silPlane.position.y = Y; group.add(silPlane);
 
-  const midRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.88, 0.95, 48),
+  const redPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.85, 2.85),
     new THREE.MeshBasicMaterial({
-      color: bright, transparent: true, opacity: 0.75,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
+      map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
+      depthWrite: false, opacity: 0.42, color: 0xff4477, side: THREE.DoubleSide
     })
   );
-  midRing.rotation.x = -Math.PI / 2;
-  midRing.position.y = 0.02;
-  group.add(midRing);
+  redPlane.position.set(0.07, Y, 0.03); group.add(redPlane);
+
+  const bluePlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.85, 2.85),
+    new THREE.MeshBasicMaterial({
+      map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
+      depthWrite: false, opacity: 0.42, color: 0x44aaff, side: THREE.DoubleSide
+    })
+  );
+  bluePlane.position.set(-0.07, Y, 0.03); group.add(bluePlane);
+
+  const corePlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.75, 2.75),
+    new THREE.MeshBasicMaterial({
+      map: coreTex, transparent: true, blending: THREE.AdditiveBlending,
+      depthWrite: false, opacity: 0.98, side: THREE.DoubleSide, color: bright
+    })
+  );
+  corePlane.position.set(0, Y, 0.05); group.add(corePlane);
 
   const outerRing = new THREE.Mesh(
-    new THREE.RingGeometry(1.35, 1.45, 64),
+    new THREE.RingGeometry(1.35, 1.45, 48),
     new THREE.MeshBasicMaterial({
       color: c1, transparent: true, opacity: 0.88,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
     })
   );
-  outerRing.rotation.x = -Math.PI / 2;
-  outerRing.position.y = 0.03;
-  group.add(outerRing);
+  outerRing.rotation.x = -Math.PI / 2; outerRing.position.y = 0.03; group.add(outerRing);
 
   const runesGroup = new THREE.Group();
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    const rune = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.16),
-      new THREE.MeshBasicMaterial({
-        color: bright, transparent: true, opacity: 0.95,
-        blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
-      })
-    );
+  const runeGeo = new THREE.PlaneGeometry(0.16, 0.16);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const rune = new THREE.Mesh(runeGeo, new THREE.MeshBasicMaterial({
+      color: bright, transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
+    }));
     rune.position.set(Math.cos(a) * 1.55, 0.06, Math.sin(a) * 1.55);
-    rune.rotation.x = -Math.PI / 2;
-    rune.rotation.z = -a;
+    rune.rotation.x = -Math.PI / 2; rune.rotation.z = -a;
     runesGroup.add(rune);
   }
   group.add(runesGroup);
 
-  const hex = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.6, 1.6, 0.06, 6, 1, true),
-    new THREE.MeshBasicMaterial({
-      color: c1, transparent: true, opacity: 0.6,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      depthWrite: false, wireframe: true
-    })
-  );
-  hex.position.y = 0.08;
-  group.add(hex);
-
   const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.75, 1.3, 1.7, 32, 1, true),
+    new THREE.CylinderGeometry(0.75, 1.3, 1.7, 20, 1, true),
     new THREE.MeshBasicMaterial({
       color: tint, transparent: true, opacity: 0.22,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
     })
   );
-  beam.position.y = 0.85;
-  group.add(beam);
+  beam.position.y = 0.85; group.add(beam);
 
-  const particleCount = 100;
+  const pCount = 40;
   const pGeo = new THREE.BufferGeometry();
-  const pPos = new Float32Array(particleCount * 3);
+  const pPos = new Float32Array(pCount * 3);
   const pSeeds = [];
-  for (let i = 0; i < particleCount; i++) {
+  for (let i = 0; i < pCount; i++) {
     const a = Math.random() * Math.PI * 2;
     const r = 0.9 + Math.random() * 1.0;
     const y = Math.random() * 3.4;
-    pPos[i*3] = Math.cos(a) * r;
-    pPos[i*3+1] = y;
-    pPos[i*3+2] = Math.sin(a) * r;
+    pPos[i*3] = Math.cos(a) * r; pPos[i*3+1] = y; pPos[i*3+2] = Math.sin(a) * r;
     pSeeds.push({ a, r, speed: 0.3 + Math.random() * 0.6, phase: Math.random() * 6.28, y });
   }
   pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
   const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
     color: bright, size: 0.06, transparent: true, opacity: 0.95,
-    blending: THREE.AdditiveBlending, depthWrite: false
+    blending: THREE.AdditiveBlending, depthWrite: false, map: STAR_POINT_TEX
   }));
   particles.userData.seeds = pSeeds;
   particles.userData.isParticles = true;
@@ -1559,27 +1231,15 @@ function buildHologram(data) {
       roughness: 0.1, metalness: 1.0, transparent: true, opacity: 0.9
     })
   );
-  gem.position.y = 3.6;
-  group.add(gem);
-  const gemGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-    color: bright, transparent: true, opacity: 0.7,
-    blending: THREE.AdditiveBlending, depthWrite: false
-  }));
-  gemGlow.scale.set(1.8, 1.8, 1);
-  gemGlow.position.y = 3.6;
-  group.add(gemGlow);
+  gem.position.y = 3.6; group.add(gem);
 
-  group.userData.holoPlanes = [silPlane, edgePlane1, edgePlane2, redPlane, bluePlane, corePlane, hotPlane, scanPlane];
+  group.userData.planes = [silPlane, redPlane, bluePlane, corePlane];
   group.userData.outerRing = outerRing;
-  group.userData.midRing = midRing;
   group.userData.runes = runesGroup;
-  group.userData.hex = hex;
   group.userData.beam = beam;
   group.userData.gem = gem;
-  group.userData.gemGlow = gemGlow;
-  group.userData.auraSprite = auraSprite;
   group.userData.y = Y;
-  group.userData.scanTex = scanTex;
+  group.userData.tintColor = c1.clone();
   return group;
 }
 
@@ -1589,7 +1249,6 @@ function buildHologram(data) {
 const activeTweens = [];
 function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-function easeOutBack(t) { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
 function animate(duration, updateFn, completeFn, ease = easeInOutCubic) {
   const t0 = performance.now();
   const tw = {
@@ -1615,175 +1274,149 @@ function updateTweens(now) {
 }
 
 /* ============================================================
-   ★ SISTEMA VR DO LIVRO — Hand vs World ★
+   SISTEMA VR DO LIVRO
    ============================================================ */
-const BOOK_VR_SCALE = 0.026;
-const BOOK_VR_Y = -0.14;
+const BOOK_VR_SCALE = 0.04;
+const BOOK_VR_Y = -0.16;
 const BOOK_VR_Z = -0.42;
-const BOOK_VR_TILT = -0.32;
 
-// Estado do livro em VR
 const bookVR = {
   active: false,
-  // Hand mode: transforma local relativo à câmera
-  localPos: new THREE.Vector3(-COVER_W / 2 * BOOK_VR_SCALE, BOOK_VR_Y, BOOK_VR_Z),
-  localQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(BOOK_VR_TILT, 0, 0)),
   scale: BOOK_VR_SCALE,
-  targetPos: new THREE.Vector3(-COVER_W / 2 * BOOK_VR_SCALE, BOOK_VR_Y, BOOK_VR_Z),
-  targetQuat: new THREE.Quaternion().setFromEuler(new THREE.Euler(BOOK_VR_TILT, 0, 0)),
-  targetScale: BOOK_VR_SCALE
-};
-
-// Estado do livro em World mode
-const bookWorld = {
+  targetScale: BOOK_VR_SCALE,
   pos: new THREE.Vector3(),
   quat: new THREE.Quaternion(),
   targetPos: new THREE.Vector3(),
   targetQuat: new THREE.Quaternion()
 };
 
-function refreshBookVRTarget() {
-  const s = BOOK_VR_SCALE;
-  if (state.mode === 'closed') {
-    bookVR.targetPos.set(-COVER_W / 2 * s, BOOK_VR_Y, BOOK_VR_Z);
-  } else {
-    bookVR.targetPos.set(0, BOOK_VR_Y, BOOK_VR_Z);
-  }
-  bookVR.targetQuat.setFromEuler(new THREE.Euler(BOOK_VR_TILT, 0, 0));
-  bookVR.targetScale = s;
-}
-
-function updateBookVRTransform(dt) {
-  if (!bookVR.active) return;
-  const k = 1 - Math.pow(0.0005, dt);
-  bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
-
-  if (state.bookMode === 'world') {
-    // ═══ WORLD MODE: livro fica fixo em um ponto do cenário ═══
-    const kw = 1 - Math.pow(0.00005, dt); // transição mais suave
-    bookWorld.pos.lerp(bookWorld.targetPos, kw);
-    // Se está sendo agarrado, o quat alvo é atualizado pelo controller; senão, converge para o alvo
-    if (!isGrabbingBook) {
-      bookWorld.quat.slerp(bookWorld.targetQuat, kw);
-    } else {
-      bookWorld.quat.copy(bookWorld.targetQuat); // segue imediatamente o controller
-    }
-    bookGroup.position.copy(bookWorld.pos);
-    bookGroup.quaternion.copy(bookWorld.quat);
-    bookGroup.scale.setScalar(bookVR.scale);
-  } else {
-    // ═══ HAND MODE: livro segue a câmera ═══
-    bookVR.localPos.lerp(bookVR.targetPos, k);
-    bookVR.localQuat.slerp(bookVR.targetQuat, k);
-    const camPos = new THREE.Vector3();
-    const camQuat = new THREE.Quaternion();
-    camera.getWorldPosition(camPos);
-    camera.getWorldQuaternion(camQuat);
-    const worldOffset = bookVR.localPos.clone().applyQuaternion(camQuat);
-    bookGroup.position.copy(camPos).add(worldOffset);
-    bookGroup.quaternion.copy(camQuat).multiply(bookVR.localQuat);
-    bookGroup.scale.setScalar(bookVR.scale);
-  }
-}
-
-function enableBookVR() {
-  bookVR.active = true;
-  state.bookMode = 'hand';
-  bookVR.localPos.set(0, -1.0, -0.15);
-  bookVR.localQuat.setFromEuler(new THREE.Euler(0.5, -0.6, 0));
-  bookVR.scale = 0.001;
-  refreshBookVRTarget();
-}
-function disableBookVR() {
-  bookVR.active = false;
-  state.bookMode = 'hand';
-  bookGroup.position.set(0, 1.0, -1.5);
-  bookGroup.rotation.set(0, 0, 0);
-  bookGroup.scale.setScalar(1);
-}
-
-/* ★ PINAR / SOLTAR DO MUNDO ★ */
-function pinBookToWorld() {
-  // Pega o transform mundial atual do livro
-  const wp = new THREE.Vector3();
-  const wq = new THREE.Quaternion();
-  bookGroup.getWorldPosition(wp);
-  bookGroup.getWorldQuaternion(wq);
-  // Ajusta: quando pinado no mundo, colocamos o livro um pouco abaixo da linha dos olhos
-  // e na frente — como se estivesse apoiado numa mesa invisível
-  bookWorld.pos.copy(wp);
-  bookWorld.quat.copy(wq);
-  bookWorld.targetPos.copy(wp);
-  bookWorld.targetQuat.copy(wq);
-  state.bookMode = 'world';
-  // Anima o anel indicador
-  worldModeRing.material.opacity = 0.85;
-  worldModeRing.scale.setScalar(1);
-}
-function releaseBookToHand() {
-  // Volta para o modo mão, calculando o offset local atual para transição suave
+function placeBookInFrontOfCamera() {
   const camPos = new THREE.Vector3();
   const camQuat = new THREE.Quaternion();
   camera.getWorldPosition(camPos);
   camera.getWorldQuaternion(camQuat);
-  const offsetWorld = bookGroup.position.clone().sub(camPos);
-  const localOffset = offsetWorld.applyQuaternion(camQuat.clone().invert());
-  bookVR.localPos.copy(localOffset);
-  bookVR.localQuat.copy(camQuat.clone().invert().multiply(bookGroup.quaternion));
-  state.bookMode = 'hand';
-  refreshBookVRTarget();
-  worldModeRing.material.opacity = 0;
+  const offsetLocal = new THREE.Vector3(0, BOOK_VR_Y, BOOK_VR_Z);
+  bookVR.targetPos.copy(camPos).add(offsetLocal.clone().applyQuaternion(camQuat));
+  const localRot = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 - 0.32, 0, 0));
+  bookVR.targetQuat.copy(camQuat).multiply(localRot);
+}
+function enableBookVR() {
+  bookVR.active = true;
+  bookVR.scale = 0.001;
+  bookVR.targetScale = BOOK_VR_SCALE;
+  placeBookInFrontOfCamera();
+  bookVR.pos.copy(bookVR.targetPos);
+  bookVR.quat.copy(bookVR.targetQuat);
+  bookGroup.position.copy(bookVR.pos);
+  bookGroup.quaternion.copy(bookVR.quat);
+  bookGroup.scale.setScalar(0.001);
+  bookGroup.visible = true;
+}
+function hideBook() {
+  bookVR.active = false;
+  bookGroup.visible = false;
+}
+function disableBookVR() {
+  bookVR.active = false;
+  isGrabbingBook = false;
+  grabbingController = null;
+  bookGroup.visible = true;
+  bookGroup.position.set(0, 1.0, -1.5);
+  bookGroup.rotation.set(0, 0, 0);
+  bookGroup.scale.setScalar(1);
+}
+function resetBookPosition() {
+  isGrabbingBook = false;
+  grabbingController = null;
+  bookGroup.visible = true;
+  placeBookInFrontOfCamera();
+}
+function updateBookVRTransform(dt) {
+  if (!bookVR.active || !bookGroup.visible) return;
+  const k = 1 - Math.pow(0.0005, dt);
+  bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
+  if (!isGrabbingBook) {
+    bookVR.pos.lerp(bookVR.targetPos, k);
+    bookVR.quat.slerp(bookVR.targetQuat, k);
+  }
+  bookGroup.position.copy(bookVR.pos);
+  bookGroup.quaternion.copy(bookVR.quat);
+  bookGroup.scale.setScalar(bookVR.scale);
 }
 
-function toggleBookMode() {
-  if (!bookVR.active) return;
-  if (state.bookMode === 'hand') pinBookToWorld();
-  else releaseBookToHand();
-}
-
-/* ★ GRAB — segurar com o gatilho e rotacionar com o controller ★ */
 let isGrabbingBook = false;
 let grabbingController = null;
-const grabStartCtrlQuatInv = new THREE.Quaternion();
-const grabStartBookQuat = new THREE.Quaternion();
+const bookGrabOffsetPos = new THREE.Vector3();
+const bookGrabOffsetQuat = new THREE.Quaternion();
 
 function tryStartBookGrab(controller) {
-  if (state.bookMode !== 'world') return false;
-  if (isGrabbingBook) return false;
-  // Raycast do controller
+  if (isGrabbingBook || !bookGroup.visible) return false;
   const tempMatrix = new THREE.Matrix4();
   tempMatrix.identity().extractRotation(controller.matrixWorld);
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-  const hits = raycaster.intersectObject(bookGroup, true);
-  if (hits.length === 0) return false;
-  // Inicia grab
+  if (raycaster.intersectObject(bookGroup, true).length === 0) return false;
   isGrabbingBook = true;
   grabbingController = controller;
-  const cq = new THREE.Quaternion();
-  controller.getWorldQuaternion(cq);
-  grabStartCtrlQuatInv.copy(cq).invert();
-  grabStartBookQuat.copy(bookWorld.targetQuat);
+  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
+  controller.getWorldPosition(cPos);
+  controller.getWorldQuaternion(cQuat);
+  bookGrabOffsetPos.copy(bookVR.pos).sub(cPos).applyQuaternion(cQuat.clone().invert());
+  bookGrabOffsetQuat.copy(cQuat).invert().multiply(bookVR.quat);
   return true;
 }
-
 function updateBookGrab() {
   if (!isGrabbingBook || !grabbingController) return;
-  const cq = new THREE.Quaternion();
-  grabbingController.getWorldQuaternion(cq);
-  const newQuat = cq.clone()
-    .multiply(grabStartCtrlQuatInv)
-    .multiply(grabStartBookQuat);
-  bookWorld.targetQuat.copy(newQuat);
-  bookWorld.quat.copy(newQuat);
+  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
+  grabbingController.getWorldPosition(cPos);
+  grabbingController.getWorldQuaternion(cQuat);
+  const newPos = cPos.clone().add(bookGrabOffsetPos.clone().applyQuaternion(cQuat));
+  const newQuat = cQuat.clone().multiply(bookGrabOffsetQuat);
+  bookVR.pos.copy(newPos); bookVR.quat.copy(newQuat);
+  bookVR.targetPos.copy(newPos); bookVR.targetQuat.copy(newQuat);
 }
+function endBookGrab() { isGrabbingBook = false; grabbingController = null; }
 
-function endBookGrab() {
-  if (isGrabbingBook) {
-    isGrabbingBook = false;
-    grabbingController = null;
-  }
+/* GRAB da carta */
+let isGrabbingCard = false;
+let grabbingCardController = null;
+let cardWasManuallyPlaced = false;
+const cardGrabOffsetPos = new THREE.Vector3();
+const cardGrabOffsetQuat = new THREE.Quaternion();
+
+function tryStartCardGrab(controller) {
+  if (!state.inspectedCard || isGrabbingCard) return false;
+  const tempMatrix = new THREE.Matrix4();
+  tempMatrix.identity().extractRotation(controller.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+  if (raycaster.intersectObject(state.inspectedCard, true).length === 0) return false;
+  isGrabbingCard = true;
+  grabbingCardController = controller;
+  cardWasManuallyPlaced = true;
+  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
+  controller.getWorldPosition(cPos);
+  controller.getWorldQuaternion(cQuat);
+  const cardPos = new THREE.Vector3(), cardQuat = new THREE.Quaternion();
+  state.inspectedCard.getWorldPosition(cardPos);
+  state.inspectedCard.getWorldQuaternion(cardQuat);
+  cardGrabOffsetPos.copy(cardPos).sub(cPos).applyQuaternion(cQuat.clone().invert());
+  cardGrabOffsetQuat.copy(cQuat).invert().multiply(cardQuat);
+  return true;
 }
+function updateCardGrab() {
+  if (!isGrabbingCard || !grabbingCardController || !state.inspectedCard) return;
+  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
+  grabbingCardController.getWorldPosition(cPos);
+  grabbingCardController.getWorldQuaternion(cQuat);
+  const newPos = cPos.clone().add(cardGrabOffsetPos.clone().applyQuaternion(cQuat));
+  const newQuat = cQuat.clone().multiply(cardGrabOffsetQuat);
+  state.inspectedCard.position.copy(newPos);
+  state.inspectedCard.quaternion.copy(newQuat);
+  cardTargetPos.copy(newPos);
+  cardTargetQuat.copy(newQuat);
+}
+function endCardGrab() { isGrabbingCard = false; grabbingCardController = null; }
 
 /* ============================================================
    ESTADO
@@ -1794,9 +1427,12 @@ const state = {
   cardOriginalPos: null, cardOriginalQuat: null, cardOriginalScale: null,
   summoned: null, holoTime: 0,
   vrPreview: false,
-  bookMode: 'hand'  // 'hand' ou 'world'
+  cardLayout: 'face',
+  isAttacking: false
 };
 const MAX_SPREAD = 3;
+const cardTargetPos = new THREE.Vector3();
+const cardTargetQuat = new THREE.Quaternion();
 
 /* ============================================================
    UI
@@ -1808,31 +1444,36 @@ const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const backBtn = document.getElementById('backBtn');
 const desummonBtn = document.getElementById('desummonBtn');
+const terrainBtn = document.getElementById('terrainBtn');
+const attackBtn = document.getElementById('attackBtn');
 const previewBtn = document.getElementById('previewBtn');
 const modeBtn = document.getElementById('modeBtn');
 const vrExit = document.getElementById('vrExit');
 const vrPreviewOverlay = document.getElementById('vrPreview');
 
-function setHint(text) { hintEl.textContent = text; hintEl.classList.remove('hidden'); }
 function refreshUI() {
   const m = state.mode;
   const inVR = renderer.xr.isPresenting || state.vrPreview;
+  const inspecting = m === 'inspecting';
   openBtn.classList.toggle('visible', m === 'closed' && !inVR);
   closeBtn.classList.toggle('visible', (m === 'open' || m === 'flipping') && !inVR);
   prevBtn.classList.toggle('visible', (m === 'open' || m === 'flipping') && !inVR);
   nextBtn.classList.toggle('visible', (m === 'open' || m === 'flipping') && !inVR);
-  backBtn.classList.toggle('visible', m === 'inspecting' && !inVR);
-  desummonBtn.classList.toggle('visible', m === 'inspecting' && !!state.summoned && !inVR);
+  backBtn.classList.toggle('visible', inspecting && !inVR);
+  desummonBtn.classList.toggle('visible', inspecting && !!state.summoned && !inVR);
+  terrainBtn.classList.toggle('visible', inspecting && !!state.summoned && !inVR);
+  attackBtn.classList.toggle('visible', inspecting && !!state.summoned && !inVR);
   modeBtn.classList.toggle('visible', inVR);
-  modeBtn.textContent = state.bookMode === 'hand' ? '📌 Fixar no mundo' : '✋ Voltar à mão';
   previewBtn.classList.toggle('visible', !inVR);
+  terrainBtn.textContent = state.cardLayout === 'terrain' ? '🧍 Em pé' : '🌫️ Terreno';
   prevBtn.disabled = state.spread <= 1;
   nextBtn.disabled = state.spread >= MAX_SPREAD;
   if (inVR) { hintEl.classList.add('hidden'); return; }
-  if (m === 'closed') setHint('Toque no álbum para abrir');
-  else if (m === 'open') setHint('Clique numa carta para invocar o holograma');
-  else if (m === 'inspecting') setHint('Arraste para mover  •  Clique na carta para devolver');
-  else if (m === 'flipping') setHint('Folheando…');
+  hintEl.classList.remove('hidden');
+  if (m === 'closed') hintEl.textContent = 'Toque no álbum para abrir';
+  else if (m === 'open') hintEl.textContent = 'Clique numa carta para invocar o holograma';
+  else if (m === 'inspecting') hintEl.textContent = 'Arraste para girar  •  Clique fora para devolver';
+  else hintEl.textContent = 'Folheando…';
 }
 
 /* ============================================================
@@ -1843,7 +1484,6 @@ function isVRActive() { return renderer.xr.isPresenting || state.vrPreview; }
 function openAlbum() {
   if (state.mode !== 'closed') return;
   state.mode = 'flipping'; state.spread = 1; refreshUI();
-  if (isVRActive() && state.bookMode === 'hand') refreshBookVRTarget();
   const sR = coverInfo.pivot.rotation.z, sY = coverInfo.pivot.position.y;
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
@@ -1854,7 +1494,6 @@ function openAlbum() {
     if (!inVR) {
       camera.position.lerpVectors(camStart, CAM_OPEN, t);
       controls.target.lerpVectors(tgtStart, TARGET_OPEN, t);
-      controls.update();
     }
   }, () => { state.mode = 'open'; refreshUI(); });
 }
@@ -1862,7 +1501,6 @@ function closeAlbum() {
   if (state.mode !== 'open') return;
   if (state.spread > 1) { flipBack(() => closeAlbum()); return; }
   state.mode = 'flipping'; refreshUI();
-  if (isVRActive() && state.bookMode === 'hand') refreshBookVRTarget();
   const sR = coverInfo.pivot.rotation.z, sY = coverInfo.pivot.position.y;
   const camStart = camera.position.clone();
   const tgtStart = controls.target.clone();
@@ -1873,14 +1511,13 @@ function closeAlbum() {
     if (!inVR) {
       camera.position.lerpVectors(camStart, CAM_CLOSED, t);
       controls.target.lerpVectors(tgtStart, TARGET_CLOSED, t);
-      controls.update();
     }
   }, () => { state.mode = 'closed'; state.spread = 0; refreshUI(); });
 }
 function flipForward() {
   if (state.mode !== 'open' || state.spread >= MAX_SPREAD) return;
   state.mode = 'flipping'; refreshUI();
-  let target = state.spread === 1 ? sheet1 : state.spread === 2 ? sheet2 : null;
+  const target = state.spread === 1 ? sheet1 : state.spread === 2 ? sheet2 : null;
   if (!target) return;
   const sR = target.pivot.rotation.z, sY = target.pivot.position.y;
   animate(950, (t) => {
@@ -1896,7 +1533,7 @@ function flipForward() {
 function flipBack(callback) {
   if (state.mode !== 'open' || state.spread <= 1) { if (callback) callback(); return; }
   state.mode = 'flipping'; refreshUI();
-  let target = state.spread === 2 ? sheet1 : state.spread === 3 ? sheet2 : null;
+  const target = state.spread === 2 ? sheet1 : state.spread === 3 ? sheet2 : null;
   if (!target) { state.mode = 'open'; refreshUI(); return; }
   const sR = target.pivot.rotation.z, sY = target.pivot.position.y;
   animate(950, (t) => {
@@ -1911,7 +1548,9 @@ function flipBack(callback) {
   });
 }
 
-/* RAYCAST */
+/* ============================================================
+   RAYCAST
+   ============================================================ */
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 function setPointer(e) {
@@ -1939,28 +1578,55 @@ function computeCardFacingQuat(cardPos, camPos) {
     new THREE.Matrix4().makeBasis(xDir, yDir, zDir)
   );
 }
+function computeTerrainQuat(cardPos, camPos) {
+  const toCam = new THREE.Vector3().subVectors(camPos, cardPos).normalize();
+  const horiz = new THREE.Vector3(toCam.x, 0, toCam.z).normalize();
+  const yaw = Math.atan2(horiz.x, horiz.z);
+  const tiltQuat = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(-Math.PI / 2 + 0.55, 0, 0, 'YXZ')
+  );
+  const yawQuat = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(0, yaw + Math.PI, 0, 'YXZ')
+  );
+  return yawQuat.multiply(tiltQuat);
+}
 
-/* INVOCAR / DESINVOCAR */
+/* ============================================================
+   INVOCAR / DESINVOCAR
+   ============================================================ */
 function summonHologram(card) {
   const data = card.userData.cardData;
+  const inVR = isVRActive();
+  const holo = buildHologram(data);
   const cardWorldPos = new THREE.Vector3();
   card.getWorldPosition(cardWorldPos);
-  const holo = buildHologram(data);
-  holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, 2.1, 0));
+  const yOff = inVR ? 0.22 : 2.1;
+  holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, yOff, 0));
   holo.scale.setScalar(0.01);
   scene.add(holo);
   state.summoned = holo;
   state.holoTime = 0;
-  const inVR = isVRActive();
-  const targetScale = inVR ? 0.22 : 0.9;
+  const targetScale = inVR ? 0.08 : 0.9;
   animate(750, (t) => { holo.scale.setScalar(0.01 + t * targetScale); },
     () => { holo.scale.setScalar(targetScale); }, easeOutCubic);
+
+  if (card.userData.terrainOverlay) {
+    card.userData.terrainOverlay.visible = true;
+    animate(700, (t) => { TERRAIN_MAT.opacity = 0.85 * t; });
+  }
 }
 function desummonHologram(onComplete) {
+  if (state.inspectedCard && state.inspectedCard.userData.terrainOverlay) {
+    const overlay = state.inspectedCard.userData.terrainOverlay;
+    animate(500, (t) => { TERRAIN_MAT.opacity = 0.85 * (1 - t); },
+      () => { TERRAIN_MAT.opacity = 0; overlay.visible = false; });
+  }
+  state.isAttacking = false;
+
   if (!state.summoned) { if (onComplete) onComplete(); return; }
   const holo = state.summoned;
   state.summoned = null;
-  const bc = 70;
+  const bc = 40;
   const bGeo = new THREE.BufferGeometry();
   const pos = new Float32Array(bc * 3);
   const col = new Float32Array(bc * 3);
@@ -1984,7 +1650,7 @@ function desummonHologram(onComplete) {
   bGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const bMat = new THREE.PointsMaterial({
     size: 0.15, vertexColors: true, transparent: true,
-    blending: THREE.AdditiveBlending, depthWrite: false
+    blending: THREE.AdditiveBlending, depthWrite: false, map: STAR_POINT_TEX
   });
   const burst = new THREE.Points(bGeo, bMat);
   scene.add(burst);
@@ -2003,10 +1669,13 @@ function desummonHologram(onComplete) {
   }, () => {
     scene.remove(holo);
     holo.traverse(o => {
-      if (o.geometry) o.geometry.dispose();
+      if (o.geometry && o.geometry !== CARD_BOX_GEO && o.geometry !== SLOT_PLANE_GEO
+          && o.geometry !== TERRAIN_PLANE_GEO && o.geometry !== TRAIL_GEO) o.geometry.dispose();
       if (o.material) {
-        if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
-        else o.material.dispose();
+        if (Array.isArray(o.material)) o.material.forEach(m => {
+          if (m !== CARD_EDGE_MAT && m !== CARD_BACK_MAT) m.dispose();
+        });
+        else if (o.material !== CARD_EDGE_MAT && o.material !== CARD_BACK_MAT) o.material.dispose();
       }
     });
     animate(400, (t) => {
@@ -2020,7 +1689,135 @@ function desummonHologram(onComplete) {
   });
 }
 
-/* INSPECIONAR */
+/* ============================================================
+   ATAQUE
+   ============================================================ */
+function triggerAttack() {
+  if (!state.summoned || !state.inspectedCard || state.isAttacking) return;
+  state.isAttacking = true;
+
+  const holo = state.summoned;
+  const cardPos = new THREE.Vector3();
+  state.inspectedCard.getWorldPosition(cardPos);
+  const camPos = new THREE.Vector3();
+  camera.getWorldPosition(camPos);
+  const attackDir = new THREE.Vector3().subVectors(camPos, cardPos);
+  attackDir.y = 0;
+  if (attackDir.lengthSq() < 0.001) attackDir.set(0, 0, 1);
+  attackDir.normalize();
+  const color = holo.userData.tintColor || new THREE.Color(0x88ddff);
+
+  const ringGeo = new THREE.RingGeometry(0.15, 0.32, 32);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color, transparent: true, opacity: 0.95,
+    side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(cardPos);
+  ring.position.y += 0.05;
+  ring.rotation.x = -Math.PI / 2;
+  scene.add(ring);
+  animate(900, (t) => {
+    ring.scale.setScalar(1 + t * 22);
+    ringMat.opacity = 0.95 * (1 - t);
+  }, () => {
+    scene.remove(ring); ringGeo.dispose(); ringMat.dispose();
+  }, easeOutCubic);
+
+  const pCount = 60;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(pCount * 3);
+  const pCol = new Float32Array(pCount * 3);
+  const pVel = [];
+  for (let i = 0; i < pCount; i++) {
+    pPos[i*3] = cardPos.x;
+    pPos[i*3+1] = cardPos.y + (isVRActive() ? 0.15 : 1.8);
+    pPos[i*3+2] = cardPos.z;
+    const spread = 0.7;
+    const dir = attackDir.clone()
+      .add(new THREE.Vector3((Math.random() - 0.5) * spread, (Math.random() - 0.3) * spread, (Math.random() - 0.5) * spread))
+      .normalize();
+    pVel.push(dir.multiplyScalar(2 + Math.random() * 3.5));
+    pCol[i*3] = color.r; pCol[i*3+1] = color.g; pCol[i*3+2] = color.b;
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+  const pMat = new THREE.PointsMaterial({
+    size: 0.14, vertexColors: true, transparent: true, opacity: 1,
+    blending: THREE.AdditiveBlending, depthWrite: false, map: STAR_POINT_TEX
+  });
+  const particles = new THREE.Points(pGeo, pMat);
+  scene.add(particles);
+  animate(1100, (t) => {
+    const arr = pGeo.attributes.position.array;
+    for (let i = 0; i < pCount; i++) {
+      arr[i*3] += pVel[i].x * 0.016;
+      arr[i*3+1] += pVel[i].y * 0.016;
+      arr[i*3+2] += pVel[i].z * 0.016;
+      pVel[i].y -= 0.05;
+    }
+    pGeo.attributes.position.needsUpdate = true;
+    pMat.opacity = 1 - t * 0.9;
+  }, () => {
+    scene.remove(particles); pGeo.dispose(); pMat.dispose();
+  }, easeOutCubic);
+
+  const holoStartPos = holo.position.clone();
+  animate(900, (t) => {
+    let push = 0;
+    if (t < 0.25) push = -0.10 * (t / 0.25);
+    else if (t < 0.55) push = -0.10 + 0.55 * ((t - 0.25) / 0.30);
+    else push = 0.45 * (1 - (t - 0.55) / 0.45);
+    holo.position.copy(holoStartPos).addScaledVector(attackDir, push);
+  }, () => { state.isAttacking = false; }, (t) => t);
+
+  if (state.cardLayout !== 'terrain') toggleCardTerrain();
+}
+
+/* ============================================================
+   TOGGLE TERRENO
+   ============================================================ */
+function toggleCardTerrain() {
+  if (!state.inspectedCard || !state.summoned) return;
+  if (state.cardLayout === 'face') state.cardLayout = 'terrain';
+  else { state.cardLayout = 'face'; cardWasManuallyPlaced = false; }
+  updateCardTargets(true);
+  refreshUI();
+}
+
+function updateCardTargets(animated = false) {
+  if (!state.inspectedCard) return;
+  const camPos = new THREE.Vector3();
+  camera.getWorldPosition(camPos);
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+  const inVR = isVRActive();
+  const dist = inVR ? 0.55 : 6.8;
+  const newTargetPos = camPos.clone().addScaledVector(camDir, dist);
+  if (inVR) newTargetPos.y -= 0.12;
+  const newTargetQuat = state.cardLayout === 'terrain'
+    ? computeTerrainQuat(newTargetPos, camPos)
+    : computeCardFacingQuat(newTargetPos, camPos);
+
+  if (animated) {
+    const startPos = state.inspectedCard.position.clone();
+    const startQuat = state.inspectedCard.quaternion.clone();
+    animate(700, (t) => {
+      state.inspectedCard.position.lerpVectors(startPos, newTargetPos, t);
+      state.inspectedCard.quaternion.slerpQuaternions(startQuat, newTargetQuat, t);
+    }, () => {
+      cardTargetPos.copy(newTargetPos);
+      cardTargetQuat.copy(newTargetQuat);
+    });
+  } else {
+    cardTargetPos.copy(newTargetPos);
+    cardTargetQuat.copy(newTargetQuat);
+  }
+}
+
+/* ============================================================
+   INSPECIONAR / DEVOLVER
+   ============================================================ */
 function inspectCard(card) {
   if (state.summoned) { desummonHologram(() => doInspect(card)); return; }
   doInspect(card);
@@ -2028,25 +1825,32 @@ function inspectCard(card) {
 function doInspect(card) {
   state.mode = 'inspecting';
   state.inspectedCard = card;
+  state.cardLayout = 'face';
+  cardWasManuallyPlaced = false;
   state.cardOriginalParent = card.parent;
   state.cardOriginalPos = card.position.clone();
   state.cardOriginalQuat = card.quaternion.clone();
   state.cardOriginalScale = card.scale.clone();
+
+  if (card.userData.slot) card.userData.slot.visible = true;
+
   scene.attach(card);
+
   const camPos = new THREE.Vector3();
   camera.getWorldPosition(camPos);
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
   const inVR = isVRActive();
-  const dist = inVR ? 0.32 : 6.8;
+  const dist = inVR ? 0.50 : 6.8;
   const targetPos = camPos.clone().addScaledVector(camDir, dist);
   const targetQuat = computeCardFacingQuat(targetPos, camPos);
   const startPos = card.position.clone();
   const startQuat = card.quaternion.clone();
   const startScale = card.scale.clone();
   const targetScale = inVR
-    ? new THREE.Vector3(0.05, 0.05, 0.05)
+    ? new THREE.Vector3(0.18, 0.18, 0.18)
     : new THREE.Vector3(1.3, 1.3, 1.3);
+
   controls.enabled = false;
   refreshUI();
   animate(600, (t) => {
@@ -2057,15 +1861,18 @@ function doInspect(card) {
     card.position.copy(targetPos);
     card.quaternion.copy(targetQuat);
     card.scale.copy(targetScale);
+    cardTargetPos.copy(targetPos);
+    cardTargetQuat.copy(targetQuat);
     summonHologram(card);
     refreshUI();
   }, easeOutCubic);
 }
-
-/* DEVOLVER */
 function returnInspectedCard() {
   if (!state.inspectedCard) return;
   const card = state.inspectedCard;
+  endCardGrab();
+  state.cardLayout = 'face';
+  cardWasManuallyPlaced = false;
   if (state.summoned) desummonHologram(() => returnCardToAlbum(card));
   else returnCardToAlbum(card);
 }
@@ -2092,53 +1899,50 @@ function returnCardToAlbum(card) {
     card.position.copy(state.cardOriginalPos);
     card.quaternion.copy(state.cardOriginalQuat);
     card.scale.copy(state.cardOriginalScale);
+    if (card.userData.slot) card.userData.slot.visible = false;
+    if (card.userData.terrainOverlay) {
+      card.userData.terrainOverlay.visible = false;
+      TERRAIN_MAT.opacity = 0;
+    }
     state.mode = 'open';
     controls.enabled = true;
     refreshUI();
   });
 }
 
-/* DRAG */
+/* ============================================================
+   DRAG DESKTOP
+   ============================================================ */
 let pointerDownOnCard = false;
-let pointerDownPos = new THREE.Vector2();
+let pointerDownScreen = new THREE.Vector2();
 let pointerDownTime = 0;
-let dragPlane = new THREE.Plane();
-let dragOffset = new THREE.Vector3();
 let didDrag = false;
 const DRAG_THRESHOLD_PX = 6;
+const cardDragStartQuat = new THREE.Quaternion();
+
 function startCardDrag(e, card) {
   pointerDownOnCard = true;
-  pointerDownPos.set(e.clientX, e.clientY);
+  pointerDownScreen.set(e.clientX, e.clientY);
   pointerDownTime = performance.now();
   didDrag = false;
-  const camDir = new THREE.Vector3();
-  camera.getWorldDirection(camDir);
-  const cardPos = new THREE.Vector3();
-  card.getWorldPosition(cardPos);
-  dragPlane.setFromNormalAndCoplanarPoint(camDir, cardPos);
-  raycaster.setFromCamera(pointer, camera);
-  const hit = new THREE.Vector3();
-  if (raycaster.ray.intersectPlane(dragPlane, hit)) dragOffset.copy(cardPos).sub(hit);
+  cardDragStartQuat.copy(card.quaternion);
 }
 function updateCardDrag(e) {
   if (!pointerDownOnCard || !state.inspectedCard) return;
-  const dx = e.clientX - pointerDownPos.x;
-  const dy = e.clientY - pointerDownPos.y;
+  const dx = e.clientX - pointerDownScreen.x;
+  const dy = e.clientY - pointerDownScreen.y;
   if (!didDrag && dx*dx + dy*dy > DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
     didDrag = true;
     renderer.domElement.style.cursor = 'grabbing';
   }
   if (!didDrag) return;
-  setPointer(e);
-  raycaster.setFromCamera(pointer, camera);
-  const hit = new THREE.Vector3();
-  if (raycaster.ray.intersectPlane(dragPlane, hit)) {
-    const newPos = hit.clone().add(dragOffset);
-    state.inspectedCard.position.copy(newPos);
-    if (state.summoned) state.summoned.position.copy(newPos).add(new THREE.Vector3(0, 2.1, 0));
-  }
+  const rotSpeed = 0.010;
+  const eul = new THREE.Euler(dy * rotSpeed, dx * rotSpeed, 0, 'YXZ');
+  const delta = new THREE.Quaternion().setFromEuler(eul);
+  state.inspectedCard.quaternion.copy(cardDragStartQuat).multiply(delta);
+  cardTargetQuat.copy(state.inspectedCard.quaternion);
 }
-function endCardDrag(e) {
+function endCardDrag() {
   if (!pointerDownOnCard) return;
   const wasClick = !didDrag && (performance.now() - pointerDownTime) < 500;
   pointerDownOnCard = false;
@@ -2146,7 +1950,6 @@ function endCardDrag(e) {
   if (didDrag) renderer.domElement.style.cursor = 'pointer';
 }
 
-/* EVENTOS MOUSE */
 function onPointerDown(e) {
   if (e.button !== 0 || renderer.xr.isPresenting) return;
   setPointer(e);
@@ -2179,12 +1982,11 @@ function onPointerMove(e) {
       raycaster.intersectObject(state.inspectedCard, false).length > 0 ? 'grab' : 'default';
   }
 }
-function onPointerUp(e) { if (pointerDownOnCard) endCardDrag(e); }
 
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('pointermove', onPointerMove);
-window.addEventListener('pointerup', onPointerUp);
-window.addEventListener('pointercancel', onPointerUp);
+window.addEventListener('pointerup', endCardDrag);
+window.addEventListener('pointercancel', endCardDrag);
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (state.mode === 'inspecting') returnInspectedCard();
@@ -2193,7 +1995,9 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' && state.mode === 'open') flipForward();
   if (e.key === 'ArrowLeft' && state.mode === 'open') flipBack();
   if ((e.key === 'd' || e.key === 'D') && state.summoned) desummonHologram();
-  if ((e.key === 'm' || e.key === 'M') && isVRActive()) toggleBookMode();
+  if ((e.key === 't' || e.key === 'T') && state.mode === 'inspecting') toggleCardTerrain();
+  if ((e.key === 'f' || e.key === 'F') && state.mode === 'inspecting') triggerAttack();
+  if ((e.key === 'm' || e.key === 'M') && isVRActive()) resetBookPosition();
 });
 openBtn.addEventListener('click', (e) => { e.stopPropagation(); openAlbum(); });
 closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeAlbum(); });
@@ -2201,21 +2005,22 @@ nextBtn.addEventListener('click', (e) => { e.stopPropagation(); flipForward(); }
 prevBtn.addEventListener('click', (e) => { e.stopPropagation(); flipBack(); });
 backBtn.addEventListener('click', (e) => { e.stopPropagation(); returnInspectedCard(); });
 desummonBtn.addEventListener('click', (e) => { e.stopPropagation(); desummonHologram(); });
-modeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleBookMode(); });
+terrainBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleCardTerrain(); });
+attackBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerAttack(); });
+modeBtn.addEventListener('click', (e) => { e.stopPropagation(); resetBookPosition(); });
 
 /* ============================================================
    PREVIEW VR
    ============================================================ */
-let savedCameraPos = new THREE.Vector3();
-let savedCameraQuat = new THREE.Quaternion();
+const savedCamera = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
 let savedTarget = new THREE.Vector3();
 let savedControlsEnabled = true;
 
 function enterVRPreview() {
   if (state.vrPreview || renderer.xr.isPresenting) return;
   state.vrPreview = true;
-  savedCameraPos.copy(camera.position);
-  savedCameraQuat.copy(camera.quaternion);
+  savedCamera.pos.copy(camera.position);
+  savedCamera.quat.copy(camera.quaternion);
   savedTarget.copy(controls.target);
   savedControlsEnabled = controls.enabled;
   camera.position.set(0, 1.65, 0);
@@ -2234,8 +2039,9 @@ function exitVRPreview() {
   vrPreviewOverlay.classList.remove('active');
   vrExit.classList.remove('active');
   disableBookVR();
-  camera.position.copy(savedCameraPos);
-  camera.quaternion.copy(savedCameraQuat);
+  endCardGrab();
+  camera.position.copy(savedCamera.pos);
+  camera.quaternion.copy(savedCamera.quat);
   controls.target.copy(savedTarget);
   controls.enabled = savedControlsEnabled;
   controls.update();
@@ -2246,48 +2052,239 @@ function exitVRPreview() {
   coverInfo.pivot.position.y = coverInfo.originalY;
   sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
   sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
-  worldModeRing.material.opacity = 0;
   refreshUI();
 }
 previewBtn.addEventListener('click', (e) => { e.stopPropagation(); enterVRPreview(); });
 vrExit.addEventListener('click', (e) => { e.stopPropagation(); exitVRPreview(); });
 
 /* ============================================================
-   VR
+   VR — CONTROLES E MÃOS
    ============================================================ */
 const controller0 = renderer.xr.getController(0);
 const controller1 = renderer.xr.getController(1);
-const controllerModelFactory = new XRControllerModelFactory();
 const grip0 = renderer.xr.getControllerGrip(0);
 const grip1 = renderer.xr.getControllerGrip(1);
+const controllerModelFactory = new XRControllerModelFactory();
 grip0.add(controllerModelFactory.createControllerModel(grip0));
 grip1.add(controllerModelFactory.createControllerModel(grip1));
-function addRay(controller) {
-  const geo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -4)
-  ]);
-  controller.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-    color: 0xd4af5a, transparent: true, opacity: 0.6
-  })));
-}
-addRay(controller0); addRay(controller1);
-scene.add(controller0); scene.add(controller1);
-scene.add(grip0); scene.add(grip1);
 
-/* Select = gatilho: em modo mundo, pode iniciar grab */
-function onControllerSelectStart(event) {
-  const controller = event.target;
-  // Primeiro: tentar grab (apenas em modo mundo)
-  if (state.bookMode === 'world' && tryStartBookGrab(controller)) {
-    return; // grab iniciado, não faz mais nada
+const handModelFactory = new XRHandModelFactory();
+const hand0 = renderer.xr.getHand(0);
+const hand1 = renderer.xr.getHand(1);
+try {
+  hand0.add(handModelFactory.createHandModel(hand0, 'mesh'));
+  hand1.add(handModelFactory.createHandModel(hand1, 'mesh'));
+} catch (e) { console.warn('Hand tracking indisponível:', e); }
+
+const RAY_GEO = new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -4)
+]);
+const RAY_MAT = new THREE.LineBasicMaterial({
+  color: 0xd4af5a, transparent: true, opacity: 0.6
+});
+controller0.add(new THREE.Line(RAY_GEO, RAY_MAT));
+controller1.add(new THREE.Line(RAY_GEO, RAY_MAT));
+scene.add(controller0, controller1, grip0, grip1, hand0, hand1);
+
+/* ============================================================
+   ★ BRACELETE "INVOCAR ÁLBUM" ★
+   ============================================================ */
+function makeBraceletTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 128;
+  const ctx = cv.getContext('2d');
+  // fundo do bracelete
+  const g = ctx.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0, '#2a1a0a');
+  g.addColorStop(0.5, '#4a3010');
+  g.addColorStop(1, '#2a1a0a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 128);
+  // moldura dourada
+  ctx.strokeStyle = 'rgba(212,175,90,1)'; ctx.lineWidth = 6;
+  roundRect(ctx, 8, 8, 512 - 16, 128 - 16, 12); ctx.stroke();
+  ctx.strokeStyle = 'rgba(212,175,90,0.5)'; ctx.lineWidth = 2;
+  roundRect(ctx, 16, 16, 512 - 32, 128 - 32, 8); ctx.stroke();
+  // texto
+  ctx.fillStyle = '#ffe8a0';
+  ctx.font = 'bold 52px Georgia, serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(212,175,90,1)'; ctx.shadowBlur = 20;
+  ctx.fillText('INVOCAR ÁLBUM', 256, 64);
+  ctx.shadowBlur = 0;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+const BRACELET_TEX = makeBraceletTexture();
+
+function buildBracelet() {
+  const g = new THREE.Group();
+  // base (cilindro aberto, virado para fora)
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.055, 0.055, 0.04, 24, 1, true),
+    new THREE.MeshStandardMaterial({
+      map: BRACELET_TEX, roughness: 0.5, metalness: 0.4,
+      side: THREE.DoubleSide, emissive: 0x3a2a10, emissiveIntensity: 0.4
+    })
+  );
+  // rotaciona o cilindro para ficar em torno do pulso
+  base.rotation.z = Math.PI / 2;
+  g.add(base);
+  // anel dourado por cima
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.058, 0.006, 8, 24),
+    new THREE.MeshStandardMaterial({
+      color: 0xd4af5a, metalness: 1.0, roughness: 0.2,
+      emissive: 0xd4af5a, emissiveIntensity: 0.5
+    })
+  );
+  ring.rotation.y = Math.PI / 2;
+  g.add(ring);
+  // aura brilhante
+  const aura = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 16, 12),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd966, transparent: true, opacity: 0.15,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    })
+  );
+  g.add(aura);
+  // hitbox invisível para detectar toque
+  const hitbox = new THREE.Mesh(
+    new THREE.SphereGeometry(0.11, 8, 6),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  g.add(hitbox);
+  g.userData.hitbox = hitbox;
+  g.userData.aura = aura;
+  g.userData.isBracelet = true;
+  return g;
+}
+
+// Braceletes nas duas mãos/controles
+const bracelet0 = buildBracelet();
+const bracelet1 = buildBracelet();
+grip0.add(bracelet0);
+grip1.add(bracelet1);
+// Anexa também ao pulso das mãos (hand tracking) - um clone
+const braceletHand0 = buildBracelet();
+const braceletHand1 = buildBracelet();
+if (hand0.joints && hand0.joints['wrist']) {
+  hand0.joints['wrist'].add(braceletHand0);
+}
+if (hand1.joints && hand1.joints['wrist']) {
+  hand1.joints['wrist'].add(braceletHand1);
+}
+
+/* ============================================================
+   ★ DETECÇÃO DE PINCH (hand tracking) ★
+   ============================================================ */
+const pinchState = [{ active: false, wasActive: false }, { active: false, wasActive: false }];
+const PINCH_THRESHOLD = 0.025; // 2.5cm
+
+function checkPinch(hand, index) {
+  if (!hand || !hand.joints) return;
+  const thumb = hand.joints['thumb-tip'];
+  const indexFinger = hand.joints['index-finger-tip'];
+  if (!thumb || !indexFinger) return;
+  const p1 = new THREE.Vector3();
+  const p2 = new THREE.Vector3();
+  thumb.getWorldPosition(p1);
+  indexFinger.getWorldPosition(p2);
+  const dist = p1.distanceTo(p2);
+  pinchState[index].wasActive = pinchState[index].active;
+  pinchState[index].active = dist < PINCH_THRESHOLD;
+}
+
+/* Verifica se um pinch começou agora */
+function pinchJustStarted(index) {
+  return pinchState[index].active && !pinchState[index].wasActive;
+}
+
+/* Verifica se um pinch terminou agora */
+function pinchJustEnded(index) {
+  return !pinchState[index].active && pinchState[index].wasActive;
+}
+
+/* ============================================================
+   ★ INTERAÇÃO COM O BRACELETE (invocar álbum) ★
+   ============================================================ */
+function tryActivateBracelet(controller, rayOrigin, rayDir) {
+  if (!controller) return false;
+  raycaster.set(rayOrigin, rayDir);
+  // Verifica os 4 braceletes
+  const bracelets = [bracelet0, bracelet1, braceletHand0, braceletHand1];
+  for (let i = 0; i < bracelets.length; i++) {
+    const b = bracelets[i];
+    if (!b.userData.hitbox) continue;
+    const hits = raycaster.intersectObject(b.userData.hitbox, false);
+    if (hits.length > 0) {
+      // Ativa: mostra o livro
+      bookGroup.visible = true;
+      resetBookPosition();
+      return true;
+    }
   }
-  // Se não pegou, faz o comportamento normal (abrir/inspecionar)
+  return false;
+}
+
+/* ============================================================
+   ★ INTERAÇÃO COM AS PÁGINAS (folhear) ★
+   ============================================================ */
+function tryFlipPage(raycaster) {
+  if (state.mode !== 'open' && state.mode !== 'flipping') return false;
+  // Testa as hitboxes das páginas
+  pageHitboxLeft.visible = true;
+  pageHitboxRight.visible = true;
+  pageHitboxLeft.updateMatrixWorld(true);
+  pageHitboxRight.updateMatrixWorld(true);
+
+  const hitsL = raycaster.intersectObject(pageHitboxLeft, false);
+  const hitsR = raycaster.intersectObject(pageHitboxRight, false);
+
+  pageHitboxLeft.visible = false;
+  pageHitboxRight.visible = false;
+
+  if (hitsR.length > 0 && state.spread < MAX_SPREAD) {
+    flipForward();
+    return true;
+  }
+  if (hitsL.length > 0 && state.spread > 1) {
+    flipBack();
+    return true;
+  }
+  return false;
+}
+
+/* ============================================================
+   HANDLERS DE SELEÇÃO (controle + hand tracking)
+   ============================================================ */
+function handleSelectStart(controller, index) {
+  // 1) Bracelete (invocar álbum)
   const tempMatrix = new THREE.Matrix4();
   tempMatrix.identity().extractRotation(controller.matrixWorld);
-  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+  const origin = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
+  const dir = new THREE.Vector3(0, 0, -1).applyMatrix4(tempMatrix);
+
+  if (tryActivateBracelet(controller, origin, dir)) return;
+
+  // 2) Carta inspecionada (agarrar)
+  if (tryStartCardGrab(controller)) return;
+
+  // 3) Livro (agarrar)
+  if (tryStartBookGrab(controller)) return;
+
+  // 4) Páginas do álbum (folhear)
+  raycaster.set(origin, dir);
+  if (tryFlipPage(raycaster)) return;
+
+  // 5) Cartas no álbum
   if (state.mode === 'closed') {
-    if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) openAlbum();
+    if (bookGroup.visible && raycaster.intersectObject(coverOutsidePlane, false).length > 0) {
+      openAlbum();
+    }
     return;
   }
   if (state.mode === 'open') {
@@ -2301,19 +2298,21 @@ function onControllerSelectStart(event) {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) returnInspectedCard();
   }
 }
-function onControllerSelectEnd() {
+
+function handleSelectEnd() {
+  endCardGrab();
   endBookGrab();
 }
-controller0.addEventListener('selectstart', onControllerSelectStart);
-controller0.addEventListener('selectend', onControllerSelectEnd);
-controller1.addEventListener('selectstart', onControllerSelectStart);
-controller1.addEventListener('selectend', onControllerSelectEnd);
 
-/* ★ Poll do botão A → alterna modo hand/world ★ */
-const controllerBtnStates = [
-  { a: false },
-  { a: false }
-];
+controller0.addEventListener('selectstart', (e) => handleSelectStart(e.target, 0));
+controller0.addEventListener('selectend', handleSelectEnd);
+controller1.addEventListener('selectstart', (e) => handleSelectStart(e.target, 1));
+controller1.addEventListener('selectend', handleSelectEnd);
+
+/* ============================================================
+   BOTÕES DOS CONTROLES
+   ============================================================ */
+const controllerBtnStates = [{ a: false, b: false, squeeze: false }, { a: false, b: false, squeeze: false }];
 function pollControllerButtons() {
   if (!renderer.xr.isPresenting) return;
   [controller0, controller1].forEach((ctrl, i) => {
@@ -2321,11 +2320,97 @@ function pollControllerButtons() {
     if (!src || !src.gamepad) return;
     const gp = src.gamepad;
     const aPressed = gp.buttons[4] ? gp.buttons[4].pressed : false;
+    const bPressed = gp.buttons[5] ? gp.buttons[5].pressed : false;
+    const squeezePressed = gp.buttons[1] ? gp.buttons[1].pressed : false;
+
     if (aPressed && !controllerBtnStates[i].a) {
-      toggleBookMode();
+      if (state.mode === 'inspecting' && state.summoned) toggleCardTerrain();
+      else resetBookPosition();
+    }
+    if (bPressed && !controllerBtnStates[i].b) {
+      if (state.mode === 'inspecting' && state.summoned) triggerAttack();
+      else if (state.mode === 'closed') openAlbum();
+      else if (state.mode === 'open') closeAlbum();
+    }
+    if (squeezePressed && !controllerBtnStates[i].squeeze) {
+      // squeeze mostra o livro (mesmo efeito do bracelete)
+      bookGroup.visible = true;
+      resetBookPosition();
     }
     controllerBtnStates[i].a = aPressed;
+    controllerBtnStates[i].b = bPressed;
+    controllerBtnStates[i].squeeze = squeezePressed;
   });
+}
+
+/* ============================================================
+   PINCH HANDLERS (chamados a cada frame)
+   ============================================================ */
+function handlePinch(index, hand) {
+  if (pinchJustStarted(index)) {
+    // Pinça começou — simula um "selectstart"
+    // Usa a posição do index finger como origem
+    const indexTip = hand.joints['index-finger-tip'];
+    if (!indexTip) return;
+    const origin = new THREE.Vector3();
+    indexTip.getWorldPosition(origin);
+    // Direção: do pulso para o index finger
+    const wrist = hand.joints['wrist'];
+    const wristPos = new THREE.Vector3();
+    if (wrist) wrist.getWorldPosition(wristPos);
+    const dir = origin.clone().sub(wristPos).normalize();
+    if (dir.lengthSq() < 0.001) dir.set(0, 0, -1);
+
+    raycaster.set(origin, dir);
+
+    // 1) Bracelete
+    const bracelets = [bracelet0, bracelet1, braceletHand0, braceletHand1];
+    for (let i = 0; i < bracelets.length; i++) {
+      const b = bracelets[i];
+      if (!b.userData.hitbox) continue;
+      if (raycaster.intersectObject(b.userData.hitbox, false).length > 0) {
+        bookGroup.visible = true;
+        resetBookPosition();
+        return;
+      }
+    }
+
+    // 2) Páginas (folhear)
+    if (tryFlipPage(raycaster)) return;
+
+    // 3) Cartas (pegar)
+    if (state.mode === 'open') {
+      const allCards = [];
+      bookGroup.traverse(o => { if (o.userData.isCard) allCards.push(o); });
+      const hits = raycaster.intersectObjects(allCards, false);
+      if (hits.length > 0) {
+        inspectCard(hits[0].object);
+        return;
+      }
+    }
+
+    // 4) Se está inspecionando e clicou fora, devolve
+    if (state.mode === 'inspecting' && state.inspectedCard) {
+      if (raycaster.intersectObject(state.inspectedCard, true).length > 0) {
+        // Tentar pegar a carta com hand tracking (movê-la no cenário)
+        // Para hand tracking, usamos um "grab virtual": salvamos offsets
+        isGrabbingCard = true;
+        grabbingCardController = hand;
+        cardWasManuallyPlaced = true;
+        const cardPos = new THREE.Vector3();
+        const cardQuat = new THREE.Quaternion();
+        state.inspectedCard.getWorldPosition(cardPos);
+        state.inspectedCard.getWorldQuaternion(cardQuat);
+        cardGrabOffsetPos.copy(cardPos).sub(origin);
+        cardGrabOffsetQuat.copy(cardQuat);
+      } else {
+        returnInspectedCard();
+      }
+    }
+  }
+  if (pinchJustEnded(index)) {
+    endCardGrab();
+  }
 }
 
 /* ============================================================
@@ -2334,16 +2419,25 @@ function pollControllerButtons() {
 renderer.xr.addEventListener('sessionstart', () => {
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
-  enableBookVR();
+  bookGroup.visible = false; // escondido até invocar pelo bracelete
+  bookVR.active = true;
   controllerBtnStates[0].a = false;
+  controllerBtnStates[0].b = false;
+  controllerBtnStates[0].squeeze = false;
   controllerBtnStates[1].a = false;
+  controllerBtnStates[1].b = false;
+  controllerBtnStates[1].squeeze = false;
+  pinchState[0].active = false;
+  pinchState[0].wasActive = false;
+  pinchState[1].active = false;
+  pinchState[1].wasActive = false;
   refreshUI();
 });
 renderer.xr.addEventListener('sessionend', () => {
   extendedGroup.visible = false;
   disableBookVR();
   endBookGrab();
-  worldModeRing.material.opacity = 0;
+  endCardGrab();
   state.mode = 'closed';
   state.spread = 0;
   coverInfo.pivot.rotation.z = 0;
@@ -2360,64 +2454,102 @@ renderer.xr.addEventListener('sessionend', () => {
 /* ============================================================
    RESIZE + LOOP
    ============================================================ */
-function onResize() {
+window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-}
-window.addEventListener('resize', onResize);
+});
 refreshUI();
 let lastTime = performance.now();
+
+const _tmpV1 = new THREE.Vector3();
+const _tmpV2 = new THREE.Vector3();
+const _tmpV3 = new THREE.Vector3();
+const _tmpM1 = new THREE.Matrix4();
 
 renderer.setAnimationLoop(() => {
   const now = performance.now();
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
+  const tGlobal = now * 0.001;
+
   updateTweens(now);
   pollControllerButtons();
-  updateBookGrab();
-  updateBookVRTransform(dt);
 
-  // Anel de modo mundo pulsa e encolhe gradual
-  if (worldModeRing.material.opacity > 0) {
-    const s = 1 + Math.sin(now * 0.004) * 0.03;
-    worldModeRing.scale.setScalar(s);
-    worldModeRing.rotation.z += dt * 0.4;
+  // Pinch detection (hand tracking)
+  if (renderer.xr.isPresenting) {
+    checkPinch(hand0, 0);
+    checkPinch(hand1, 1);
+    handlePinch(0, hand0);
+    handlePinch(1, hand1);
   }
 
-  skyMesh.rotation.y += dt * 0.003;
-  const tGlobal = now * 0.001;
+  updateBookGrab();
+  updateCardGrab();
+  updateBookVRTransform(dt);
+
+  // Animação do bracelete (pulsação)
+  const bracelets = [bracelet0, bracelet1, braceletHand0, braceletHand1];
+  for (let i = 0; i < bracelets.length; i++) {
+    const b = bracelets[i];
+    if (b.userData.aura) {
+      const s = 1 + Math.sin(tGlobal * 3 + i) * 0.15;
+      b.userData.aura.scale.setScalar(s);
+      b.userData.aura.material.opacity = 0.10 + Math.sin(tGlobal * 3 + i) * 0.08;
+    }
+  }
+
+  // Visibilidade dos braceletes: mostra só o do input ativo
+  if (renderer.xr.isPresenting) {
+    const src0 = controller0.inputSource;
+    const src1 = controller1.inputSource;
+    const isHand0 = src0 && src0.hand;
+    const isHand1 = src1 && src1.hand;
+    bracelet0.visible = !isHand0;
+    bracelet1.visible = !isHand1;
+    braceletHand0.visible = !!isHand0;
+    braceletHand1.visible = !!isHand1;
+  }
+
+  skyMesh.rotation.y += dt * 0.0015;
+
+  for (let i = 0; i < starLayers.length; i++) {
+    const layer = starLayers[i];
+    layer.material.opacity = layer.userData.baseOpacity *
+      (0.75 + Math.sin(tGlobal * layer.userData.pulseSpeed + layer.userData.pulsePhase) * 0.25);
+    layer.rotation.y += dt * (0.001 + i * 0.0004);
+  }
 
   for (let i = 0; i < allPulsingStars.length; i++) {
     const s = allPulsingStars[i];
     const base = s.userData.baseScale;
-    const speed = s.userData.pulseSpeed;
-    const phase = s.userData.pulsePhase;
-    const pulse = 1 + Math.sin(tGlobal * speed + phase) * 0.22;
+    const pulse = 1 + Math.sin(tGlobal * s.userData.pulseSpeed + s.userData.pulsePhase) * 0.22;
     s.scale.set(base * pulse, base * pulse, 1);
-    s.material.opacity = s.userData.baseOpacity * (0.65 + Math.sin(tGlobal * speed * 1.3 + phase) * 0.35);
+    s.material.opacity = s.userData.baseOpacity *
+      (0.65 + Math.sin(tGlobal * s.userData.pulseSpeed * 1.3 + s.userData.pulsePhase) * 0.35);
   }
 
   [zodiacGroup, extendedGroup].forEach(grp => {
     if (!grp.visible) return;
-    grp.children.forEach((c) => {
+    for (let i = 0; i < grp.children.length; i++) {
+      const c = grp.children[i];
       if (c.userData.lineMat) {
         c.userData.lineMat.opacity = c.userData.baseLineOpacity *
           (0.7 + Math.sin(tGlobal * 1.4 + c.userData.phase) * 0.3);
       }
-    });
+    }
   });
 
-  nebulaGroup.children.forEach(n => {
-    const base = n.userData.baseOpacity;
-    const sp = n.userData.pulseSpeed;
-    const ph = n.userData.pulsePhase;
-    n.material.opacity = base * (0.75 + Math.sin(tGlobal * sp + ph) * 0.25);
-  });
+  const nebs = nebulaGroup.children;
+  for (let i = 0; i < nebs.length; i++) {
+    const n = nebs[i];
+    n.material.opacity = n.userData.baseOpacity *
+      (0.78 + Math.sin(tGlobal * n.userData.pulseSpeed + n.userData.pulsePhase) * 0.22);
+  }
 
   shootingStarTimer += dt;
-  if (shootingStarTimer > shootingStarInterval) {
+  if (shootingStarTimer > SHOOTING_INTERVAL) {
     shootingStarTimer = 0;
     spawnShootingStar();
   }
@@ -2426,77 +2558,77 @@ renderer.setAnimationLoop(() => {
     ss.t += dt / ss.life;
     if (ss.t >= 1) {
       scene.remove(ss.group);
-      ss.group.traverse(o => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) {
-          if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
-          else o.material.dispose();
-        }
-      });
-      if (ss.headTex) ss.headTex.dispose();
+      ss.head.material.dispose();
+      ss.trailMat.dispose();
       shootingStars.splice(i, 1);
       continue;
     }
     const p = ss.t;
-    const pos = new THREE.Vector3().lerpVectors(ss.startPos, ss.endPos, p);
-    ss.group.position.copy(pos);
+    _tmpV1.lerpVectors(ss.startPos, ss.endPos, p);
+    ss.group.position.copy(_tmpV1);
     const dir = ss.tailDir;
-    const up = new THREE.Vector3(0, 1, 0);
-    if (Math.abs(dir.y) > 0.95) up.set(1, 0, 0);
-    const right = new THREE.Vector3().crossVectors(dir, up).normalize();
-    const realUp = new THREE.Vector3().crossVectors(right, dir).normalize();
-    ss.group.quaternion.setFromRotationMatrix(
-      new THREE.Matrix4().makeBasis(dir, realUp, right)
-    );
+    const up = Math.abs(dir.y) > 0.95 ? _tmpV2.set(1, 0, 0) : _tmpV2.set(0, 1, 0);
+    const right = _tmpV3.crossVectors(dir, up).normalize();
+    const realUp = _tmpV2.crossVectors(right, dir).normalize();
+    ss.group.quaternion.setFromRotationMatrix(_tmpM1.makeBasis(dir, realUp, right));
     const fade = 1 - Math.max(0, p - 0.75) / 0.25;
     ss.head.material.opacity = fade;
     ss.trailMat.opacity = 0.95 * fade;
-    ss.sMat.opacity = 0.85 * fade;
-    if (ss.sparks) {
-      const arr = ss.sparks.geometry.attributes.position.array;
-      for (let j = 0; j < ss.sparkCount; j++) {
-        arr[j*3+1] += Math.sin(tGlobal * 12 + j * 0.7) * 0.02;
-        arr[j*3+2] += Math.cos(tGlobal * 12 + j * 1.3) * 0.02;
-      }
-      ss.sparks.geometry.attributes.position.needsUpdate = true;
-    }
   }
 
-  if (state.summoned) {
+  // Billboard da carta
+  if (state.inspectedCard && (renderer.xr.isPresenting || state.vrPreview)
+      && !isGrabbingCard && !cardWasManuallyPlaced
+      && state.cardLayout === 'face') {
+    state.inspectedCard.getWorldPosition(_tmpV1);
+    camera.getWorldPosition(_tmpV2);
+    state.inspectedCard.quaternion.copy(computeCardFacingQuat(_tmpV1, _tmpV2));
+    cardTargetQuat.copy(state.inspectedCard.quaternion);
+  }
+
+  // Holograma
+  if (state.summoned && state.inspectedCard) {
     state.holoTime += dt;
     const t = state.holoTime;
     const holo = state.summoned;
-    if (!holo.userData.baseY) holo.userData.baseY = holo.position.y;
-    holo.position.y = holo.userData.baseY + Math.sin(t * 1.2) * 0.14;
+    state.inspectedCard.getWorldPosition(_tmpV1);
+    const inVR = isVRActive();
+    let yOff = inVR ? 0.22 : 2.1;
+    if (state.cardLayout === 'terrain') yOff = inVR ? 0.35 : 2.2;
 
-    const planes = holo.userData.holoPlanes;
-    const yOff = holo.userData.y || 1.75;
+    const bob = Math.sin(t * 1.4) * 0.10;
+    const swayX = Math.sin(t * 0.6) * 0.05;
+    const swayZ = Math.cos(t * 0.5) * 0.05;
+    const targetX = _tmpV1.x + swayX;
+    const targetY = _tmpV1.y + yOff + bob;
+    const targetZ = _tmpV1.z + swayZ;
+
+    if (!holo.userData.initialized) {
+      holo.position.set(targetX, targetY, targetZ);
+      holo.userData.initialized = true;
+    } else if (!state.isAttacking) {
+      holo.position.x += (targetX - holo.position.x) * 0.15;
+      holo.position.y += (targetY - holo.position.y) * 0.15;
+      holo.position.z += (targetZ - holo.position.z) * 0.15;
+    }
+
+    const planes = holo.userData.planes;
+    const yOffLocal = holo.userData.y || 1.75;
     if (planes) {
-      planes.forEach((p, i) => {
+      for (let i = 0; i < planes.length; i++) {
+        const p = planes[i];
         p.lookAt(camera.position);
-        if (i === 3) p.position.set(0.07 + Math.sin(t * 14) * 0.010, yOff, 0.03);
-        else if (i === 4) p.position.set(-0.07 + Math.sin(t * 14 + 1.5) * 0.010, yOff, 0.03);
-        else p.position.y = yOff;
-      });
+        if (i === 1) p.position.set(0.015 + Math.sin(t * 14) * 0.006, yOffLocal, 0.01);
+        else if (i === 2) p.position.set(-0.015 + Math.sin(t * 14 + 1.5) * 0.006, yOffLocal, 0.01);
+        else p.position.y = yOffLocal;
+      }
     }
-    if (holo.userData.auraSprite) {
-      const s = 6 + Math.sin(t * 1.8) * 0.4;
-      holo.userData.auraSprite.scale.set(s, s, 1);
-      holo.userData.auraSprite.material.opacity = 0.85 + Math.sin(t * 2.4) * 0.08;
-    }
-    if (holo.userData.scanTex) holo.userData.scanTex.offset.y = -t * 0.35;
     if (holo.userData.outerRing) holo.userData.outerRing.rotation.z = t * 0.4;
-    if (holo.userData.midRing) holo.userData.midRing.rotation.z = -t * 0.7;
     if (holo.userData.runes) holo.userData.runes.rotation.y = t * 0.5;
-    if (holo.userData.hex) holo.userData.hex.rotation.y = -t * 0.3;
     if (holo.userData.beam) holo.userData.beam.material.opacity = 0.18 + Math.sin(t * 3) * 0.06;
     if (holo.userData.gem) {
       holo.userData.gem.rotation.y = t * 1.5;
       holo.userData.gem.rotation.x = t * 0.9;
-    }
-    if (holo.userData.gemGlow) {
-      const s = 1.8 + Math.sin(t * 4) * 0.35;
-      holo.userData.gemGlow.scale.set(s, s, 1);
     }
     holo.traverse(o => {
       if (o.userData.isParticles) {
@@ -2506,7 +2638,7 @@ renderer.setAnimationLoop(() => {
           const s = seeds[i];
           const a = s.a + t * s.speed;
           pos[i*3] = Math.cos(a) * s.r;
-          pos[i*3+1] = s.y + Math.sin(t * 1.8 + s.phase) * 0.20;
+          pos[i*3+1] = s.y + Math.sin(t * 1.8 + s.phase) * 0.15;
           pos[i*3+2] = Math.sin(a) * s.r;
         }
         o.geometry.attributes.position.needsUpdate = true;
