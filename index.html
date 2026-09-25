@@ -625,8 +625,7 @@ function makeNebulaTex(hue, seed) {
 }
 
 /* ============================================================
-   ★ SILHUETAS VETORIAIS DETALHADAS DAS CONSTELAÇÕES ★
-   Estilo Saint Seiya: Awakening
+   SILHUETAS VETORIAIS DAS CONSTELAÇÕES
    ============================================================ */
 const silhouetteCache = new Map();
 
@@ -634,7 +633,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
   const n = name.toLowerCase();
   switch (n) {
     case 'áries': case 'aries': {
-      // Carneiro com chifres espiralados
       p.moveTo(cx - 55*u, cy + 5*u);
       p.bezierCurveTo(cx - 95*u, cy - 30*u, cx - 85*u, cy - 85*u, cx - 35*u, cy - 70*u);
       p.bezierCurveTo(cx - 20*u, cy - 85*u, cx - 5*u, cy - 85*u, cx + 5*u, cy - 70*u);
@@ -648,7 +646,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'touro': {
-      // Cabeça de touro com chifres
       p.moveTo(cx - 70*u, cy - 5*u);
       p.bezierCurveTo(cx - 105*u, cy - 55*u, cx - 60*u, cy - 80*u, cx - 30*u, cy - 60*u);
       p.bezierCurveTo(cx - 20*u, cy - 85*u, cx + 20*u, cy - 85*u, cx + 30*u, cy - 60*u);
@@ -659,20 +656,15 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'gêmeos': case 'gemeos': {
-      // Dois irmãos lado a lado
-      // Cabeça esquerda
       p.moveTo(cx - 30*u, cy - 70*u);
       p.arc(cx - 30*u, cy - 60*u, 20*u, 0, Math.PI * 2);
-      // Corpo esquerdo
       p.moveTo(cx - 55*u, cy - 35*u);
       p.lineTo(cx - 5*u, cy - 35*u);
       p.lineTo(cx - 5*u, cy + 55*u);
       p.lineTo(cx - 55*u, cy + 55*u);
       p.closePath();
-      // Cabeça direita
       p.moveTo(cx + 30*u, cy - 70*u);
       p.arc(cx + 30*u, cy - 60*u, 20*u, 0, Math.PI * 2);
-      // Corpo direito
       p.moveTo(cx + 5*u, cy - 35*u);
       p.lineTo(cx + 55*u, cy - 35*u);
       p.lineTo(cx + 55*u, cy + 55*u);
@@ -681,9 +673,7 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'câncer': case 'cancer': {
-      // Caranguejo
       p.ellipse(cx, cy, 50*u, 32*u, 0, 0, Math.PI * 2);
-      // Pinças
       p.moveTo(cx - 40*u, cy - 20*u);
       p.lineTo(cx - 90*u, cy - 55*u);
       p.lineTo(cx - 75*u, cy - 30*u);
@@ -694,7 +684,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.lineTo(cx + 75*u, cy - 30*u);
       p.lineTo(cx + 100*u, cy - 30*u);
       p.closePath();
-      // Patas
       for (let i = 0; i < 3; i++) {
         p.moveTo(cx - 35*u, cy + 10*u + i * 15*u);
         p.lineTo(cx - 85*u, cy + 25*u + i * 15*u);
@@ -708,11 +697,9 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'leão': case 'leao': {
-      // Leão com juba
-      p.arc(cx, cy - 15*u, 60*u, 0, Math.PI * 2); // juba
+      p.arc(cx, cy - 15*u, 60*u, 0, Math.PI * 2);
       p.moveTo(cx - 35*u, cy - 15*u);
-      p.arc(cx, cy - 15*u, 35*u, 0, Math.PI * 2); // rosto
-      // Corpo
+      p.arc(cx, cy - 15*u, 35*u, 0, Math.PI * 2);
       p.moveTo(cx - 55*u, cy + 40*u);
       p.quadraticCurveTo(cx, cy + 70*u, cx + 55*u, cy + 40*u);
       p.lineTo(cx + 40*u, cy + 75*u);
@@ -721,13 +708,11 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'virgem': {
-      // Virgem com asas
       p.moveTo(cx, cy - 70*u);
       p.bezierCurveTo(cx - 30*u, cy - 55*u, cx - 40*u, cy - 20*u, cx - 30*u, cy + 10*u);
       p.bezierCurveTo(cx - 20*u, cy + 55*u, cx + 20*u, cy + 55*u, cx + 30*u, cy + 10*u);
       p.bezierCurveTo(cx + 40*u, cy - 20*u, cx + 30*u, cy - 55*u, cx, cy - 70*u);
       p.closePath();
-      // Asas
       p.moveTo(cx - 30*u, cy - 30*u);
       p.bezierCurveTo(cx - 90*u, cy - 60*u, cx - 100*u, cy, cx - 50*u, cy - 5*u);
       p.moveTo(cx + 30*u, cy - 30*u);
@@ -735,7 +720,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'libra': {
-      // Balança da justiça
       p.moveTo(cx - 5*u, cy - 70*u);
       p.lineTo(cx + 5*u, cy - 70*u);
       p.lineTo(cx + 5*u, cy + 60*u);
@@ -746,10 +730,8 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.lineTo(cx + 60*u, cy - 45*u);
       p.lineTo(cx - 60*u, cy - 45*u);
       p.closePath();
-      // Pratos
       p.arc(cx - 60*u, cy - 15*u, 22*u, 0, Math.PI * 2);
       p.arc(cx + 60*u, cy - 15*u, 22*u, 0, Math.PI * 2);
-      // Base
       p.moveTo(cx - 40*u, cy + 60*u);
       p.lineTo(cx + 40*u, cy + 60*u);
       p.lineTo(cx + 30*u, cy + 75*u);
@@ -758,7 +740,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'escorpião': case 'escorpiao': {
-      // Escorpião curvo com ferrão
       p.moveTo(cx - 60*u, cy + 50*u);
       p.bezierCurveTo(cx - 80*u, cy - 20*u, cx - 30*u, cy - 60*u, cx + 30*u, cy - 55*u);
       p.bezierCurveTo(cx + 80*u, cy - 50*u, cx + 90*u, cy - 10*u, cx + 70*u, cy + 20*u);
@@ -768,7 +749,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.bezierCurveTo(cx + 30*u, cy - 30*u, cx - 20*u, cy - 35*u, cx - 45*u, cy + 10*u);
       p.bezierCurveTo(cx - 55*u, cy + 30*u, cx - 60*u, cy + 45*u, cx - 60*u, cy + 50*u);
       p.closePath();
-      // Ferrão
       p.moveTo(cx + 55*u, cy - 30*u);
       p.lineTo(cx + 75*u, cy - 65*u);
       p.lineTo(cx + 65*u, cy - 40*u);
@@ -776,21 +756,17 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'sagitário': case 'sagitario': {
-      // Centauro com arco
-      // Tronco humano
       p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
       p.moveTo(cx - 50*u, cy - 20*u);
       p.lineTo(cx - 10*u, cy - 20*u);
       p.lineTo(cx - 10*u, cy + 15*u);
       p.lineTo(cx - 50*u, cy + 15*u);
       p.closePath();
-      // Corpo do cavalo
       p.moveTo(cx - 70*u, cy + 15*u);
       p.lineTo(cx + 60*u, cy + 15*u);
       p.lineTo(cx + 55*u, cy + 60*u);
       p.lineTo(cx - 60*u, cy + 60*u);
       p.closePath();
-      // Arco
       p.moveTo(cx + 40*u, cy - 55*u);
       p.quadraticCurveTo(cx + 100*u, cy - 40*u, cx + 90*u, cy + 20*u);
       p.lineTo(cx + 80*u, cy + 20*u);
@@ -799,19 +775,16 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'capricórnio': case 'capricornio': {
-      // Cabra com cauda de peixe
       p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
       p.moveTo(cx - 55*u, cy - 25*u);
       p.lineTo(cx - 5*u, cy - 25*u);
       p.lineTo(cx - 5*u, cy + 25*u);
       p.lineTo(cx - 55*u, cy + 25*u);
       p.closePath();
-      // Cauda de peixe
       p.moveTo(cx - 5*u, cy + 5*u);
       p.bezierCurveTo(cx + 50*u, cy - 10*u, cx + 70*u, cy + 40*u, cx + 30*u, cy + 60*u);
       p.bezierCurveTo(cx + 60*u, cy + 40*u, cx + 80*u, cy + 20*u, cx + 60*u, cy - 10*u);
       p.closePath();
-      // Chifres
       p.moveTo(cx - 40*u, cy - 60*u);
       p.lineTo(cx - 55*u, cy - 85*u);
       p.lineTo(cx - 35*u, cy - 65*u);
@@ -819,17 +792,13 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'aquário': case 'aquario': {
-      // Aguadeiro com vaso
-      // Vaso
       p.moveTo(cx - 50*u, cy - 40*u);
       p.lineTo(cx + 10*u, cy - 40*u);
       p.lineTo(cx + 20*u, cy + 10*u);
       p.lineTo(cx - 40*u, cy + 10*u);
       p.closePath();
-      // Alça
       p.moveTo(cx - 50*u, cy - 30*u);
       p.quadraticCurveTo(cx - 80*u, cy - 20*u, cx - 60*u, cy + 5*u);
-      // Água
       p.moveTo(cx + 15*u, cy - 30*u);
       p.bezierCurveTo(cx + 60*u, cy - 20*u, cx + 80*u, cy + 20*u, cx + 50*u, cy + 60*u);
       p.bezierCurveTo(cx + 70*u, cy + 20*u, cx + 50*u, cy - 10*u, cx + 15*u, cy - 20*u);
@@ -837,7 +806,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'peixes': {
-      // Dois peixes entrelaçados
       p.moveTo(cx - 80*u, cy - 30*u);
       p.bezierCurveTo(cx - 50*u, cy - 60*u, cx - 10*u, cy - 50*u, cx - 10*u, cy - 20*u);
       p.bezierCurveTo(cx - 10*u, cy + 10*u, cx - 50*u, cy + 20*u, cx - 80*u, cy - 10*u);
@@ -850,14 +818,12 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.lineTo(cx + 75*u, cy + 20*u);
       p.lineTo(cx + 60*u, cy + 20*u);
       p.closePath();
-      // Linha
       p.moveTo(cx - 75*u, cy - 20*u);
       p.quadraticCurveTo(cx, cy, cx + 75*u, cy + 20*u);
       break;
     }
     case 'órion': case 'orion': {
-      // Caçador com escudo e espada
-      p.arc(cx - 10*u, cy - 55*u, 18*u, 0, Math.PI * 2); // cabeça
+      p.arc(cx - 10*u, cy - 55*u, 18*u, 0, Math.PI * 2);
       p.moveTo(cx - 30*u, cy - 35*u);
       p.lineTo(cx + 10*u, cy - 35*u);
       p.lineTo(cx + 20*u, cy + 30*u);
@@ -869,12 +835,10 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.moveTo(cx + 20*u, cy + 30*u);
       p.lineTo(cx + 20*u, cy + 70*u);
       p.lineTo(cx + 0*u, cy + 55*u);
-      // Escudo
       p.arc(cx + 55*u, cy - 10*u, 30*u, 0, Math.PI * 2);
       break;
     }
     case 'ursa maior': {
-      // Urso
       p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
       p.arc(cx + 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
       p.moveTo(cx - 50*u, cy - 25*u);
@@ -885,14 +849,12 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'cassiopeia': {
-      // Rainha com coroa
       p.arc(cx, cy - 40*u, 22*u, 0, Math.PI * 2);
       p.moveTo(cx - 40*u, cy - 15*u);
       p.lineTo(cx + 40*u, cy - 15*u);
       p.lineTo(cx + 30*u, cy + 55*u);
       p.lineTo(cx - 30*u, cy + 55*u);
       p.closePath();
-      // Coroa
       p.moveTo(cx - 40*u, cy - 55*u);
       p.lineTo(cx - 30*u, cy - 80*u);
       p.lineTo(cx - 15*u, cy - 60*u);
@@ -904,19 +866,16 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'perseu': {
-      // Herói com espada
       p.arc(cx - 10*u, cy - 50*u, 20*u, 0, Math.PI * 2);
       p.moveTo(cx - 30*u, cy - 30*u);
       p.lineTo(cx + 10*u, cy - 30*u);
       p.lineTo(cx + 20*u, cy + 30*u);
       p.lineTo(cx - 40*u, cy + 30*u);
       p.closePath();
-      // Perna
       p.moveTo(cx - 40*u, cy + 30*u);
       p.lineTo(cx - 40*u, cy + 70*u);
       p.moveTo(cx + 20*u, cy + 30*u);
       p.lineTo(cx + 20*u, cy + 70*u);
-      // Espada
       p.moveTo(cx + 30*u, cy - 60*u);
       p.lineTo(cx + 70*u, cy - 20*u);
       p.lineTo(cx + 65*u, cy - 15*u);
@@ -925,14 +884,12 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'andrômeda': case 'andromeda': {
-      // Mulher acorrentada
       p.arc(cx, cy - 55*u, 20*u, 0, Math.PI * 2);
       p.moveTo(cx - 35*u, cy - 30*u);
       p.lineTo(cx + 35*u, cy - 30*u);
       p.lineTo(cx + 25*u, cy + 40*u);
       p.lineTo(cx - 25*u, cy + 40*u);
       p.closePath();
-      // Braços esticados
       p.moveTo(cx - 35*u, cy - 20*u);
       p.lineTo(cx - 75*u, cy - 45*u);
       p.moveTo(cx + 35*u, cy - 20*u);
@@ -940,12 +897,10 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'cisne': {
-      // Cisne com asas abertas
       p.moveTo(cx - 10*u, cy - 65*u);
       p.bezierCurveTo(cx + 15*u, cy - 70*u, cx + 20*u, cy - 40*u, cx + 5*u, cy - 25*u);
       p.bezierCurveTo(cx - 10*u, cy - 15*u, cx - 20*u, cy - 25*u, cx - 15*u, cy - 45*u);
       p.closePath();
-      // Corpo
       p.moveTo(cx - 40*u, cy - 10*u);
       p.bezierCurveTo(cx - 60*u, cy + 30*u, cx - 20*u, cy + 55*u, cx + 20*u, cy + 55*u);
       p.bezierCurveTo(cx + 60*u, cy + 55*u, cx + 70*u, cy + 30*u, cx + 50*u, cy - 5*u);
@@ -954,7 +909,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'lira': {
-      // Lira
       p.moveTo(cx, cy - 60*u);
       p.bezierCurveTo(cx - 50*u, cy - 60*u, cx - 60*u, cy, cx - 30*u, cy + 40*u);
       p.lineTo(cx - 40*u, cy + 60*u);
@@ -962,7 +916,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.lineTo(cx + 30*u, cy + 40*u);
       p.bezierCurveTo(cx + 60*u, cy, cx + 50*u, cy - 60*u, cx, cy - 60*u);
       p.closePath();
-      // Cordas
       for (let i = -1; i <= 1; i++) {
         p.moveTo(cx + i * 15*u, cy - 55*u);
         p.lineTo(cx + i * 15*u, cy + 55*u);
@@ -970,19 +923,16 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'águia': case 'aguia': {
-      // Águia com asas abertas
       p.moveTo(cx, cy - 55*u);
       p.lineTo(cx - 15*u, cy - 25*u);
       p.lineTo(cx + 15*u, cy - 25*u);
       p.closePath();
-      // Asas
       p.moveTo(cx - 15*u, cy - 40*u);
       p.bezierCurveTo(cx - 90*u, cy - 60*u, cx - 100*u, cy - 10*u, cx - 60*u, cy + 5*u);
       p.bezierCurveTo(cx - 55*u, cy - 15*u, cx - 40*u, cy - 15*u, cx - 15*u, cy - 20*u);
       p.moveTo(cx + 15*u, cy - 40*u);
       p.bezierCurveTo(cx + 90*u, cy - 60*u, cx + 100*u, cy - 10*u, cx + 60*u, cy + 5*u);
       p.bezierCurveTo(cx + 55*u, cy - 15*u, cx + 40*u, cy - 15*u, cx + 15*u, cy - 20*u);
-      // Corpo
       p.moveTo(cx - 15*u, cy - 20*u);
       p.lineTo(cx + 15*u, cy - 20*u);
       p.lineTo(cx + 10*u, cy + 55*u);
@@ -1024,7 +974,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'carina': {
-      // Navio com vela
       p.moveTo(cx - 60*u, cy + 40*u);
       p.lineTo(cx + 60*u, cy + 40*u);
       p.lineTo(cx + 40*u, cy + 60*u);
@@ -1043,7 +992,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'hidra': {
-      // Serpente sinuosa
       p.moveTo(cx - 80*u, cy + 40*u);
       p.bezierCurveTo(cx - 60*u, cy - 30*u, cx - 20*u, cy + 20*u, cx, cy - 20*u);
       p.bezierCurveTo(cx + 20*u, cy - 60*u, cx + 60*u, cy + 20*u, cx + 80*u, cy - 30*u);
@@ -1054,7 +1002,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'corvo': {
-      // Corvo
       p.moveTo(cx - 40*u, cy);
       p.bezierCurveTo(cx - 70*u, cy - 40*u, cx - 30*u, cy - 60*u, cx, cy - 40*u);
       p.bezierCurveTo(cx + 30*u, cy - 60*u, cx + 70*u, cy - 40*u, cx + 40*u, cy);
@@ -1086,7 +1033,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'pégaso': case 'pegaso': {
-      // Corpo do cavalo
       p.moveTo(cx - 80*u, cy - 10*u);
       p.bezierCurveTo(cx - 60*u, cy - 60*u, cx - 20*u, cy - 55*u, cx + 20*u, cy - 45*u);
       p.bezierCurveTo(cx + 60*u, cy - 35*u, cx + 75*u, cy + 5*u, cx + 60*u, cy + 25*u);
@@ -1095,18 +1041,15 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.lineTo(cx - 40*u, cy + 40*u);
       p.lineTo(cx - 60*u, cy + 25*u);
       p.closePath();
-      // Pescoço e cabeça
       p.moveTo(cx + 20*u, cy - 45*u);
       p.bezierCurveTo(cx + 55*u, cy - 75*u, cx + 75*u, cy - 90*u, cx + 70*u, cy - 65*u);
       p.lineTo(cx + 55*u, cy - 55*u);
       p.bezierCurveTo(cx + 60*u, cy - 50*u, cx + 55*u, cy - 40*u, cx + 40*u, cy - 40*u);
       p.closePath();
-      // Asa
       p.moveTo(cx - 20*u, cy - 40*u);
       p.bezierCurveTo(cx - 70*u, cy - 85*u, cx - 30*u, cy - 100*u, cx + 10*u, cy - 70*u);
       p.bezierCurveTo(cx + 20*u, cy - 65*u, cx + 15*u, cy - 50*u, cx - 5*u, cy - 45*u);
       p.closePath();
-      // Cauda
       p.moveTo(cx - 80*u, cy - 10*u);
       p.bezierCurveTo(cx - 100*u, cy + 20*u, cx - 85*u, cy + 50*u, cx - 70*u, cy + 40*u);
       p.bezierCurveTo(cx - 75*u, cy + 25*u, cx - 70*u, cy + 10*u, cx - 60*u, cy + 5*u);
@@ -1114,7 +1057,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'dragão': case 'dragao': {
-      // Dragão estilizado
       p.moveTo(cx - 80*u, cy + 30*u);
       p.bezierCurveTo(cx - 60*u, cy - 30*u, cx - 10*u, cy - 10*u, cx + 10*u, cy - 40*u);
       p.bezierCurveTo(cx + 30*u, cy - 70*u, cx + 60*u, cy - 50*u, cx + 70*u, cy - 20*u);
@@ -1123,32 +1065,27 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.bezierCurveTo(cx + 60*u, cy + 30*u, cx + 20*u, cy + 40*u, cx - 10*u, cy + 30*u);
       p.bezierCurveTo(cx - 30*u, cy + 25*u, cx - 50*u, cy + 40*u, cx - 80*u, cy + 30*u);
       p.closePath();
-      // Asa
       p.moveTo(cx - 20*u, cy - 10*u);
       p.lineTo(cx - 50*u, cy - 60*u);
       p.lineTo(cx - 10*u, cy - 40*u);
       p.closePath();
-      // Olho
       p.moveTo(cx + 65*u, cy - 25*u);
       p.arc(cx + 65*u, cy - 25*u, 4*u, 0, Math.PI * 2);
       break;
     }
     case 'hércules': case 'hercules': {
-      // Herói musculoso
       p.arc(cx, cy - 55*u, 20*u, 0, Math.PI * 2);
       p.moveTo(cx - 45*u, cy - 35*u);
       p.lineTo(cx + 45*u, cy - 35*u);
       p.lineTo(cx + 35*u, cy + 30*u);
       p.lineTo(cx - 35*u, cy + 30*u);
       p.closePath();
-      // Braços
       p.moveTo(cx - 45*u, cy - 25*u);
       p.lineTo(cx - 75*u, cy);
       p.lineTo(cx - 65*u, cy + 15*u);
       p.moveTo(cx + 45*u, cy - 25*u);
       p.lineTo(cx + 75*u, cy);
       p.lineTo(cx + 65*u, cy + 15*u);
-      // Perna
       p.moveTo(cx - 35*u, cy + 30*u);
       p.lineTo(cx - 30*u, cy + 70*u);
       p.moveTo(cx + 35*u, cy + 30*u);
@@ -1156,19 +1093,16 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'fênix': case 'fenix': {
-      // Fênix com asas e chamas
       p.moveTo(cx, cy - 65*u);
       p.bezierCurveTo(cx + 15*u, cy - 65*u, cx + 20*u, cy - 40*u, cx + 5*u, cy - 25*u);
       p.bezierCurveTo(cx - 10*u, cy - 15*u, cx - 20*u, cy - 25*u, cx - 15*u, cy - 45*u);
       p.closePath();
-      // Asas
       p.moveTo(cx - 5*u, cy - 30*u);
       p.bezierCurveTo(cx - 70*u, cy - 55*u, cx - 90*u, cy + 10*u, cx - 50*u, cy + 25*u);
       p.bezierCurveTo(cx - 60*u, cy - 5*u, cx - 40*u, cy - 15*u, cx - 5*u, cy - 20*u);
       p.moveTo(cx + 5*u, cy - 30*u);
       p.bezierCurveTo(cx + 70*u, cy - 55*u, cx + 90*u, cy + 10*u, cx + 50*u, cy + 25*u);
       p.bezierCurveTo(cx + 60*u, cy - 5*u, cx + 40*u, cy - 15*u, cx + 5*u, cy - 20*u);
-      // Cauda de chamas
       p.moveTo(cx - 10*u, cy + 20*u);
       p.bezierCurveTo(cx - 20*u, cy + 50*u, cx - 5*u, cy + 70*u, cx, cy + 55*u);
       p.bezierCurveTo(cx + 5*u, cy + 70*u, cx + 20*u, cy + 50*u, cx + 10*u, cy + 20*u);
@@ -1176,14 +1110,12 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'pavão': case 'pavao': {
-      // Pavão com cauda aberta
       p.arc(cx, cy - 55*u, 18*u, 0, Math.PI * 2);
       p.moveTo(cx - 15*u, cy - 35*u);
       p.lineTo(cx + 15*u, cy - 35*u);
       p.lineTo(cx + 10*u, cy - 5*u);
       p.lineTo(cx - 10*u, cy - 5*u);
       p.closePath();
-      // Cauda em leque
       for (let i = 0; i < 7; i++) {
         const a = -Math.PI / 2 + (i - 3) * 0.35;
         const ex = cx + Math.cos(a) * 80*u;
@@ -1195,7 +1127,6 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     default: {
-      // Fallback: constelação estilizada (polígono estrelado)
       const nodes = [];
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
@@ -1223,13 +1154,11 @@ function makeConstellationSilhouette(name, color = '#ffd966') {
 
   ctx.clearRect(0, 0, S, S);
 
-  // Gradiente interno
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, S * 0.5);
   grad.addColorStop(0, '#ffffff');
   grad.addColorStop(0.35, color);
   grad.addColorStop(1, color);
 
-  // Pass 1: glow externo forte
   ctx.shadowColor = color;
   ctx.shadowBlur = 50;
   ctx.fillStyle = grad;
@@ -1243,13 +1172,11 @@ function makeConstellationSilhouette(name, color = '#ffd966') {
   ctx.fill(path);
   ctx.stroke(path);
 
-  // Pass 2: brilho externo mais fino
   ctx.shadowBlur = 80;
   ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
   ctx.stroke(path);
 
-  // Pass 3: outline branco brilhante
   ctx.shadowBlur = 15;
   ctx.shadowColor = '#ffffff';
   ctx.strokeStyle = 'rgba(255,255,255,0.95)';
@@ -1287,14 +1214,11 @@ renderer.xr.enabled = true;
 app.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
-/* Post-processing (bloom) — desativado em VR */
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(innerWidth, innerHeight),
-  1.1,   // strength
-  0.55,  // radius
-  0.85   // threshold
+  1.1, 0.55, 0.85
 );
 composer.addPass(bloomPass);
 
@@ -1394,7 +1318,6 @@ starLayers.push(makeStarLayer(250, 3.5, [30, 60], SKY_RADIUS * 0.91, 0.8));
 starLayers.push(makeStarLayer(150, 4, [10, 30], SKY_RADIUS * 0.89, 0.7));
 starLayers.forEach(l => scene.add(l));
 
-/* ★ POEIRA ESTELAR — partículas flutuantes ★ */
 (function addStarDust() {
   const count = 2500;
   const geo = new THREE.BufferGeometry();
@@ -1426,7 +1349,6 @@ starLayers.forEach(l => scene.add(l));
   window.__starDust = dust;
 })();
 
-/* ★ NEBULOSAS EXPANDIDAS — ambiente rico estilo Saint Seiya ★ */
 const nebulaGroup = new THREE.Group();
 scene.add(nebulaGroup);
 const nebulaLayers = [];
@@ -1592,7 +1514,6 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
     group.add(core);
   });
 
-  // ★ SILHUETA VETORIAL DETALHADA ★
   const silhouetteTex = makeConstellationSilhouette(name, '#' + new THREE.Color(color).getHexString());
   const animalSprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: silhouetteTex, transparent: true, opacity: 0,
@@ -2054,13 +1975,10 @@ function updateTweens(now) {
 const BOOK_VR_SCALE = 0.06;
 const BOOK_VR_Y = -0.16;
 const BOOK_VR_Z = -0.42;
-const HAND_OFFSET_Y = 0.10;
-const HAND_OFFSET_Z = -0.08;
-const HAND_OFFSET_X = 0.02;
 
 const bookVR = {
   active: false,
-  inHand: true,
+  inHand: false,
   scale: BOOK_VR_SCALE,
   targetScale: BOOK_VR_SCALE,
   pos: new THREE.Vector3(),
@@ -2100,31 +2018,19 @@ function placeBookInFrontOfCamera() {
   bookVR.targetQuat.copy(camQuat).multiply(localRot);
 }
 
-function showAlbumInHand() {
+// ★ NOVO: livro surge na frente da câmera, NÃO na mão ★
+function showAlbumInFront() {
   bookVR.active = true;
   bookVR.visible = true;
-  bookVR.inHand = true;
+  bookVR.inHand = false;
   bookGroup.visible = true;
 
-  if (isVRActive() && getLeftHandTransform()) {
-    const t = getLeftHandTransform();
-    const offsetLocal = new THREE.Vector3(HAND_OFFSET_X, HAND_OFFSET_Y, HAND_OFFSET_Z);
-    const worldOffset = offsetLocal.clone().applyQuaternion(t.quat);
-    bookVR.pos.copy(t.pos).add(worldOffset);
-    const rotOffset = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2 + 0.4, 0, 0));
-    bookVR.quat.copy(t.quat).multiply(rotOffset);
-    bookGroup.position.copy(bookVR.pos);
-    bookGroup.quaternion.copy(bookVR.quat);
-    bookGroup.scale.setScalar(BOOK_VR_SCALE);
-  } else {
-    bookVR.inHand = false;
-    placeBookInFrontOfCamera();
-    bookVR.pos.copy(bookVR.targetPos);
-    bookVR.quat.copy(bookVR.targetQuat);
-    bookGroup.position.copy(bookVR.pos);
-    bookGroup.quaternion.copy(bookVR.quat);
-    bookGroup.scale.setScalar(BOOK_VR_SCALE);
-  }
+  placeBookInFrontOfCamera();
+  bookVR.pos.copy(bookVR.targetPos);
+  bookVR.quat.copy(bookVR.targetQuat);
+  bookGroup.position.copy(bookVR.pos);
+  bookGroup.quaternion.copy(bookVR.quat);
+  bookGroup.scale.setScalar(BOOK_VR_SCALE);
 
   state.mode = 'closed';
   state.spread = 0;
@@ -2134,8 +2040,17 @@ function showAlbumInHand() {
   sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
   refreshUI();
 }
+// Alias de compatibilidade com código antigo
+const showAlbumInHand = showAlbumInFront;
 
-function enableBookVR() { showAlbumInHand(); }
+// ★ Livro volta para frente da câmera (voz / botão) ★
+function resetBookPosition() {
+  isGrabbingBook = false;
+  grabbingController = null;
+  showAlbumInFront();
+}
+
+function enableBookVR() { showAlbumInFront(); }
 
 function disableBookVR() {
   bookVR.active = false;
@@ -2148,42 +2063,19 @@ function disableBookVR() {
   bookGroup.scale.setScalar(1);
 }
 
-function resetBookPosition() {
-  isGrabbingBook = false;
-  grabbingController = null;
-  showAlbumInHand();
-}
-
+// ★ Livro NÃO segue mais a mão. Só interpola suavemente para seu alvo.
+//    Se o usuário arrastar, ele fica onde deixar (targetPos = pos).
 function updateBookVRTransform(dt) {
   if (!bookVR.active || !bookVR.visible) return;
 
-  if (bookVR.inHand && !isGrabbingBook) {
-    const t = getLeftHandTransform();
-    if (t) {
-      const offsetLocal = new THREE.Vector3(HAND_OFFSET_X, HAND_OFFSET_Y, HAND_OFFSET_Z);
-      const worldOffset = offsetLocal.clone().applyQuaternion(t.quat);
-      const targetPos = t.pos.clone().add(worldOffset);
-      const rotOffset = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2 + 0.4, 0, 0));
-      const targetQuat = t.quat.clone().multiply(rotOffset);
-
-      const k = 1 - Math.pow(0.0001, dt);
-      bookGroup.position.lerp(targetPos, k);
-      bookGroup.quaternion.slerp(targetQuat, k);
-      bookGroup.scale.setScalar(BOOK_VR_SCALE);
-      bookVR.pos.copy(bookGroup.position);
-      bookVR.quat.copy(bookGroup.quaternion);
-      bookVR.targetPos.copy(targetPos);
-      bookVR.targetQuat.copy(targetQuat);
-      return;
-    }
-  }
-
   const k = 1 - Math.pow(0.0005, dt);
   bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
+
   if (!isGrabbingBook) {
     bookVR.pos.lerp(bookVR.targetPos, k);
     bookVR.quat.slerp(bookVR.targetQuat, k);
   }
+
   bookGroup.position.copy(bookVR.pos);
   bookGroup.quaternion.copy(bookVR.quat);
   bookGroup.scale.setScalar(bookVR.scale);
@@ -2356,21 +2248,23 @@ function closeAlbum() {
     }
   }, () => { state.mode = 'closed'; state.spread = 0; refreshUI(); });
 }
+
+// ★ Virada de página MAIS FLUIDA (1250ms + curva seno) ★
 function flipForward() {
   if (state.mode !== 'open' || state.spread >= MAX_SPREAD) return;
   state.mode = 'flipping'; refreshUI();
   const target = state.spread === 1 ? sheet1 : state.spread === 2 ? sheet2 : null;
   if (!target) return;
   const sR = target.pivot.rotation.z, sY = target.pivot.position.y;
-  animate(950, (t) => {
+  animate(1250, (t) => {
     target.pivot.rotation.z = sR + (Math.PI - sR) * t;
     target.pivot.position.y = sY + (target.flippedY - sY) * t;
-    target.pivot.position.y += Math.sin(t * Math.PI) * 0.06;
+    target.pivot.position.y += Math.sin(t * Math.PI) * 0.11;
   }, () => {
     target.pivot.rotation.z = Math.PI;
     target.pivot.position.y = target.flippedY;
     state.spread++; state.mode = 'open'; refreshUI();
-  });
+  }, easeInOutCubic);
 }
 function flipBack(callback) {
   if (state.mode !== 'open' || state.spread <= 1) { if (callback) callback(); return; }
@@ -2378,16 +2272,16 @@ function flipBack(callback) {
   const target = state.spread === 2 ? sheet1 : state.spread === 3 ? sheet2 : null;
   if (!target) { state.mode = 'open'; refreshUI(); return; }
   const sR = target.pivot.rotation.z, sY = target.pivot.position.y;
-  animate(950, (t) => {
+  animate(1250, (t) => {
     target.pivot.rotation.z = sR * (1 - t);
     target.pivot.position.y = sY + (target.originalY - sY) * t;
-    target.pivot.position.y += Math.sin(t * Math.PI) * 0.06;
+    target.pivot.position.y += Math.sin(t * Math.PI) * 0.11;
   }, () => {
     target.pivot.rotation.z = 0;
     target.pivot.position.y = target.originalY;
     state.spread--; state.mode = 'open'; refreshUI();
     if (callback) callback();
-  });
+  }, easeInOutCubic);
 }
 
 const raycaster = new THREE.Raycaster();
@@ -2852,9 +2746,10 @@ async function initVoiceRecognition() {
         console.log('🎤 Ouvido:', transcript);
         if (transcript.includes('livro') || transcript.includes('álbum') ||
             transcript.includes('album') || transcript.includes('abrir') || transcript.includes('abre')) {
-          console.log('✅ COMANDO LIVRO — chamando para a mão');
-          showAlbumInHand();
-          voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Livro na mão!';
+          console.log('✅ COMANDO LIVRO — invocando na frente');
+          // ★ Livro volta para FRENTE da câmera, fechado ★
+          showAlbumInFront();
+          voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Livro invocado!';
           setTimeout(() => {
             if (voiceActive) voiceStatusEl.innerHTML = '<span class="dot"></span>🎤 Diga "livro"';
           }, 2000);
@@ -2914,7 +2809,7 @@ document.body.addEventListener('click', () => {
 });
 
 /* ============================================================
-   ★ DETECÇÃO DE CONSTELAÇÃO — com flash ring ★
+   DETECÇÃO DE CONSTELAÇÃO
    ============================================================ */
 const _cameraDir = new THREE.Vector3();
 const _toConstDir = new THREE.Vector3();
@@ -2971,13 +2866,11 @@ function updateConstellationPointing(dt, time) {
     const current = c.userData.highlightIntensity || 0;
     const newIntensity = current + (target - current) * Math.min(1, HIGHLIGHT_FADE_SPEED * dt);
     c.userData.highlightIntensity = newIntensity;
-
     const outlineMat = c.userData.outlineMat;
     const animalSprite = c.userData.animalSprite;
     const haloCircle = c.userData.haloCircle;
     if (outlineMat) outlineMat.opacity = newIntensity * 0.9;
     if (animalSprite) {
-      // ★ Silhueta grande e viva quando destacada ★
       const targetScale = 10 + newIntensity * 8;
       const currentScale = animalSprite.scale.x;
       const newScale = currentScale + (targetScale - currentScale) * Math.min(1, 5 * dt);
@@ -2991,7 +2884,6 @@ function updateConstellationPointing(dt, time) {
       const s = 1 + Math.sin(time * 2) * 0.05;
       haloCircle.scale.set(s, s, 1);
     }
-    // ★ Flash ring ao atingir destaque máximo ★
     if (newIntensity > 0.92 && !c.userData.flashed) {
       c.userData.flashed = true;
       spawnConstellationFlash(c);
@@ -3082,7 +2974,7 @@ controller0.add(new THREE.Line(RAY_GEO, RAY_MAT));
 controller1.add(new THREE.Line(RAY_GEO, RAY_MAT));
 
 /* ============================================================
-   BRACELETE
+   BRACELETE — PEQUENO E COM ORIENTAÇÃO CORRETA
    ============================================================ */
 function makeBraceletTexture() {
   const cv = document.createElement('canvas');
@@ -3129,61 +3021,66 @@ function makeBraceletTexture() {
 }
 const BRACELET_TEX = makeBraceletTexture();
 
+// ★ Bracelete pequeno, toro padrão (eixo Z) — circula o pulso ★
 function buildBracelet() {
   const g = new THREE.Group();
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.055, 0.055, 0.05, 24, 1, true),
+
+  const band = new THREE.Mesh(
+    new THREE.TorusGeometry(0.026, 0.004, 10, 32),
     new THREE.MeshStandardMaterial({
-      color: 0x2a1a0a, roughness: 0.6, metalness: 0.4,
-      side: THREE.DoubleSide, emissive: 0x2a1005, emissiveIntensity: 0.3
+      color: 0x2a1a0a, roughness: 0.55, metalness: 0.5,
+      emissive: 0x1a0a03, emissiveIntensity: 0.3
     })
   );
-  base.rotation.z = Math.PI / 2;
-  g.add(base);
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.058, 0.006, 10, 32),
+  g.add(band);
+
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.028, 0.0018, 8, 32),
     new THREE.MeshStandardMaterial({
-      color: 0xd4af5a, metalness: 1.0, roughness: 0.2,
-      emissive: 0xd4af5a, emissiveIntensity: 0.8
+      color: 0xd4af5a, metalness: 1.0, roughness: 0.25,
+      emissive: 0xd4af5a, emissiveIntensity: 0.9
     })
   );
-  ring.rotation.y = Math.PI / 2;
-  g.add(ring);
+  g.add(rim);
+
   const glowRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.075, 0.008, 12, 32),
+    new THREE.TorusGeometry(0.036, 0.003, 10, 32),
     new THREE.MeshBasicMaterial({
       color: 0xffd966, transparent: true, opacity: 0.7,
       blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
     })
   );
-  glowRing.rotation.y = Math.PI / 2;
   g.add(glowRing);
   g.userData.glowRing = glowRing;
+
   const iconPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.10, 0.05),
+    new THREE.PlaneGeometry(0.04, 0.02),
     new THREE.MeshBasicMaterial({
       map: BRACELET_TEX, transparent: true, side: THREE.DoubleSide, depthWrite: false
     })
   );
-  iconPlane.position.set(0, 0.055, 0);
+  iconPlane.position.set(0, 0.026, 0);
   iconPlane.rotation.x = -Math.PI / 2;
   g.add(iconPlane);
+  g.userData.iconPlane = iconPlane;
+
   const aura = new THREE.Mesh(
-    new THREE.SphereGeometry(0.11, 16, 12),
+    new THREE.SphereGeometry(0.052, 16, 12),
     new THREE.MeshBasicMaterial({
-      color: 0xffd966, transparent: true, opacity: 0.15,
+      color: 0xffd966, transparent: true, opacity: 0.12,
       blending: THREE.AdditiveBlending, depthWrite: false
     })
   );
   g.add(aura);
+  g.userData.aura = aura;
+
   const hitbox = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 10, 8),
+    new THREE.SphereGeometry(0.07, 10, 8),
     new THREE.MeshBasicMaterial({ visible: false })
   );
   g.add(hitbox);
   g.userData.hitbox = hitbox;
-  g.userData.aura = aura;
-  g.userData.iconPlane = iconPlane;
+
   return g;
 }
 
@@ -3191,34 +3088,33 @@ const braceletLeft = buildBracelet();
 braceletLeft.visible = false;
 scene.add(braceletLeft);
 
+// ★ Orientação correta: aplica a rotação do pulso diretamente ★
 function updateBraceletTransform() {
   if (!isVRActive()) { braceletLeft.visible = false; return; }
-  if (hand0 && hand0.joints) {
+
+  let pos = null, quat = null;
+
+  if (hand0 && hand0.joints && hand0.joints['wrist']) {
     const wrist = hand0.joints['wrist'];
-    if (wrist) {
-      wrist.updateWorldMatrix(true, false);
-      const wPos = new THREE.Vector3();
-      const wQuat = new THREE.Quaternion();
-      wrist.matrixWorld.decompose(wPos, wQuat, new THREE.Vector3());
-      if (wPos.lengthSq() > 0.0001) {
-        braceletLeft.position.copy(wPos);
-        braceletLeft.quaternion.copy(wQuat);
-        braceletLeft.visible = true;
-        return;
-      }
-    }
+    wrist.updateWorldMatrix(true, false);
+    pos = new THREE.Vector3();
+    quat = new THREE.Quaternion();
+    wrist.matrixWorld.decompose(pos, quat, new THREE.Vector3());
+    if (pos.lengthSq() < 0.0001) { pos = null; quat = null; }
   }
-  if (grip0) {
-    const gPos = new THREE.Vector3();
-    const gQuat = new THREE.Quaternion();
-    grip0.getWorldPosition(gPos);
-    grip0.getWorldQuaternion(gQuat);
-    braceletLeft.position.copy(gPos);
-    braceletLeft.quaternion.copy(gQuat);
-    braceletLeft.visible = true;
-    return;
+
+  if (!pos && grip0) {
+    pos = new THREE.Vector3();
+    quat = new THREE.Quaternion();
+    grip0.getWorldPosition(pos);
+    grip0.getWorldQuaternion(quat);
   }
-  braceletLeft.visible = false;
+
+  if (!pos) { braceletLeft.visible = false; return; }
+
+  braceletLeft.position.copy(pos);
+  braceletLeft.quaternion.copy(quat);
+  braceletLeft.visible = true;
 }
 
 function checkBraceletHit(origin, dir) {
@@ -3239,10 +3135,12 @@ function handleSelectStart(event) {
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
   raycaster.far = 500;
 
+  // ★ Clique no bracelete → livro aparece NA FRENTE, fechado ★
   if (checkBraceletHit(raycaster.ray.origin, raycaster.ray.direction)) {
-    showAlbumInHand();
+    showAlbumInFront();
     return;
   }
+
   if (state.mode === 'inspecting' && state.inspectedCard) {
     if (tryStartCardGrab(controller)) return;
   }
@@ -3250,10 +3148,7 @@ function handleSelectStart(event) {
     const allCards = [];
     bookGroup.traverse(o => { if (o.userData.isCard) allCards.push(o); });
     const hits = raycaster.intersectObjects(allCards, false);
-    if (hits.length > 0) {
-      inspectCard(hits[0].object);
-      return;
-    }
+    if (hits.length > 0) { inspectCard(hits[0].object); return; }
   }
   if (state.mode === 'open' || state.mode === 'flipping') {
     if (raycaster.intersectObject(pageHitboxRight, false).length > 0 && state.spread < MAX_SPREAD) {
@@ -3295,14 +3190,14 @@ function pollControllerButtons() {
     const squeezePressed = gp.buttons[1] ? gp.buttons[1].pressed : false;
     if (aPressed && !controllerBtnStates[i].a) {
       if (state.mode === 'inspecting' && state.summoned) toggleCardTerrain();
-      else showAlbumInHand();
+      else showAlbumInFront();
     }
     if (bPressed && !controllerBtnStates[i].b) {
       if (state.mode === 'inspecting' && state.summoned) triggerAttack();
       else if (state.mode === 'closed') openAlbum();
       else if (state.mode === 'open') closeAlbum();
     }
-    if (squeezePressed && !controllerBtnStates[i].squeeze) showAlbumInHand();
+    if (squeezePressed && !controllerBtnStates[i].squeeze) showAlbumInFront();
     controllerBtnStates[i].a = aPressed;
     controllerBtnStates[i].b = bPressed;
     controllerBtnStates[i].squeeze = squeezePressed;
@@ -3312,7 +3207,7 @@ function pollControllerButtons() {
 renderer.xr.addEventListener('sessionstart', () => {
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
-  showAlbumInHand();
+  showAlbumInFront();
   controllerBtnStates[0] = { a: false, b: false, squeeze: false };
   controllerBtnStates[1] = { a: false, b: false, squeeze: false };
   setTimeout(startVoice, 1500);
@@ -3376,7 +3271,7 @@ renderer.setAnimationLoop(() => {
       braceletLeft.userData.glowRing.rotation.z = tGlobal * 0.5;
     }
     if (braceletLeft.userData.iconPlane) {
-      braceletLeft.userData.iconPlane.position.y = 0.055 + Math.sin(tGlobal * 2) * 0.003;
+      braceletLeft.userData.iconPlane.position.y = 0.026 + Math.sin(tGlobal * 2) * 0.0015;
     }
   }
 
@@ -3419,7 +3314,6 @@ renderer.setAnimationLoop(() => {
     n.scale.set(u.baseScaleX * scalePulse, u.baseScaleY * scalePulse, 1);
   }
 
-  // ★ Poeira estelar rotaciona lentamente ★
   if (window.__starDust) {
     window.__starDust.rotation.y += dt * 0.005;
     window.__starDust.rotation.x += dt * 0.002;
@@ -3520,7 +3414,6 @@ renderer.setAnimationLoop(() => {
 
   if (!renderer.xr.isPresenting && !state.vrPreview) controls.update();
 
-  // ★ Render com ou sem bloom (bloom só fora de VR) ★
   if (renderer.xr.isPresenting) {
     renderer.render(scene, camera);
   } else {
