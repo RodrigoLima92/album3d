@@ -51,6 +51,11 @@
     border-color: rgba(120,220,120,.6); }
   button.attack-btn { background: linear-gradient(135deg, #b71c1c 0%, #7f0000 100%);
     border-color: rgba(255,120,80,.6); }
+  button.voice-btn { background: linear-gradient(135deg, #ff6b35 0%, #c0392b 100%);
+    border-color: rgba(255,150,100,.6); }
+  button.voice-btn.active { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    border-color: rgba(120,255,150,.7);
+    box-shadow: 0 0 20px rgba(120,255,150,.4); }
   #voiceStatus {
     position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
     padding: 8px 18px; border-radius: 999px; font-size: 13px;
@@ -83,6 +88,18 @@
     font-family: inherit; display: none; }
   #vrExit.active { display: block; }
   #vrExit:hover { background: rgba(60,40,120,.95); }
+  #constellationName {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+    padding: 14px 32px; border-radius: 20px; font-size: 22px;
+    background: rgba(10,24,30,.92); color: #fff8dc;
+    border: 2px solid rgba(212,175,90,.7);
+    font-family: Georgia, serif; font-style: italic; letter-spacing: 1px;
+    z-index: 8; opacity: 0; transition: all .4s ease; pointer-events: none;
+    box-shadow: 0 8px 40px rgba(212,175,90,.3); }
+  #constellationName.show {
+    opacity: 1; transform: translateX(-50%) translateY(0); }
+  #constellationName .animal {
+    font-size: 42px; display: block; margin-bottom: 6px; }
   #loading {
     position: fixed; inset: 0; display: grid; place-items: center;
     background: #02040a; color: #d4af5a; font-size: 15px;
@@ -97,6 +114,7 @@
 <div id="vrPreview"></div>
 <div id="hint">Toque no álbum para abrir</div>
 <div id="voiceStatus"><span class="dot"></span>🎤 Ouvindo: diga "livro"</div>
+<div id="constellationName"></div>
 
 <div id="ui">
   <button id="openBtn" class="primary">Abrir Álbum</button>
@@ -107,6 +125,7 @@
   <button id="backBtn" class="primary">↩ Devolver carta</button>
   <button id="terrainBtn" class="terrain-btn">🌫️ Terreno</button>
   <button id="attackBtn" class="attack-btn">⚔️ Atacar</button>
+  <button id="voiceBtn" class="voice-btn">🎤 Voz</button>
   <button id="modeBtn" class="mode-btn">🎯 Recentrar</button>
   <button id="previewBtn" class="vr-btn">👓 Preview VR</button>
 </div>
@@ -228,7 +247,7 @@ function drawRarityGem(ctx, cx, cy, r, power) {
 }
 
 /* ============================================================
-   TEXTURAS
+   TEXTURAS DE CARTA
    ============================================================ */
 function makeCardTexture(d, index) {
   const cv = document.createElement('canvas');
@@ -312,12 +331,6 @@ function makeBackTexture() {
   }
   ctx.strokeStyle = 'rgba(212,175,90,0.75)'; ctx.lineWidth = 4;
   roundRect(ctx, 18, 18, TW - 36, TH - 36, 24); ctx.stroke();
-  ctx.save(); ctx.translate(TW/2, TH/2);
-  ctx.strokeStyle = 'rgba(212,175,90,0.9)'; ctx.lineWidth = 2;
-  [210, 175, 140, 105, 70].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); });
-  ctx.fillStyle = 'rgba(212,175,90,0.9)';
-  ctx.beginPath(); ctx.arc(0, 0, 18, 0, 7); ctx.fill();
-  ctx.restore();
   _backTexCache = new THREE.CanvasTexture(cv);
   _backTexCache.colorSpace = THREE.SRGBColorSpace; _backTexCache.anisotropy = 8;
   return _backTexCache;
@@ -431,11 +444,6 @@ function makeTerrainTexture() {
       : Math.random() > 0.5 ? `rgba(50, 30, 15, ${b})` : `rgba(150, 200, 90, ${b * 0.5})`;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
-  const vg = ctx.createRadialGradient(cv.width/2, cv.height/2, 40, cv.width/2, cv.height/2, 220);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(0.7, 'rgba(0,0,0,0.35)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.9)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, cv.width, cv.height);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
@@ -576,6 +584,37 @@ function makeNebulaTex(hue, seed) {
 }
 
 /* ============================================================
+   ★ ANIMAL TEXTURE PARA CONSTELAÇÕES ★
+   ============================================================ */
+function makeAnimalTexture(emoji, color = '#ffd966') {
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  ctx.font = '200px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = color; ctx.shadowBlur = 40;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(emoji, S/2, S/2);
+  ctx.shadowBlur = 20;
+  ctx.fillText(emoji, S/2, S/2);
+  ctx.shadowBlur = 0;
+  ctx.fillText(emoji, S/2, S/2);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  return tex;
+}
+const animalTexCache = new Map();
+function getAnimalTex(emoji, color) {
+  const key = emoji + '_' + color;
+  if (animalTexCache.has(key)) return animalTexCache.get(key);
+  const tex = makeAnimalTexture(emoji, color);
+  animalTexCache.set(key, tex);
+  return tex;
+}
+
+/* ============================================================
    CENA
    ============================================================ */
 const app = document.getElementById('app');
@@ -692,8 +731,13 @@ starLayers.push(makeStarLayer(250, 3.5, [30, 60], SKY_RADIUS * 0.91, 0.8));
 starLayers.push(makeStarLayer(150, 4, [10, 30], SKY_RADIUS * 0.89, 0.7));
 starLayers.forEach(l => scene.add(l));
 
+/* ============================================================
+   ★ NEBULOSAS VIVAS ★
+   ============================================================ */
 const nebulaGroup = new THREE.Group();
 scene.add(nebulaGroup);
+
+const nebulaLayers = []; // para animação
 const NEBULAE_DEFS = [
   { az: 0.40, el: 0.20, hue: 210, size: 220, op: 0.55, sx: 1.3, sy: 1.0, rot: 0 },
   { az: 1.55, el: -0.05, hue: 280, size: 260, op: 0.50, sx: 1.4, sy: 0.9, rot: 0.6 },
@@ -711,20 +755,39 @@ NEBULAE_DEFS.forEach((def, i) => {
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
   }));
   const dist = SKY_RADIUS * 0.85;
-  sprite.position.set(
-    dist * Math.cos(def.el) * Math.cos(def.az),
-    dist * Math.sin(def.el),
-    dist * Math.cos(def.el) * Math.sin(def.az)
-  );
+  const baseX = dist * Math.cos(def.el) * Math.cos(def.az);
+  const baseY = dist * Math.sin(def.el);
+  const baseZ = dist * Math.cos(def.el) * Math.sin(def.az);
+  sprite.position.set(baseX, baseY, baseZ);
   sprite.scale.set(def.size * def.sx, def.size * def.sy, 1);
   sprite.material.rotation = def.rot;
-  sprite.userData.baseOpacity = def.op;
-  sprite.userData.pulseSpeed = 0.12 + Math.random() * 0.15;
-  sprite.userData.pulsePhase = Math.random() * Math.PI * 2;
+  sprite.userData = {
+    baseX, baseY, baseZ,
+    baseOpacity: def.op,
+    pulseSpeed: 0.15 + Math.random() * 0.25,
+    pulsePhase: Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() - 0.5) * 0.02,
+    // Movimento próprio lento:
+    driftRadius: 15 + Math.random() * 20,
+    driftSpeedX: (0.05 + Math.random() * 0.08) * (Math.random() > 0.5 ? 1 : -1),
+    driftSpeedY: (0.04 + Math.random() * 0.07) * (Math.random() > 0.5 ? 1 : -1),
+    driftSpeedZ: (0.03 + Math.random() * 0.06) * (Math.random() > 0.5 ? 1 : -1),
+    driftPhaseX: Math.random() * Math.PI * 2,
+    driftPhaseY: Math.random() * Math.PI * 2,
+    driftPhaseZ: Math.random() * Math.PI * 2,
+    // Pulsação de escala
+    scalePulse: 0.05 + Math.random() * 0.08,
+    baseScaleX: def.size * def.sx,
+    baseScaleY: def.size * def.sy,
+  };
   nebulaGroup.add(sprite);
+  nebulaLayers.push(sprite);
 });
 nebulaGroup.renderOrder = -998;
 
+/* ============================================================
+   ★ CONSTELAÇÕES — com animais, sem duplicatas ★
+   ============================================================ */
 const zodiacGroup = new THREE.Group();
 const extendedGroup = new THREE.Group();
 zodiacGroup.renderOrder = -997;
@@ -733,35 +796,75 @@ scene.add(zodiacGroup);
 scene.add(extendedGroup);
 extendedGroup.visible = false;
 
+const GOLD_COLOR = 0xffd966;
 const EXTENDED_COLORS = [
   0x88bbff, 0xffaacc, 0xaaddff, 0xccddff, 0xffddaa, 0xbbeeff,
   0xddaaff, 0xaaffdd, 0xffccaa, 0xcccfff, 0xffbbee, 0xaab8ff,
   0xd4f0ff, 0xffddff, 0xbbeedd, 0xffe4b5, 0xa0d8ff, 0xffa8d8,
 ];
-const GOLD_COLOR = 0xffd966;
-const ZODIAC = [
-  { name:'Áries',      pts:[[0,0],[0.6,-0.4],[1.2,-0.3],[1.8,-0.1],[2.4,-0.4]] },
-  { name:'Touro',      pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5],[2.4,0.8]] },
-  { name:'Gêmeos',     pts:[[0,0],[0.3,0.5],[0.6,1.0],[1.0,1.2],[1.4,1.0],[1.7,0.6],[2.0,0.2]] },
-  { name:'Câncer',     pts:[[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5]] },
-  { name:'Leão',       pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.0],[1.4,1.1],[1.7,0.9],[2.0,0.5],[1.6,0.2],[1.0,0]] },
-  { name:'Virgem',     pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.7],[2.0,0.8],[2.4,0.6],[2.5,0.2]] },
-  { name:'Libra',      pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.3],[2.0,0.5]] },
-  { name:'Escorpião',  pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.1],[1.3,1.4],[1.6,1.6],[1.9,1.7],[2.1,1.5]] },
-  { name:'Sagitário',  pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.7,1.2],[2.0,1.1]] },
-  { name:'Capricórnio',pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6]] },
-  { name:'Aquário',    pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.3,0.6],[1.7,0.4],[2.1,0.7]] },
-  { name:'Peixes',     pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.3],[2.0,0.5],[2.4,0.8]] },
-];
-const extendedNames = [
-  'Órion','Ursa Maior','Ursa Menor','Cassiopeia','Perseu','Andrômeda','Cisne','Lira',
-  'Águia','Centauro','Cruzeiro do Sul','Carina','Hidra','Corvo','Cão Maior','Cão Menor',
-  'Baleia','Pégaso','Dragão','Hércules','Fênix','Cocheiro','Eridano','Pavão'
-];
-const allPulsingStars = [];
 
-function buildConstellation(pts, scale, color, intensity, isZodiac) {
+// IDs únicos para cada constelação
+const usedIds = new Set();
+function makeUniqueId(baseName) {
+  let id = baseName.toLowerCase().replace(/\s+/g, '_');
+  let counter = 1;
+  while (usedIds.has(id)) { id = baseName.toLowerCase().replace(/\s+/g, '_') + '_' + counter; counter++; }
+  usedIds.add(id);
+  return id;
+}
+
+const ZODIAC = [
+  { name:'Áries',      animal:'🐏', pts:[[0,0],[0.6,-0.4],[1.2,-0.3],[1.8,-0.1],[2.4,-0.4]] },
+  { name:'Touro',      animal:'🐂', pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5],[2.4,0.8]] },
+  { name:'Gêmeos',     animal:'👬', pts:[[0,0],[0.3,0.5],[0.6,1.0],[1.0,1.2],[1.4,1.0],[1.7,0.6],[2.0,0.2]] },
+  { name:'Câncer',     animal:'🦀', pts:[[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5]] },
+  { name:'Leão',       animal:'🦁', pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.0],[1.4,1.1],[1.7,0.9],[2.0,0.5],[1.6,0.2],[1.0,0]] },
+  { name:'Virgem',     animal:'👸', pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.7],[2.0,0.8],[2.4,0.6],[2.5,0.2]] },
+  { name:'Libra',      animal:'⚖️', pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.3],[2.0,0.5]] },
+  { name:'Escorpião',  animal:'🦂', pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.1],[1.3,1.4],[1.6,1.6],[1.9,1.7],[2.1,1.5]] },
+  { name:'Sagitário',  animal:'🏹', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.7,1.2],[2.0,1.1]] },
+  { name:'Capricórnio',animal:'🐐', pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6]] },
+  { name:'Aquário',    animal:'🏺', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.3,0.6],[1.7,0.4],[2.1,0.7]] },
+  { name:'Peixes',     animal:'🐟', pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.3],[2.0,0.5],[2.4,0.8]] },
+];
+
+const EXTENDED_CONSTELLATIONS = [
+  { name:'Órion',         animal:'🏹', pts:[[0,0],[0.5,0.3],[1.0,0.6],[1.5,0.7],[1.8,0.4],[2.2,0.6]] },
+  { name:'Ursa Maior',    animal:'🐻', pts:[[0,0],[0.6,0.2],[1.2,0.4],[1.8,0.3],[2.3,0.5],[2.6,0.9],[2.2,1.2]] },
+  { name:'Ursa Menor',    animal:'🐻‍❄️', pts:[[0,0],[0.5,0.3],[1.0,0.6],[1.4,0.9],[1.6,1.3]] },
+  { name:'Cassiopeia',    animal:'👸', pts:[[0,0],[0.5,0.4],[1.0,0.6],[1.5,0.4],[2.0,0.1]] },
+  { name:'Perseu',        animal:'⚔️', pts:[[0,0],[0.4,0.4],[0.8,0.7],[1.3,0.5],[1.6,0.9]] },
+  { name:'Andrômeda',     animal:'👰', pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6],[2.3,0.4]] },
+  { name:'Cisne',         animal:'🦢', pts:[[0,0],[0.5,0.4],[1.0,0.8],[1.5,1.1],[2.0,1.3],[2.4,1.5]] },
+  { name:'Lira',          animal:'🎵', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.4],[1.5,0.1]] },
+  { name:'Águia',         animal:'🦅', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.6,1.4]] },
+  { name:'Centauro',      animal:'🐴', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.5,0.9],[2.0,1.1],[2.3,1.4]] },
+  { name:'Cruzeiro do Sul',animal:'✝️', pts:[[0,0.8],[0.5,0.8],[1.0,0.8],[0.5,0],[0.5,1.6]] },
+  { name:'Carina',        animal:'⛵', pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5]] },
+  { name:'Hidra',         animal:'🐍', pts:[[0,0],[0.5,0.2],[1.0,0.1],[1.5,0.3],[2.0,0.2],[2.5,0.4],[2.8,0.7]] },
+  { name:'Corvo',         animal:'🐦‍⬛', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.3],[1.5,0.6]] },
+  { name:'Cão Maior',     animal:'🐕', pts:[[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5],[1.9,0.8]] },
+  { name:'Cão Menor',     animal:'🐕‍🦺', pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.4,0.3]] },
+  { name:'Baleia',        animal:'🐋', pts:[[0,0],[0.5,0.2],[1.0,0.1],[1.5,0.3],[2.0,0.5],[2.4,0.3]] },
+  { name:'Pégaso',        animal:'🦄', pts:[[0,0],[0.5,0.4],[1.0,0.6],[1.5,0.8],[2.0,0.5],[2.3,0.2]] },
+  { name:'Dragão',        animal:'🐉', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.5,0.9],[2.0,1.1],[2.4,1.3],[2.6,1.0]] },
+  { name:'Hércules',      animal:'💪', pts:[[0,0],[0.5,0.3],[1.0,0.6],[1.4,0.8],[1.7,0.6],[1.9,0.9]] },
+  { name:'Fênix',         animal:'🔥', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.5,0.5],[2.0,0.8]] },
+  { name:'Cocheiro',      animal:'🐎', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.3,0.4],[1.7,0.6]] },
+  { name:'Eridano',       animal:'🌊', pts:[[0,0],[0.5,0.3],[1.0,0.1],[1.5,0.4],[2.0,0.2],[2.5,0.5]] },
+  { name:'Pavão',         animal:'🦚', pts:[[0,0],[0.5,0.4],[1.0,0.6],[1.4,0.8],[1.8,1.0],[2.2,0.8]] },
+];
+
+const allPulsingStars = [];
+const allConstellations = []; // para detecção de pointing
+
+function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac) {
   const group = new THREE.Group();
+  const id = makeUniqueId(name);
+  group.userData.constellationId = id;
+  group.userData.constellationName = name;
+  group.userData.animal = animal;
+
   const center = pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0,0]);
   center[0] /= pts.length; center[1] /= pts.length;
   const localPts = pts.map(p => [(p[0] - center[0]) * 6 * scale, (p[1] - center[1]) * 6 * scale]);
@@ -769,13 +872,15 @@ function buildConstellation(pts, scale, color, intensity, isZodiac) {
     color, transparent: true, opacity: 0.45 * intensity,
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
   });
-  group.add(new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints(localPts.map(p => new THREE.Vector3(p[0], p[1], 0))),
-    lineMat
-  ));
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(localPts.map(p => new THREE.Vector3(p[0], p[1], 0)));
+  const line = new THREE.Line(lineGeo, lineMat);
+  group.add(line);
   group.userData.lineMat = lineMat;
   group.userData.baseLineOpacity = 0.45 * intensity;
   group.userData.phase = Math.random() * Math.PI * 2;
+
+  // Estrelas
+  const starSprites = [];
   localPts.forEach(p => {
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({
       map: STAR_POINT_TEX, color, transparent: true,
@@ -790,6 +895,8 @@ function buildConstellation(pts, scale, color, intensity, isZodiac) {
     halo.userData.pulsePhase = Math.random() * Math.PI * 2;
     allPulsingStars.push(halo);
     group.add(halo);
+    starSprites.push(halo);
+
     const core = new THREE.Sprite(new THREE.SpriteMaterial({
       map: STAR_POINT_TEX, color: isZodiac ? 0xfff5d0 : color, transparent: true,
       opacity: 0.98 * intensity, blending: THREE.AdditiveBlending,
@@ -804,7 +911,52 @@ function buildConstellation(pts, scale, color, intensity, isZodiac) {
     core.userData.pulsePhase = Math.random() * Math.PI * 2 + 2.7;
     allPulsingStars.push(core);
     group.add(core);
+    starSprites.push(core);
   });
+
+  // ★ Animal sprite (invisível até ser apontado) ★
+  const animalTex = getAnimalTex(animal, '#' + new THREE.Color(color).getHexString());
+  const animalSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: animalTex, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
+  }));
+  animalSprite.scale.set(0.001, 0.001, 1);
+  animalSprite.position.set(0, 0, 0.5);
+  group.add(animalSprite);
+  group.userData.animalSprite = animalSprite;
+
+  // ★ Contorno brilhante (anel pontilhado) ★
+  const outlinePts = localPts.map(p => new THREE.Vector3(p[0], p[1], 0.2));
+  // Fecha o polígono
+  if (outlinePts.length > 1) outlinePts.push(outlinePts[0].clone());
+  const outlineGeo = new THREE.BufferGeometry().setFromPoints(outlinePts);
+  const outlineMat = new THREE.LineBasicMaterial({
+    color: isZodiac ? 0xfff5d0 : color,
+    transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
+    linewidth: 2
+  });
+  const outlineLine = new THREE.Line(outlineGeo, outlineMat);
+  group.add(outlineLine);
+  group.userData.outlineLine = outlineLine;
+  group.userData.outlineMat = outlineMat;
+
+  // ★ Halo circular grande ao redor da constelação ★
+  const haloCircle = new THREE.Mesh(
+    new THREE.RingGeometry(scale * 7, scale * 8, 48),
+    new THREE.MeshBasicMaterial({
+      color: isZodiac ? 0xfff5d0 : color,
+      transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      depthWrite: false, depthTest: false, fog: false
+    })
+  );
+  group.add(haloCircle);
+  group.userData.haloCircle = haloCircle;
+
+  group.userData.isHighlighted = false;
+  group.userData.highlightIntensity = 0;
+
   return group;
 }
 function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.72) {
@@ -815,26 +967,24 @@ function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.72)
   );
   group.lookAt(0, 0, 0);
 }
+
 ZODIAC.forEach((z, i) => {
-  const g = buildConstellation(z.pts, 1.2, GOLD_COLOR, 1.2, true);
+  const g = buildConstellation(z.name, z.animal, z.pts, 1.2, GOLD_COLOR, 1.2, true);
   placeConstellation(g, (i / ZODIAC.length) * Math.PI * 2, 0.35 + (i % 3) * 0.18);
   zodiacGroup.add(g);
+  allConstellations.push(g);
 });
-extendedNames.forEach((name, i) => {
-  const seed = i * 7 + 13;
-  const rnd = (n) => { const x = Math.sin(seed * n * 12.9898) * 43758.5453; return x - Math.floor(x); };
-  const numPts = 4 + Math.floor(rnd(1) * 4);
-  const pts = []; let cx = 0, cy = 0;
-  for (let j = 0; j < numPts; j++) {
-    cx += (rnd(j + 2) - 0.5) * 2.4;
-    cy += (rnd(j + 9) - 0.5) * 2.4;
-    pts.push([cx, cy]);
-  }
-  const g = buildConstellation(pts, 0.75, EXTENDED_COLORS[i % EXTENDED_COLORS.length], 0.85, false);
-  placeConstellation(g, (i / extendedNames.length) * Math.PI * 2 + 0.3, 0.15 + (i % 4) * 0.14);
+EXTENDED_CONSTELLATIONS.forEach((c, i) => {
+  const color = EXTENDED_COLORS[i % EXTENDED_COLORS.length];
+  const g = buildConstellation(c.name, c.animal, c.pts, 0.75, color, 0.85, false);
+  placeConstellation(g, (i / EXTENDED_CONSTELLATIONS.length) * Math.PI * 2 + 0.3, 0.15 + (i % 4) * 0.14);
   extendedGroup.add(g);
+  allConstellations.push(g);
 });
 
+/* ============================================================
+   ESTRELAS CADENTES
+   ============================================================ */
 const shootingStars = [];
 const SHOOTING_COLORS = ['#aaddff', '#ffe4aa', '#ffaacc', '#aaffdd', '#d4b8ff', '#ffffff'];
 const SHOOTING_TRAIL_TEX = (() => {
@@ -974,7 +1124,6 @@ function createSlot(cardIndex) {
     })
   );
   slot.renderOrder = 20;
-  slot.userData.isSlot = true;
   return slot;
 }
 
@@ -1221,9 +1370,7 @@ function updateTweens(now) {
   }
 }
 
-/* ============================================================
-   SISTEMA VR DO LIVRO
-   ============================================================ */
+/* SISTEMA VR DO LIVRO */
 const BOOK_VR_SCALE = 0.04;
 const BOOK_VR_Y = -0.16;
 const BOOK_VR_Z = -0.42;
@@ -1250,13 +1397,11 @@ function placeBookInFrontOfCamera() {
   bookVR.targetQuat.copy(camQuat).multiply(localRot);
 }
 
-/* ★ Mostra o livro em frente com animação ★ */
 function showAlbumInFront() {
   bookVR.active = true;
   bookVR.visible = true;
   bookGroup.visible = true;
   placeBookInFrontOfCamera();
-  // Aplica imediatamente
   bookVR.pos.copy(bookVR.targetPos);
   bookVR.quat.copy(bookVR.targetQuat);
   bookGroup.position.copy(bookVR.pos);
@@ -1403,6 +1548,8 @@ const modeBtn = document.getElementById('modeBtn');
 const vrExit = document.getElementById('vrExit');
 const vrPreviewOverlay = document.getElementById('vrPreview');
 const voiceStatusEl = document.getElementById('voiceStatus');
+const voiceBtn = document.getElementById('voiceBtn');
+const constellationNameEl = document.getElementById('constellationName');
 
 function refreshUI() {
   const m = state.mode;
@@ -1418,6 +1565,7 @@ function refreshUI() {
   attackBtn.classList.toggle('visible', inspecting && !!state.summoned && !inVR);
   modeBtn.classList.toggle('visible', inVR);
   previewBtn.classList.toggle('visible', !inVR);
+  voiceBtn.classList.toggle('visible', !inVR);
   terrainBtn.textContent = state.cardLayout === 'terrain' ? '🧍 Em pé' : '🌫️ Terreno';
   prevBtn.disabled = state.spread <= 1;
   nextBtn.disabled = state.spread >= MAX_SPREAD;
@@ -1929,6 +2077,275 @@ attackBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerAttack(
 modeBtn.addEventListener('click', (e) => { e.stopPropagation(); resetBookPosition(); });
 
 /* ============================================================
+   ★ VOZ — VERSÃO MELHORADA ★
+   ============================================================ */
+let speechRecognition = null;
+let voiceActive = false;
+let voiceInitAttempts = 0;
+
+async function initVoiceRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    console.warn('❌ SpeechRecognition não suportado neste navegador');
+    voiceStatusEl.innerHTML = '⚠️ Voz não suportada';
+    return false;
+  }
+
+  // Verifica se getUserMedia está disponível
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    console.warn('❌ getUserMedia não disponível');
+    return false;
+  }
+
+  try {
+    console.log('🎤 Solicitando permissão de microfone...');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Para as tracks de áudio (não precisamos manter o stream)
+    stream.getTracks().forEach(t => t.stop());
+    console.log('✅ Permissão de microfone concedida');
+  } catch (e) {
+    console.warn('❌ Permissão de microfone negada:', e);
+    voiceStatusEl.innerHTML = '⚠️ Microfone bloqueado';
+    return false;
+  }
+
+  try {
+    speechRecognition = new SR();
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = true;
+    speechRecognition.maxAlternatives = 1;
+
+    // Tenta pt-BR primeiro, com fallback
+    speechRecognition.lang = 'pt-BR';
+
+    speechRecognition.onstart = () => {
+      console.log('🎤 Reconhecimento iniciado');
+      voiceStatusEl.classList.add('listening');
+      voiceStatusEl.innerHTML = '<span class="dot"></span>🎤 Ouvindo: diga "livro"';
+      voiceBtn.classList.add('active');
+    };
+
+    speechRecognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript.toLowerCase().trim();
+        console.log('🎤 Ouvido:', transcript);
+        if (transcript.includes('livro') ||
+            transcript.includes('álbum') ||
+            transcript.includes('album') ||
+            transcript.includes('abrir') ||
+            transcript.includes('abre')) {
+          console.log('✅ COMANDO "LIVRO" RECONHECIDO!');
+          showAlbumInFront();
+          voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Álbum invocado!';
+          setTimeout(() => {
+            if (voiceActive) {
+              voiceStatusEl.innerHTML = '<span class="dot"></span>🎤 Ouvindo: diga "livro"';
+            }
+          }, 2000);
+        }
+      }
+    };
+
+    speechRecognition.onerror = (e) => {
+      console.warn('❌ Erro de voz:', e.error);
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        voiceStatusEl.innerHTML = '⚠️ Microfone bloqueado';
+        voiceActive = false;
+        voiceBtn.classList.remove('active');
+      } else if (e.error === 'audio-capture') {
+        voiceStatusEl.innerHTML = '⚠️ Sem microfone';
+      }
+      // Erros temporários: reinicia
+      if (e.error === 'network' || e.error === 'aborted' || e.error === 'no-speech') {
+        setTimeout(() => {
+          if (voiceActive) {
+            try { speechRecognition.start(); } catch (err) {}
+          }
+        }, 500);
+      }
+    };
+
+    speechRecognition.onend = () => {
+      console.log('🔇 Reconhecimento terminou');
+      if (voiceActive) {
+        // Reinicia automaticamente
+        setTimeout(() => {
+          try {
+            speechRecognition.start();
+            console.log('🔄 Reiniciando reconhecimento...');
+          } catch (e) {
+            console.warn('Falha ao reiniciar:', e);
+          }
+        }, 300);
+      } else {
+        voiceStatusEl.classList.remove('listening');
+        voiceBtn.classList.remove('active');
+      }
+    };
+
+    return true;
+  } catch (e) {
+    console.warn('❌ Erro ao criar reconhecimento:', e);
+    return false;
+  }
+}
+
+async function startVoice() {
+  if (voiceActive) return;
+  voiceInitAttempts++;
+  if (!speechRecognition) {
+    const ok = await initVoiceRecognition();
+    if (!ok) return;
+  }
+  try {
+    speechRecognition.start();
+    voiceActive = true;
+    voiceStatusEl.classList.add('listening');
+    voiceBtn.classList.add('active');
+    console.log('🎤 Voz ATIVA');
+  } catch (e) {
+    console.warn('Erro ao iniciar voz:', e);
+    // Se já estiver rodando, ignora
+    if (e.name !== 'InvalidStateError') {
+      voiceActive = false;
+      voiceBtn.classList.remove('active');
+    }
+  }
+}
+
+function stopVoice() {
+  voiceActive = false;
+  if (speechRecognition) {
+    try { speechRecognition.stop(); } catch (e) {}
+  }
+  voiceStatusEl.classList.remove('listening');
+  voiceBtn.classList.remove('active');
+  console.log('🔇 Voz desativada');
+}
+
+// Botão de voz
+voiceBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (voiceActive) {
+    stopVoice();
+  } else {
+    startVoice();
+  }
+});
+
+// Inicia voz no primeiro clique do usuário
+let voiceFirstClickDone = false;
+document.body.addEventListener('click', () => {
+  if (!voiceFirstClickDone && !voiceActive) {
+    voiceFirstClickDone = true;
+    setTimeout(startVoice, 200);
+  }
+});
+
+// Também tenta iniciar no carregamento (funciona se já houver permissão)
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    // Tenta iniciar silenciosamente
+    if (!voiceActive) startVoice();
+  }, 1500);
+});
+
+/* ============================================================
+   ★ DETECÇÃO DE APONTAR PARA CONSTELAÇÕES ★
+   ============================================================ */
+const _cameraDir = new THREE.Vector3();
+const _toConstDir = new THREE.Vector3();
+const _constPos = new THREE.Vector3();
+let currentPointedConstellation = null;
+let constellationDisplayTimeout = null;
+const POINT_ANGLE_THRESHOLD = 0.85; // ~30 graus de tolerância
+const HIGHLIGHT_FADE_SPEED = 3.0;
+
+function updateConstellationPointing(dt, time) {
+  // Pega direção da câmera (ou do controlador em VR)
+  camera.getWorldDirection(_cameraDir);
+  const camPos = new THREE.Vector3();
+  camera.getWorldPosition(camPos);
+
+  let bestConstellation = null;
+  let bestDot = POINT_ANGLE_THRESHOLD;
+
+  // Checa cada constelação
+  for (let i = 0; i < allConstellations.length; i++) {
+    const c = allConstellations[i];
+    // Verifica se a constelação é visível (zodiac sempre, extended só em VR)
+    if (c.parent === extendedGroup && !extendedGroup.visible) continue;
+
+    c.getWorldPosition(_constPos);
+    _toConstDir.subVectors(_constPos, camPos).normalize();
+    const dot = _cameraDir.dot(_toConstDir);
+
+    if (dot > bestDot) {
+      bestDot = dot;
+      bestConstellation = c;
+    }
+  }
+
+  // Atualiza highlight
+  if (bestConstellation !== currentPointedConstellation) {
+    currentPointedConstellation = bestConstellation;
+    updateConstellationDisplay(bestConstellation);
+  }
+
+  // Anima fade in/out de cada constelação
+  for (let i = 0; i < allConstellations.length; i++) {
+    const c = allConstellations[i];
+    const target = (c === currentPointedConstellation) ? 1 : 0;
+    const current = c.userData.highlightIntensity || 0;
+    const newIntensity = current + (target - current) * Math.min(1, HIGHLIGHT_FADE_SPEED * dt);
+    c.userData.highlightIntensity = newIntensity;
+
+    // Aplica aos elementos visuais
+    const outlineMat = c.userData.outlineMat;
+    const animalSprite = c.userData.animalSprite;
+    const haloCircle = c.userData.haloCircle;
+    const lineMat = c.userData.lineMat;
+
+    if (outlineMat) {
+      outlineMat.opacity = newIntensity * 0.9;
+    }
+    if (animalSprite) {
+      // Escala e opacidade animadas
+      const targetScale = 8 + newIntensity * 4;
+      const currentScale = animalSprite.scale.x;
+      const newScale = currentScale + (targetScale - currentScale) * Math.min(1, 5 * dt);
+      animalSprite.scale.set(newScale, newScale, 1);
+      animalSprite.material.opacity = newIntensity * 0.95;
+    }
+    if (haloCircle) {
+      haloCircle.material.opacity = newIntensity * 0.35;
+      haloCircle.rotation.z = time * 0.3;
+      const s = 1 + Math.sin(time * 2) * 0.05;
+      haloCircle.scale.set(s, s, 1);
+    }
+    if (lineMat) {
+      // Brilha mais quando apontada
+      const boost = 1 + newIntensity * 1.5;
+      lineMat.opacity = c.userData.baseLineOpacity * boost;
+      lineMat.color.setHex(c.userData.isZodiac ? 0xfff5d0 : lineMat.color.getHex());
+    }
+  }
+}
+
+function updateConstellationDisplay(constellation) {
+  if (constellationNameEl) {
+    if (constellation) {
+      const name = constellation.userData.constellationName;
+      const animal = constellation.userData.animal;
+      constellationNameEl.innerHTML = `<span class="animal">${animal}</span>${name}`;
+      constellationNameEl.classList.add('show');
+    } else {
+      constellationNameEl.classList.remove('show');
+    }
+  }
+}
+
+/* ============================================================
    PREVIEW VR
    ============================================================ */
 const savedCamera = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
@@ -1949,6 +2366,7 @@ function enterVRPreview() {
   zodiacGroup.visible = true;
   vrPreviewOverlay.classList.add('active');
   vrExit.classList.add('active');
+  setTimeout(startVoice, 400);
   refreshUI();
 }
 function exitVRPreview() {
@@ -1969,14 +2387,13 @@ function exitVRPreview() {
   coverInfo.pivot.position.y = coverInfo.originalY;
   sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
   sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
+  constellationNameEl.classList.remove('show');
   refreshUI();
 }
 previewBtn.addEventListener('click', (e) => { e.stopPropagation(); enterVRPreview(); });
 vrExit.addEventListener('click', (e) => { e.stopPropagation(); exitVRPreview(); });
 
-/* ============================================================
-   VR — CONTROLES E MÃOS
-   ============================================================ */
+/* VR — CONTROLES E MÃOS */
 const controller0 = renderer.xr.getController(0);
 const controller1 = renderer.xr.getController(1);
 const grip0 = renderer.xr.getControllerGrip(0);
@@ -1989,22 +2406,16 @@ try {
 
 scene.add(controller0, controller1, grip0, grip1);
 
-/* ★ HAND TRACKING — setup correto ★ */
 let hand0 = null;
 let hand1 = null;
 try {
   hand0 = renderer.xr.getHand(0);
   hand1 = renderer.xr.getHand(1);
   const handModelFactory = new XRHandModelFactory();
-  // Adiciona modelo como filho do hand (não do wrist joint diretamente)
-  const handModel0 = handModelFactory.createHandModel(hand0, 'mesh');
-  const handModel1 = handModelFactory.createHandModel(hand1, 'mesh');
-  hand0.add(handModel0);
-  hand1.add(handModel1);
+  hand0.add(handModelFactory.createHandModel(hand0, 'mesh'));
+  hand1.add(handModelFactory.createHandModel(hand1, 'mesh'));
   scene.add(hand0, hand1);
-} catch (e) {
-  console.warn('Hand tracking não disponível:', e);
-}
+} catch (e) { console.warn('Hand tracking não disponível:', e); }
 
 const RAY_GEO = new THREE.BufferGeometry().setFromPoints([
   new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -4)
@@ -2015,59 +2426,38 @@ const RAY_MAT = new THREE.LineBasicMaterial({
 controller0.add(new THREE.Line(RAY_GEO, RAY_MAT));
 controller1.add(new THREE.Line(RAY_GEO, RAY_MAT));
 
-/* ============================================================
-   ★ BRACELETE COM ÍCONE DE ÁLBUM ★
-   ============================================================ */
+/* BRACELETE */
 function makeBraceletTexture() {
   const cv = document.createElement('canvas');
   cv.width = 512; cv.height = 256;
   const ctx = cv.getContext('2d');
-
-  // Fundo de couro escuro
   const g = ctx.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, '#1e1008');
-  g.addColorStop(0.5, '#3a2010');
-  g.addColorStop(1, '#1e1008');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 256);
-
-  // Moldura dourada
+  g.addColorStop(0, '#1e1008'); g.addColorStop(0.5, '#3a2010'); g.addColorStop(1, '#1e1008');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 256);
   ctx.strokeStyle = 'rgba(212,175,90,1)'; ctx.lineWidth = 8;
   roundRect(ctx, 12, 12, 512 - 24, 256 - 24, 20); ctx.stroke();
   ctx.strokeStyle = 'rgba(212,175,90,0.4)'; ctx.lineWidth = 3;
   roundRect(ctx, 26, 26, 512 - 52, 256 - 52, 14); ctx.stroke();
 
-  // Ícone de álbum (livro) à esquerda
   const bx = 60, by = 55, bw = 130, bh = 146;
-  // Capa
   ctx.fillStyle = 'rgba(10,60,40,0.9)';
-  ctx.strokeStyle = 'rgba(212,175,90,0.95)';
-  ctx.lineWidth = 5;
-  roundRect(ctx, bx, by, bw, bh, 10);
-  ctx.fill(); ctx.stroke();
-  // Lombada
+  ctx.strokeStyle = 'rgba(212,175,90,0.95)'; ctx.lineWidth = 5;
+  roundRect(ctx, bx, by, bw, bh, 10); ctx.fill(); ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(bx + 22, by);
-  ctx.lineTo(bx + 22, by + bh);
-  ctx.strokeStyle = 'rgba(212,175,90,0.85)';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-  // Páginas (linhas)
-  ctx.strokeStyle = 'rgba(240,220,180,0.5)';
-  ctx.lineWidth = 2;
+  ctx.moveTo(bx + 22, by); ctx.lineTo(bx + 22, by + bh);
+  ctx.strokeStyle = 'rgba(212,175,90,0.85)'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.strokeStyle = 'rgba(240,220,180,0.5)'; ctx.lineWidth = 2;
   for (let i = 0; i < 6; i++) {
     ctx.beginPath();
     ctx.moveTo(bx + 34, by + 24 + i * 20);
     ctx.lineTo(bx + bw - 14, by + 24 + i * 20);
     ctx.stroke();
   }
-  // Emblema G.I na capa
   ctx.fillStyle = 'rgba(212,175,90,1)';
   ctx.font = 'bold 26px Georgia, serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('G·I', bx + bw / 2, by + bh - 30);
 
-  // Texto à direita
   ctx.fillStyle = '#ffe8a0';
   ctx.font = 'bold 44px Georgia, serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -2078,37 +2468,23 @@ function makeBraceletTexture() {
   ctx.fillText('ÁLBUM', 220, 158);
   ctx.shadowBlur = 0;
 
-  // Pequena seta / indicador
-  ctx.fillStyle = 'rgba(212,175,90,0.7)';
-  ctx.beginPath();
-  ctx.moveTo(220, 195);
-  ctx.lineTo(360, 195);
-  ctx.lineTo(360, 200);
-  ctx.lineTo(220, 200);
-  ctx.closePath();
-  ctx.fill();
-
   const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
 const BRACELET_TEX = makeBraceletTexture();
 
 function buildBracelet() {
   const g = new THREE.Group();
-
-  // Base do bracelete — cilindro aberto (anel ao redor do pulso)
-  const baseGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.05, 24, 1, true);
-  const baseMat = new THREE.MeshStandardMaterial({
-    color: 0x2a1a0a, roughness: 0.6, metalness: 0.4,
-    side: THREE.DoubleSide, emissive: 0x2a1005, emissiveIntensity: 0.3
-  });
-  const base = new THREE.Mesh(baseGeo, baseMat);
-  base.rotation.z = Math.PI / 2; // eixo do cilindro segue X (o pulso)
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.055, 0.055, 0.05, 24, 1, true),
+    new THREE.MeshStandardMaterial({
+      color: 0x2a1a0a, roughness: 0.6, metalness: 0.4,
+      side: THREE.DoubleSide, emissive: 0x2a1005, emissiveIntensity: 0.3
+    })
+  );
+  base.rotation.z = Math.PI / 2;
   g.add(base);
-
-  // Anel dourado
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(0.058, 0.006, 10, 32),
     new THREE.MeshStandardMaterial({
@@ -2118,21 +2494,15 @@ function buildBracelet() {
   );
   ring.rotation.y = Math.PI / 2;
   g.add(ring);
-
-  // ★ Ícone/placa com o desenho do álbum ★
-  // Posicionado na parte externa do pulso (frente da mão)
   const iconPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(0.09, 0.045),
     new THREE.MeshBasicMaterial({
-      map: BRACELET_TEX, transparent: true, side: THREE.DoubleSide,
-      depthWrite: false
+      map: BRACELET_TEX, transparent: true, side: THREE.DoubleSide, depthWrite: false
     })
   );
   iconPlane.position.set(0, 0.055, 0);
   iconPlane.rotation.x = -Math.PI / 2;
   g.add(iconPlane);
-
-  // Aura brilhante
   const aura = new THREE.Mesh(
     new THREE.SphereGeometry(0.10, 16, 12),
     new THREE.MeshBasicMaterial({
@@ -2140,170 +2510,45 @@ function buildBracelet() {
       blending: THREE.AdditiveBlending, depthWrite: false
     })
   );
-  aura.rotation.z = Math.PI / 2;
   g.add(aura);
-
-  // Hitbox maior para facilitar clique
   const hitbox = new THREE.Mesh(
     new THREE.SphereGeometry(0.12, 10, 8),
     new THREE.MeshBasicMaterial({ visible: false })
   );
   g.add(hitbox);
-
   g.userData.hitbox = hitbox;
   g.userData.aura = aura;
   g.userData.iconPlane = iconPlane;
   return g;
 }
 
-// Cria 2 braceletes — vão ser posicionados dinamicamente
 const braceletL = buildBracelet();
 const braceletR = buildBracelet();
 braceletL.visible = false;
 braceletR.visible = false;
 scene.add(braceletL, braceletR);
 
-/* ============================================================
-   ★ POSICIONAMENTO DO BRACELETE (mão ou controle) ★
-   ============================================================ */
 function updateBraceletTransform(hand, controller, grip, bracelet) {
-  if (!isVRActive()) {
-    bracelet.visible = false;
-    return;
-  }
-
-  // Verifica se hand tracking está ativo para este inputSource
+  if (!isVRActive()) { bracelet.visible = false; return; }
   const inputSource = controller.inputSource;
   const usingHand = inputSource && inputSource.hand && !inputSource.gamepad;
-
   if (usingHand && hand && hand.joints) {
-    // Tenta usar o wrist joint
     const wrist = hand.joints['wrist'];
     if (wrist) {
-      const wristPos = new THREE.Vector3();
-      const wristQuat = new THREE.Quaternion();
-      wrist.getWorldPosition(wristPos);
-      wrist.getWorldQuaternion(wristQuat);
-      bracelet.position.copy(wristPos);
-      bracelet.quaternion.copy(wristQuat);
+      wrist.getWorldPosition(bracelet.position);
+      wrist.getWorldQuaternion(bracelet.quaternion);
       bracelet.visible = true;
       return;
     }
   }
-
-  // Fallback: controller grip
-  if (grip && grip.visible !== false) {
-    const gripPos = new THREE.Vector3();
-    const gripQuat = new THREE.Quaternion();
-    grip.getWorldPosition(gripPos);
-    grip.getWorldQuaternion(gripQuat);
-    bracelet.position.copy(gripPos);
-    bracelet.quaternion.copy(gripQuat);
+  if (grip) {
+    grip.getWorldPosition(bracelet.position);
+    grip.getWorldQuaternion(bracelet.quaternion);
     bracelet.visible = true;
     return;
   }
-
   bracelet.visible = false;
 }
-
-/* ============================================================
-   ★ VOZ — Reconhecimento de fala "livro" ★
-   ============================================================ */
-let speechRecognition = null;
-let voiceActive = false;
-
-function initVoiceRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    console.warn('Reconhecimento de voz não suportado neste navegador');
-    voiceStatusEl.textContent = '⚠️ Voz indisponível';
-    return false;
-  }
-  try {
-    speechRecognition = new SR();
-    speechRecognition.continuous = true;
-    speechRecognition.interimResults = false;
-    speechRecognition.lang = 'pt-BR';
-    speechRecognition.maxAlternatives = 1;
-
-    speechRecognition.onresult = (event) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          const text = event.results[i][0].transcript.toLowerCase().trim();
-          console.log('🎤 Voz detectada:', text);
-          if (text.includes('livro') || text.includes('álbum') || text.includes('album') || text.includes('abrir')) {
-            console.log('✅ Comando reconhecido — mostrando álbum');
-            showAlbumInFront();
-            // Feedback visual
-            voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Álbum invocado!';
-            setTimeout(() => {
-              voiceStatusEl.innerHTML = '<span class="dot"></span>🎤 Ouvindo: diga "livro"';
-            }, 2000);
-          }
-        }
-      }
-    };
-
-    speechRecognition.onerror = (e) => {
-      if (e.error === 'not-allowed') {
-        console.warn('Permissão de microfone negada');
-        voiceStatusEl.innerHTML = '⚠️ Microfone bloqueado';
-      } else if (e.error !== 'no-speech') {
-        console.warn('Erro de voz:', e.error);
-      }
-    };
-
-    speechRecognition.onend = () => {
-      if (voiceActive) {
-        // Reinicia automaticamente
-        try { speechRecognition.start(); } catch (e) {}
-      }
-    };
-
-    return true;
-  } catch (e) {
-    console.warn('Erro ao iniciar voz:', e);
-    return false;
-  }
-}
-
-function startVoice() {
-  if (!speechRecognition) {
-    if (!initVoiceRecognition()) return;
-  }
-  if (speechRecognition && !voiceActive) {
-    try {
-      speechRecognition.start();
-      voiceActive = true;
-      voiceStatusEl.classList.add('listening');
-      console.log('🎤 Voz ativa');
-    } catch (e) {
-      console.warn('Erro ao iniciar voz:', e);
-    }
-  }
-}
-
-function stopVoice() {
-  if (speechRecognition && voiceActive) {
-    voiceActive = false;
-    try { speechRecognition.stop(); } catch (e) {}
-    voiceStatusEl.classList.remove('listening');
-    console.log('🔇 Voz desativada');
-  }
-}
-
-// Inicia voz no primeiro clique do usuário (navegadores exigem interação)
-document.body.addEventListener('click', () => {
-  if (!voiceActive) startVoice();
-}, { once: true });
-
-// Também inicia no Preview VR
-previewBtn.addEventListener('click', () => { setTimeout(startVoice, 300); });
-
-/* ============================================================
-   CONTROLES VR — SELECT e BOTÕES
-   ============================================================ */
-const tempMatrix = new THREE.Matrix4();
 
 function checkBraceletHit(origin, dir) {
   raycaster.set(origin, dir);
@@ -2311,40 +2556,27 @@ function checkBraceletHit(origin, dir) {
   for (let i = 0; i < bracelets.length; i++) {
     const b = bracelets[i];
     if (!b.visible) continue;
-    if (raycaster.intersectObject(b.userData.hitbox, false).length > 0) {
-      return true;
-    }
+    if (raycaster.intersectObject(b.userData.hitbox, false).length > 0) return true;
   }
   return false;
 }
 
+const tempMatrix = new THREE.Matrix4();
 function handleSelectStart(event) {
   const controller = event.target;
   tempMatrix.identity().extractRotation(controller.matrixWorld);
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
-  // 1) Bracelete → invocar álbum
   if (checkBraceletHit(raycaster.ray.origin, raycaster.ray.direction)) {
-    showAlbumInFront();
-    return;
+    showAlbumInFront(); return;
   }
-
-  // 2) Carta inspecionada (agarrar)
   if (tryStartCardGrab(controller)) return;
-
-  // 3) Livro (agarrar)
   if (tryStartBookGrab(controller)) return;
-
-  // 4) Páginas (folhear)
   if (state.mode === 'open' || state.mode === 'flipping') {
-    const hitsL = raycaster.intersectObject(pageHitboxLeft, false);
-    const hitsR = raycaster.intersectObject(pageHitboxRight, false);
-    if (hitsR.length > 0 && state.spread < MAX_SPREAD) { flipForward(); return; }
-    if (hitsL.length > 0 && state.spread > 1) { flipBack(); return; }
+    if (raycaster.intersectObject(pageHitboxRight, false).length > 0 && state.spread < MAX_SPREAD) { flipForward(); return; }
+    if (raycaster.intersectObject(pageHitboxLeft, false).length > 0 && state.spread > 1) { flipBack(); return; }
   }
-
-  // 5) Ações normais
   if (state.mode === 'closed') {
     if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) openAlbum();
     return;
@@ -2360,10 +2592,7 @@ function handleSelectStart(event) {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) returnInspectedCard();
   }
 }
-function handleSelectEnd() {
-  endCardGrab();
-  endBookGrab();
-}
+function handleSelectEnd() { endCardGrab(); endBookGrab(); }
 controller0.addEventListener('selectstart', handleSelectStart);
 controller0.addEventListener('selectend', handleSelectEnd);
 controller1.addEventListener('selectstart', handleSelectStart);
@@ -2379,7 +2608,6 @@ function pollControllerButtons() {
     const aPressed = gp.buttons[4] ? gp.buttons[4].pressed : false;
     const bPressed = gp.buttons[5] ? gp.buttons[5].pressed : false;
     const squeezePressed = gp.buttons[1] ? gp.buttons[1].pressed : false;
-
     if (aPressed && !controllerBtnStates[i].a) {
       if (state.mode === 'inspecting' && state.summoned) toggleCardTerrain();
       else showAlbumInFront();
@@ -2389,26 +2617,20 @@ function pollControllerButtons() {
       else if (state.mode === 'closed') openAlbum();
       else if (state.mode === 'open') closeAlbum();
     }
-    if (squeezePressed && !controllerBtnStates[i].squeeze) {
-      showAlbumInFront();
-    }
+    if (squeezePressed && !controllerBtnStates[i].squeeze) showAlbumInFront();
     controllerBtnStates[i].a = aPressed;
     controllerBtnStates[i].b = bPressed;
     controllerBtnStates[i].squeeze = squeezePressed;
   });
 }
 
-/* SESSÃO VR */
 renderer.xr.addEventListener('sessionstart', () => {
   extendedGroup.visible = true;
   zodiacGroup.visible = true;
   showAlbumInFront();
   controllerBtnStates[0] = { a: false, b: false, squeeze: false };
   controllerBtnStates[1] = { a: false, b: false, squeeze: false };
-
-  // Inicia voz
-  setTimeout(startVoice, 1000);
-
+  setTimeout(startVoice, 1500);
   refreshUI();
 });
 renderer.xr.addEventListener('sessionend', () => {
@@ -2416,12 +2638,12 @@ renderer.xr.addEventListener('sessionend', () => {
   disableBookVR();
   endBookGrab();
   endCardGrab();
-  stopVoice();
   state.mode = 'closed'; state.spread = 0;
   coverInfo.pivot.rotation.z = 0;
   coverInfo.pivot.position.y = coverInfo.originalY;
   sheet1.pivot.rotation.z = 0; sheet1.pivot.position.y = sheet1.originalY;
   sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
+  constellationNameEl.classList.remove('show');
   camera.position.copy(CAM_CLOSED);
   controls.target.copy(TARGET_CLOSED);
   controls.enabled = true;
@@ -2429,7 +2651,6 @@ renderer.xr.addEventListener('sessionend', () => {
   refreshUI();
 });
 
-/* RESIZE */
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
@@ -2455,12 +2676,14 @@ renderer.setAnimationLoop(() => {
   updateCardGrab();
   updateBookVRTransform(dt);
 
-  // ★ Atualiza posição dos braceletes ★
+  // ★ Detecção de apontar para constelações ★
+  updateConstellationPointing(dt, tGlobal);
+
+  // Braceletes
   if (hand0 && hand1) {
     updateBraceletTransform(hand0, controller0, grip0, braceletL);
     updateBraceletTransform(hand1, controller1, grip1, braceletR);
   } else {
-    // Sem hand tracking: usa apenas controles
     if (grip0) {
       grip0.getWorldPosition(braceletL.position);
       grip0.getWorldQuaternion(braceletL.quaternion);
@@ -2472,8 +2695,6 @@ renderer.setAnimationLoop(() => {
       braceletR.visible = isVRActive();
     }
   }
-
-  // Animação dos braceletes
   [braceletL, braceletR].forEach((b, i) => {
     if (!b.visible) return;
     if (b.userData.aura) {
@@ -2482,19 +2703,21 @@ renderer.setAnimationLoop(() => {
       b.userData.aura.material.opacity = 0.10 + Math.sin(tGlobal * 3 + i) * 0.08;
     }
     if (b.userData.iconPlane) {
-      // Leve flutuação
       b.userData.iconPlane.position.y = 0.055 + Math.sin(tGlobal * 2 + i) * 0.003;
     }
   });
 
   skyMesh.rotation.y += dt * 0.0015;
 
+  // ★ Estrelas ★
   for (let i = 0; i < starLayers.length; i++) {
     const layer = starLayers[i];
     layer.material.opacity = layer.userData.baseOpacity *
       (0.75 + Math.sin(tGlobal * layer.userData.pulseSpeed + layer.userData.pulsePhase) * 0.25);
     layer.rotation.y += dt * (0.001 + i * 0.0004);
   }
+
+  // ★ Estrelas das constelações ★
   for (let i = 0; i < allPulsingStars.length; i++) {
     const s = allPulsingStars[i];
     const base = s.userData.baseScale;
@@ -2503,23 +2726,42 @@ renderer.setAnimationLoop(() => {
     s.material.opacity = s.userData.baseOpacity *
       (0.65 + Math.sin(tGlobal * s.userData.pulseSpeed * 1.3 + s.userData.pulsePhase) * 0.35);
   }
-  [zodiacGroup, extendedGroup].forEach(grp => {
-    if (!grp.visible) return;
-    for (let i = 0; i < grp.children.length; i++) {
-      const c = grp.children[i];
-      if (c.userData.lineMat) {
-        c.userData.lineMat.opacity = c.userData.baseLineOpacity *
-          (0.7 + Math.sin(tGlobal * 1.4 + c.userData.phase) * 0.3);
-      }
+
+  // ★ Linhas das constelações ★
+  for (let ci = 0; ci < allConstellations.length; ci++) {
+    const c = allConstellations[ci];
+    if (c.parent && c.parent.visible === false) continue;
+    if (c.userData.lineMat) {
+      const boost = 1 + (c.userData.highlightIntensity || 0) * 1.5;
+      c.userData.lineMat.opacity = c.userData.baseLineOpacity * boost *
+        (0.7 + Math.sin(tGlobal * 1.4 + c.userData.phase) * 0.3);
     }
-  });
-  const nebs = nebulaGroup.children;
-  for (let i = 0; i < nebs.length; i++) {
-    const n = nebs[i];
-    n.material.opacity = n.userData.baseOpacity *
-      (0.78 + Math.sin(tGlobal * n.userData.pulseSpeed + n.userData.pulsePhase) * 0.22);
   }
 
+  // ★ NEBULOSAS — movimento próprio ★
+  for (let i = 0; i < nebulaLayers.length; i++) {
+    const n = nebulaLayers[i];
+    const u = n.userData;
+
+    // Drift orbital próprio (não depende do visor!)
+    const dx = Math.sin(tGlobal * u.driftSpeedX + u.driftPhaseX) * u.driftRadius;
+    const dy = Math.sin(tGlobal * u.driftSpeedY + u.driftPhaseY) * u.driftRadius * 0.6;
+    const dz = Math.cos(tGlobal * u.driftSpeedZ + u.driftPhaseZ) * u.driftRadius;
+    n.position.set(u.baseX + dx, u.baseY + dy, u.baseZ + dz);
+
+    // Rotação própria lenta
+    n.material.rotation += u.rotSpeed * dt * 5;
+
+    // Pulsação de opacidade
+    const pulseOp = 0.78 + Math.sin(tGlobal * u.pulseSpeed + u.pulsePhase) * 0.22;
+    n.material.opacity = u.baseOpacity * pulseOp;
+
+    // Pulsação de escala (efeito "respirando")
+    const scalePulse = 1 + Math.sin(tGlobal * u.pulseSpeed * 1.7 + u.pulsePhase) * u.scalePulse;
+    n.scale.set(u.baseScaleX * scalePulse, u.baseScaleY * scalePulse, 1);
+  }
+
+  // Estrelas cadentes
   shootingStarTimer += dt;
   if (shootingStarTimer > SHOOTING_INTERVAL) {
     shootingStarTimer = 0;
