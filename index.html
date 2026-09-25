@@ -148,6 +148,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 /* ============================================================
    DADOS
@@ -385,21 +388,15 @@ function makeInsideCoverTexture() {
   return tex;
 }
 
-/* ★ CONTRACAPA CORRIGIDA — rotate 180° ★ */
 function makeBackCoverInsideTexture() {
   const cv = document.createElement('canvas');
   cv.width = TW; cv.height = TH;
   const ctx = cv.getContext('2d');
-
-  // ★ CORREÇÃO: rotaciona 180° para o texto aparecer certo ★
   ctx.translate(TW, TH);
   ctx.rotate(Math.PI);
-
   const g = ctx.createLinearGradient(0, 0, TW, TH);
   g.addColorStop(0, '#efe3ca'); g.addColorStop(1, '#d4bf99');
   ctx.fillStyle = g; ctx.fillRect(0, 0, TW, TH);
-
-  // Textura de pergaminho
   ctx.save(); ctx.globalAlpha = 0.06;
   for (let i = 0; i < 800; i++) {
     const x = Math.random() * TW, y = Math.random() * TH;
@@ -407,14 +404,10 @@ function makeBackCoverInsideTexture() {
     ctx.beginPath(); ctx.arc(x, y, Math.random() * 2, 0, 7); ctx.fill();
   }
   ctx.restore();
-
-  // Borda
   ctx.strokeStyle = 'rgba(138,111,74,0.55)'; ctx.lineWidth = 3;
   roundRect(ctx, 24, 24, TW - 48, TH - 48, 20); ctx.stroke();
   ctx.strokeStyle = 'rgba(138,111,74,0.28)'; ctx.lineWidth = 1.5;
   roundRect(ctx, 40, 40, TW - 80, TH - 80, 16); ctx.stroke();
-
-  // Emblema central
   ctx.save();
   ctx.translate(TW / 2, TH * 0.62);
   ctx.strokeStyle = 'rgba(138,111,74,0.6)'; ctx.lineWidth = 4;
@@ -427,23 +420,17 @@ function makeBackCoverInsideTexture() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('✦', 0, 2);
   ctx.restore();
-
-  // Texto principal
   ctx.fillStyle = '#5c4527';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = 'italic bold 42px Georgia, serif';
   ctx.fillText('Fim da coleção', TW / 2, TH * 0.30);
-
   ctx.font = 'italic 26px Georgia, serif';
   ctx.fillStyle = 'rgba(92,69,39,0.8)';
   ctx.fillText('que a magia acompanhe', TW / 2, TH * 0.38);
   ctx.fillText('seus próximos passos', TW / 2, TH * 0.38 + 36);
-
-  // Ornamento inferior
   ctx.fillStyle = 'rgba(138,111,74,0.6)';
   ctx.font = '22px Georgia, serif';
   ctx.fillText('❦  ❦  ❦', TW / 2, TH * 0.80);
-
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
@@ -498,7 +485,9 @@ function makeTerrainTexture() {
 }
 const TERRAIN_TEX = makeTerrainTexture();
 
-/* ★ HOLOGRAMAS — TINT PARA EMOJI COLORIDO ★ */
+/* ============================================================
+   HOLOGRAMAS
+   ============================================================ */
 const holoTexCache = new Map();
 function getHoloCoreTex(emoji, tintHex) {
   const key = 'core_' + emoji + tintHex;
@@ -509,7 +498,6 @@ function getHoloCoreTex(emoji, tintHex) {
   const ctx = cv.getContext('2d');
   ctx.font = `${Math.round(S * 0.78)}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  // ★ Glow colorido ao redor
   ctx.shadowColor = tintHex; ctx.shadowBlur = 60;
   ctx.fillStyle = '#fff';
   ctx.fillText(emoji, S/2, S/2);
@@ -636,31 +624,645 @@ function makeNebulaTex(hue, seed) {
   return tex;
 }
 
-function makeAnimalTexture(emoji, color = '#ffd966') {
-  const S = 256;
+/* ============================================================
+   ★ SILHUETAS VETORIAIS DETALHADAS DAS CONSTELAÇÕES ★
+   Estilo Saint Seiya: Awakening
+   ============================================================ */
+const silhouetteCache = new Map();
+
+function drawSilhouettePath(p, name, cx, cy, u) {
+  const n = name.toLowerCase();
+  switch (n) {
+    case 'áries': case 'aries': {
+      // Carneiro com chifres espiralados
+      p.moveTo(cx - 55*u, cy + 5*u);
+      p.bezierCurveTo(cx - 95*u, cy - 30*u, cx - 85*u, cy - 85*u, cx - 35*u, cy - 70*u);
+      p.bezierCurveTo(cx - 20*u, cy - 85*u, cx - 5*u, cy - 85*u, cx + 5*u, cy - 70*u);
+      p.bezierCurveTo(cx + 55*u, cy - 85*u, cx + 95*u, cy - 30*u, cx + 55*u, cy + 5*u);
+      p.lineTo(cx + 40*u, cy + 55*u);
+      p.lineTo(cx + 15*u, cy + 40*u);
+      p.lineTo(cx, cy + 55*u);
+      p.lineTo(cx - 15*u, cy + 40*u);
+      p.lineTo(cx - 40*u, cy + 55*u);
+      p.closePath();
+      break;
+    }
+    case 'touro': {
+      // Cabeça de touro com chifres
+      p.moveTo(cx - 70*u, cy - 5*u);
+      p.bezierCurveTo(cx - 105*u, cy - 55*u, cx - 60*u, cy - 80*u, cx - 30*u, cy - 60*u);
+      p.bezierCurveTo(cx - 20*u, cy - 85*u, cx + 20*u, cy - 85*u, cx + 30*u, cy - 60*u);
+      p.bezierCurveTo(cx + 60*u, cy - 80*u, cx + 105*u, cy - 55*u, cx + 70*u, cy - 5*u);
+      p.bezierCurveTo(cx + 55*u, cy + 40*u, cx + 20*u, cy + 60*u, cx, cy + 60*u);
+      p.bezierCurveTo(cx - 20*u, cy + 60*u, cx - 55*u, cy + 40*u, cx - 70*u, cy - 5*u);
+      p.closePath();
+      break;
+    }
+    case 'gêmeos': case 'gemeos': {
+      // Dois irmãos lado a lado
+      // Cabeça esquerda
+      p.moveTo(cx - 30*u, cy - 70*u);
+      p.arc(cx - 30*u, cy - 60*u, 20*u, 0, Math.PI * 2);
+      // Corpo esquerdo
+      p.moveTo(cx - 55*u, cy - 35*u);
+      p.lineTo(cx - 5*u, cy - 35*u);
+      p.lineTo(cx - 5*u, cy + 55*u);
+      p.lineTo(cx - 55*u, cy + 55*u);
+      p.closePath();
+      // Cabeça direita
+      p.moveTo(cx + 30*u, cy - 70*u);
+      p.arc(cx + 30*u, cy - 60*u, 20*u, 0, Math.PI * 2);
+      // Corpo direito
+      p.moveTo(cx + 5*u, cy - 35*u);
+      p.lineTo(cx + 55*u, cy - 35*u);
+      p.lineTo(cx + 55*u, cy + 55*u);
+      p.lineTo(cx + 5*u, cy + 55*u);
+      p.closePath();
+      break;
+    }
+    case 'câncer': case 'cancer': {
+      // Caranguejo
+      p.ellipse(cx, cy, 50*u, 32*u, 0, 0, Math.PI * 2);
+      // Pinças
+      p.moveTo(cx - 40*u, cy - 20*u);
+      p.lineTo(cx - 90*u, cy - 55*u);
+      p.lineTo(cx - 75*u, cy - 30*u);
+      p.lineTo(cx - 100*u, cy - 30*u);
+      p.closePath();
+      p.moveTo(cx + 40*u, cy - 20*u);
+      p.lineTo(cx + 90*u, cy - 55*u);
+      p.lineTo(cx + 75*u, cy - 30*u);
+      p.lineTo(cx + 100*u, cy - 30*u);
+      p.closePath();
+      // Patas
+      for (let i = 0; i < 3; i++) {
+        p.moveTo(cx - 35*u, cy + 10*u + i * 15*u);
+        p.lineTo(cx - 85*u, cy + 25*u + i * 15*u);
+        p.lineTo(cx - 75*u, cy + 15*u + i * 15*u);
+        p.closePath();
+        p.moveTo(cx + 35*u, cy + 10*u + i * 15*u);
+        p.lineTo(cx + 85*u, cy + 25*u + i * 15*u);
+        p.lineTo(cx + 75*u, cy + 15*u + i * 15*u);
+        p.closePath();
+      }
+      break;
+    }
+    case 'leão': case 'leao': {
+      // Leão com juba
+      p.arc(cx, cy - 15*u, 60*u, 0, Math.PI * 2); // juba
+      p.moveTo(cx - 35*u, cy - 15*u);
+      p.arc(cx, cy - 15*u, 35*u, 0, Math.PI * 2); // rosto
+      // Corpo
+      p.moveTo(cx - 55*u, cy + 40*u);
+      p.quadraticCurveTo(cx, cy + 70*u, cx + 55*u, cy + 40*u);
+      p.lineTo(cx + 40*u, cy + 75*u);
+      p.lineTo(cx - 40*u, cy + 75*u);
+      p.closePath();
+      break;
+    }
+    case 'virgem': {
+      // Virgem com asas
+      p.moveTo(cx, cy - 70*u);
+      p.bezierCurveTo(cx - 30*u, cy - 55*u, cx - 40*u, cy - 20*u, cx - 30*u, cy + 10*u);
+      p.bezierCurveTo(cx - 20*u, cy + 55*u, cx + 20*u, cy + 55*u, cx + 30*u, cy + 10*u);
+      p.bezierCurveTo(cx + 40*u, cy - 20*u, cx + 30*u, cy - 55*u, cx, cy - 70*u);
+      p.closePath();
+      // Asas
+      p.moveTo(cx - 30*u, cy - 30*u);
+      p.bezierCurveTo(cx - 90*u, cy - 60*u, cx - 100*u, cy, cx - 50*u, cy - 5*u);
+      p.moveTo(cx + 30*u, cy - 30*u);
+      p.bezierCurveTo(cx + 90*u, cy - 60*u, cx + 100*u, cy, cx + 50*u, cy - 5*u);
+      break;
+    }
+    case 'libra': {
+      // Balança da justiça
+      p.moveTo(cx - 5*u, cy - 70*u);
+      p.lineTo(cx + 5*u, cy - 70*u);
+      p.lineTo(cx + 5*u, cy + 60*u);
+      p.lineTo(cx - 5*u, cy + 60*u);
+      p.closePath();
+      p.moveTo(cx - 60*u, cy - 55*u);
+      p.lineTo(cx + 60*u, cy - 55*u);
+      p.lineTo(cx + 60*u, cy - 45*u);
+      p.lineTo(cx - 60*u, cy - 45*u);
+      p.closePath();
+      // Pratos
+      p.arc(cx - 60*u, cy - 15*u, 22*u, 0, Math.PI * 2);
+      p.arc(cx + 60*u, cy - 15*u, 22*u, 0, Math.PI * 2);
+      // Base
+      p.moveTo(cx - 40*u, cy + 60*u);
+      p.lineTo(cx + 40*u, cy + 60*u);
+      p.lineTo(cx + 30*u, cy + 75*u);
+      p.lineTo(cx - 30*u, cy + 75*u);
+      p.closePath();
+      break;
+    }
+    case 'escorpião': case 'escorpiao': {
+      // Escorpião curvo com ferrão
+      p.moveTo(cx - 60*u, cy + 50*u);
+      p.bezierCurveTo(cx - 80*u, cy - 20*u, cx - 30*u, cy - 60*u, cx + 30*u, cy - 55*u);
+      p.bezierCurveTo(cx + 80*u, cy - 50*u, cx + 90*u, cy - 10*u, cx + 70*u, cy + 20*u);
+      p.bezierCurveTo(cx + 60*u, cy + 35*u, cx + 50*u, cy + 25*u, cx + 55*u, cy + 10*u);
+      p.lineTo(cx + 50*u, cy + 5*u);
+      p.lineTo(cx + 35*u, cy + 20*u);
+      p.bezierCurveTo(cx + 30*u, cy - 30*u, cx - 20*u, cy - 35*u, cx - 45*u, cy + 10*u);
+      p.bezierCurveTo(cx - 55*u, cy + 30*u, cx - 60*u, cy + 45*u, cx - 60*u, cy + 50*u);
+      p.closePath();
+      // Ferrão
+      p.moveTo(cx + 55*u, cy - 30*u);
+      p.lineTo(cx + 75*u, cy - 65*u);
+      p.lineTo(cx + 65*u, cy - 40*u);
+      p.closePath();
+      break;
+    }
+    case 'sagitário': case 'sagitario': {
+      // Centauro com arco
+      // Tronco humano
+      p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
+      p.moveTo(cx - 50*u, cy - 20*u);
+      p.lineTo(cx - 10*u, cy - 20*u);
+      p.lineTo(cx - 10*u, cy + 15*u);
+      p.lineTo(cx - 50*u, cy + 15*u);
+      p.closePath();
+      // Corpo do cavalo
+      p.moveTo(cx - 70*u, cy + 15*u);
+      p.lineTo(cx + 60*u, cy + 15*u);
+      p.lineTo(cx + 55*u, cy + 60*u);
+      p.lineTo(cx - 60*u, cy + 60*u);
+      p.closePath();
+      // Arco
+      p.moveTo(cx + 40*u, cy - 55*u);
+      p.quadraticCurveTo(cx + 100*u, cy - 40*u, cx + 90*u, cy + 20*u);
+      p.lineTo(cx + 80*u, cy + 20*u);
+      p.quadraticCurveTo(cx + 88*u, cy - 35*u, cx + 40*u, cy - 45*u);
+      p.closePath();
+      break;
+    }
+    case 'capricórnio': case 'capricornio': {
+      // Cabra com cauda de peixe
+      p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
+      p.moveTo(cx - 55*u, cy - 25*u);
+      p.lineTo(cx - 5*u, cy - 25*u);
+      p.lineTo(cx - 5*u, cy + 25*u);
+      p.lineTo(cx - 55*u, cy + 25*u);
+      p.closePath();
+      // Cauda de peixe
+      p.moveTo(cx - 5*u, cy + 5*u);
+      p.bezierCurveTo(cx + 50*u, cy - 10*u, cx + 70*u, cy + 40*u, cx + 30*u, cy + 60*u);
+      p.bezierCurveTo(cx + 60*u, cy + 40*u, cx + 80*u, cy + 20*u, cx + 60*u, cy - 10*u);
+      p.closePath();
+      // Chifres
+      p.moveTo(cx - 40*u, cy - 60*u);
+      p.lineTo(cx - 55*u, cy - 85*u);
+      p.lineTo(cx - 35*u, cy - 65*u);
+      p.closePath();
+      break;
+    }
+    case 'aquário': case 'aquario': {
+      // Aguadeiro com vaso
+      // Vaso
+      p.moveTo(cx - 50*u, cy - 40*u);
+      p.lineTo(cx + 10*u, cy - 40*u);
+      p.lineTo(cx + 20*u, cy + 10*u);
+      p.lineTo(cx - 40*u, cy + 10*u);
+      p.closePath();
+      // Alça
+      p.moveTo(cx - 50*u, cy - 30*u);
+      p.quadraticCurveTo(cx - 80*u, cy - 20*u, cx - 60*u, cy + 5*u);
+      // Água
+      p.moveTo(cx + 15*u, cy - 30*u);
+      p.bezierCurveTo(cx + 60*u, cy - 20*u, cx + 80*u, cy + 20*u, cx + 50*u, cy + 60*u);
+      p.bezierCurveTo(cx + 70*u, cy + 20*u, cx + 50*u, cy - 10*u, cx + 15*u, cy - 20*u);
+      p.closePath();
+      break;
+    }
+    case 'peixes': {
+      // Dois peixes entrelaçados
+      p.moveTo(cx - 80*u, cy - 30*u);
+      p.bezierCurveTo(cx - 50*u, cy - 60*u, cx - 10*u, cy - 50*u, cx - 10*u, cy - 20*u);
+      p.bezierCurveTo(cx - 10*u, cy + 10*u, cx - 50*u, cy + 20*u, cx - 80*u, cy - 10*u);
+      p.lineTo(cx - 75*u, cy - 20*u);
+      p.lineTo(cx - 60*u, cy - 20*u);
+      p.closePath();
+      p.moveTo(cx + 80*u, cy + 30*u);
+      p.bezierCurveTo(cx + 50*u, cy + 60*u, cx + 10*u, cy + 50*u, cx + 10*u, cy + 20*u);
+      p.bezierCurveTo(cx + 10*u, cy - 10*u, cx + 50*u, cy - 20*u, cx + 80*u, cy + 10*u);
+      p.lineTo(cx + 75*u, cy + 20*u);
+      p.lineTo(cx + 60*u, cy + 20*u);
+      p.closePath();
+      // Linha
+      p.moveTo(cx - 75*u, cy - 20*u);
+      p.quadraticCurveTo(cx, cy, cx + 75*u, cy + 20*u);
+      break;
+    }
+    case 'órion': case 'orion': {
+      // Caçador com escudo e espada
+      p.arc(cx - 10*u, cy - 55*u, 18*u, 0, Math.PI * 2); // cabeça
+      p.moveTo(cx - 30*u, cy - 35*u);
+      p.lineTo(cx + 10*u, cy - 35*u);
+      p.lineTo(cx + 20*u, cy + 30*u);
+      p.lineTo(cx - 40*u, cy + 30*u);
+      p.closePath();
+      p.moveTo(cx - 40*u, cy + 30*u);
+      p.lineTo(cx - 40*u, cy + 70*u);
+      p.lineTo(cx - 15*u, cy + 55*u);
+      p.moveTo(cx + 20*u, cy + 30*u);
+      p.lineTo(cx + 20*u, cy + 70*u);
+      p.lineTo(cx + 0*u, cy + 55*u);
+      // Escudo
+      p.arc(cx + 55*u, cy - 10*u, 30*u, 0, Math.PI * 2);
+      break;
+    }
+    case 'ursa maior': {
+      // Urso
+      p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
+      p.arc(cx + 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
+      p.moveTo(cx - 50*u, cy - 25*u);
+      p.bezierCurveTo(cx - 70*u, cy + 20*u, cx - 30*u, cy + 60*u, cx, cy + 60*u);
+      p.bezierCurveTo(cx + 30*u, cy + 60*u, cx + 70*u, cy + 20*u, cx + 50*u, cy - 25*u);
+      p.bezierCurveTo(cx + 30*u, cy - 50*u, cx - 30*u, cy - 50*u, cx - 50*u, cy - 25*u);
+      p.closePath();
+      break;
+    }
+    case 'cassiopeia': {
+      // Rainha com coroa
+      p.arc(cx, cy - 40*u, 22*u, 0, Math.PI * 2);
+      p.moveTo(cx - 40*u, cy - 15*u);
+      p.lineTo(cx + 40*u, cy - 15*u);
+      p.lineTo(cx + 30*u, cy + 55*u);
+      p.lineTo(cx - 30*u, cy + 55*u);
+      p.closePath();
+      // Coroa
+      p.moveTo(cx - 40*u, cy - 55*u);
+      p.lineTo(cx - 30*u, cy - 80*u);
+      p.lineTo(cx - 15*u, cy - 60*u);
+      p.lineTo(cx, cy - 85*u);
+      p.lineTo(cx + 15*u, cy - 60*u);
+      p.lineTo(cx + 30*u, cy - 80*u);
+      p.lineTo(cx + 40*u, cy - 55*u);
+      p.closePath();
+      break;
+    }
+    case 'perseu': {
+      // Herói com espada
+      p.arc(cx - 10*u, cy - 50*u, 20*u, 0, Math.PI * 2);
+      p.moveTo(cx - 30*u, cy - 30*u);
+      p.lineTo(cx + 10*u, cy - 30*u);
+      p.lineTo(cx + 20*u, cy + 30*u);
+      p.lineTo(cx - 40*u, cy + 30*u);
+      p.closePath();
+      // Perna
+      p.moveTo(cx - 40*u, cy + 30*u);
+      p.lineTo(cx - 40*u, cy + 70*u);
+      p.moveTo(cx + 20*u, cy + 30*u);
+      p.lineTo(cx + 20*u, cy + 70*u);
+      // Espada
+      p.moveTo(cx + 30*u, cy - 60*u);
+      p.lineTo(cx + 70*u, cy - 20*u);
+      p.lineTo(cx + 65*u, cy - 15*u);
+      p.lineTo(cx + 25*u, cy - 55*u);
+      p.closePath();
+      break;
+    }
+    case 'andrômeda': case 'andromeda': {
+      // Mulher acorrentada
+      p.arc(cx, cy - 55*u, 20*u, 0, Math.PI * 2);
+      p.moveTo(cx - 35*u, cy - 30*u);
+      p.lineTo(cx + 35*u, cy - 30*u);
+      p.lineTo(cx + 25*u, cy + 40*u);
+      p.lineTo(cx - 25*u, cy + 40*u);
+      p.closePath();
+      // Braços esticados
+      p.moveTo(cx - 35*u, cy - 20*u);
+      p.lineTo(cx - 75*u, cy - 45*u);
+      p.moveTo(cx + 35*u, cy - 20*u);
+      p.lineTo(cx + 75*u, cy - 45*u);
+      break;
+    }
+    case 'cisne': {
+      // Cisne com asas abertas
+      p.moveTo(cx - 10*u, cy - 65*u);
+      p.bezierCurveTo(cx + 15*u, cy - 70*u, cx + 20*u, cy - 40*u, cx + 5*u, cy - 25*u);
+      p.bezierCurveTo(cx - 10*u, cy - 15*u, cx - 20*u, cy - 25*u, cx - 15*u, cy - 45*u);
+      p.closePath();
+      // Corpo
+      p.moveTo(cx - 40*u, cy - 10*u);
+      p.bezierCurveTo(cx - 60*u, cy + 30*u, cx - 20*u, cy + 55*u, cx + 20*u, cy + 55*u);
+      p.bezierCurveTo(cx + 60*u, cy + 55*u, cx + 70*u, cy + 30*u, cx + 50*u, cy - 5*u);
+      p.bezierCurveTo(cx + 20*u, cy + 15*u, cx - 20*u, cy + 15*u, cx - 40*u, cy - 10*u);
+      p.closePath();
+      break;
+    }
+    case 'lira': {
+      // Lira
+      p.moveTo(cx, cy - 60*u);
+      p.bezierCurveTo(cx - 50*u, cy - 60*u, cx - 60*u, cy, cx - 30*u, cy + 40*u);
+      p.lineTo(cx - 40*u, cy + 60*u);
+      p.lineTo(cx + 40*u, cy + 60*u);
+      p.lineTo(cx + 30*u, cy + 40*u);
+      p.bezierCurveTo(cx + 60*u, cy, cx + 50*u, cy - 60*u, cx, cy - 60*u);
+      p.closePath();
+      // Cordas
+      for (let i = -1; i <= 1; i++) {
+        p.moveTo(cx + i * 15*u, cy - 55*u);
+        p.lineTo(cx + i * 15*u, cy + 55*u);
+      }
+      break;
+    }
+    case 'águia': case 'aguia': {
+      // Águia com asas abertas
+      p.moveTo(cx, cy - 55*u);
+      p.lineTo(cx - 15*u, cy - 25*u);
+      p.lineTo(cx + 15*u, cy - 25*u);
+      p.closePath();
+      // Asas
+      p.moveTo(cx - 15*u, cy - 40*u);
+      p.bezierCurveTo(cx - 90*u, cy - 60*u, cx - 100*u, cy - 10*u, cx - 60*u, cy + 5*u);
+      p.bezierCurveTo(cx - 55*u, cy - 15*u, cx - 40*u, cy - 15*u, cx - 15*u, cy - 20*u);
+      p.moveTo(cx + 15*u, cy - 40*u);
+      p.bezierCurveTo(cx + 90*u, cy - 60*u, cx + 100*u, cy - 10*u, cx + 60*u, cy + 5*u);
+      p.bezierCurveTo(cx + 55*u, cy - 15*u, cx + 40*u, cy - 15*u, cx + 15*u, cy - 20*u);
+      // Corpo
+      p.moveTo(cx - 15*u, cy - 20*u);
+      p.lineTo(cx + 15*u, cy - 20*u);
+      p.lineTo(cx + 10*u, cy + 55*u);
+      p.lineTo(cx - 10*u, cy + 55*u);
+      p.closePath();
+      break;
+    }
+    case 'centauro': {
+      p.arc(cx - 20*u, cy - 45*u, 20*u, 0, Math.PI * 2);
+      p.moveTo(cx - 40*u, cy - 25*u);
+      p.lineTo(cx, cy - 25*u);
+      p.lineTo(cx, cy + 10*u);
+      p.lineTo(cx - 40*u, cy + 10*u);
+      p.closePath();
+      p.moveTo(cx - 60*u, cy + 10*u);
+      p.lineTo(cx + 60*u, cy + 10*u);
+      p.lineTo(cx + 55*u, cy + 55*u);
+      p.lineTo(cx - 55*u, cy + 55*u);
+      p.closePath();
+      break;
+    }
+    case 'cruzeiro do sul': {
+      p.moveTo(cx, cy - 80*u);
+      p.lineTo(cx + 15*u, cy - 60*u);
+      p.lineTo(cx + 15*u, cy + 60*u);
+      p.lineTo(cx - 15*u, cy + 60*u);
+      p.lineTo(cx - 15*u, cy - 60*u);
+      p.closePath();
+      p.moveTo(cx - 70*u, cy - 15*u);
+      p.lineTo(cx - 15*u, cy - 15*u);
+      p.lineTo(cx - 15*u, cy + 15*u);
+      p.lineTo(cx - 70*u, cy + 15*u);
+      p.closePath();
+      p.moveTo(cx + 15*u, cy - 15*u);
+      p.lineTo(cx + 70*u, cy - 15*u);
+      p.lineTo(cx + 70*u, cy + 15*u);
+      p.lineTo(cx + 15*u, cy + 15*u);
+      p.closePath();
+      break;
+    }
+    case 'carina': {
+      // Navio com vela
+      p.moveTo(cx - 60*u, cy + 40*u);
+      p.lineTo(cx + 60*u, cy + 40*u);
+      p.lineTo(cx + 40*u, cy + 60*u);
+      p.lineTo(cx - 40*u, cy + 60*u);
+      p.closePath();
+      p.moveTo(cx, cy - 70*u);
+      p.lineTo(cx, cy + 40*u);
+      p.moveTo(cx, cy - 70*u);
+      p.lineTo(cx - 50*u, cy + 30*u);
+      p.lineTo(cx - 10*u, cy + 30*u);
+      p.closePath();
+      p.moveTo(cx, cy - 70*u);
+      p.lineTo(cx + 50*u, cy + 30*u);
+      p.lineTo(cx + 10*u, cy + 30*u);
+      p.closePath();
+      break;
+    }
+    case 'hidra': {
+      // Serpente sinuosa
+      p.moveTo(cx - 80*u, cy + 40*u);
+      p.bezierCurveTo(cx - 60*u, cy - 30*u, cx - 20*u, cy + 20*u, cx, cy - 20*u);
+      p.bezierCurveTo(cx + 20*u, cy - 60*u, cx + 60*u, cy + 20*u, cx + 80*u, cy - 30*u);
+      p.lineTo(cx + 75*u, cy - 25*u);
+      p.bezierCurveTo(cx + 55*u, cy + 25*u, cx + 15*u, cy - 55*u, cx - 5*u, cy - 15*u);
+      p.bezierCurveTo(cx - 25*u, cy + 25*u, cx - 60*u, cy - 25*u, cx - 80*u, cy + 45*u);
+      p.closePath();
+      break;
+    }
+    case 'corvo': {
+      // Corvo
+      p.moveTo(cx - 40*u, cy);
+      p.bezierCurveTo(cx - 70*u, cy - 40*u, cx - 30*u, cy - 60*u, cx, cy - 40*u);
+      p.bezierCurveTo(cx + 30*u, cy - 60*u, cx + 70*u, cy - 40*u, cx + 40*u, cy);
+      p.bezierCurveTo(cx + 70*u, cy + 30*u, cx + 30*u, cy + 60*u, cx, cy + 40*u);
+      p.bezierCurveTo(cx - 30*u, cy + 60*u, cx - 70*u, cy + 30*u, cx - 40*u, cy);
+      p.closePath();
+      p.moveTo(cx - 40*u, cy);
+      p.lineTo(cx - 75*u, cy + 10*u);
+      p.lineTo(cx - 45*u, cy - 5*u);
+      p.closePath();
+      break;
+    }
+    case 'cão maior': case 'cao maior': {
+      p.arc(cx - 20*u, cy - 40*u, 22*u, 0, Math.PI * 2);
+      p.moveTo(cx - 50*u, cy - 20*u);
+      p.bezierCurveTo(cx - 70*u, cy + 20*u, cx - 30*u, cy + 60*u, cx + 20*u, cy + 60*u);
+      p.bezierCurveTo(cx + 60*u, cy + 60*u, cx + 80*u, cy + 20*u, cx + 50*u, cy - 15*u);
+      p.bezierCurveTo(cx + 30*u, cy - 40*u, cx - 30*u, cy - 40*u, cx - 50*u, cy - 20*u);
+      p.closePath();
+      break;
+    }
+    case 'baleia': {
+      p.moveTo(cx - 70*u, cy);
+      p.bezierCurveTo(cx - 50*u, cy - 50*u, cx + 20*u, cy - 50*u, cx + 50*u, cy);
+      p.bezierCurveTo(cx + 80*u, cy - 20*u, cx + 90*u, cy - 50*u, cx + 75*u, cy);
+      p.bezierCurveTo(cx + 90*u, cy + 50*u, cx + 60*u, cy + 30*u, cx + 50*u, cy);
+      p.bezierCurveTo(cx + 20*u, cy + 50*u, cx - 50*u, cy + 50*u, cx - 70*u, cy);
+      p.closePath();
+      break;
+    }
+    case 'pégaso': case 'pegaso': {
+      // Corpo do cavalo
+      p.moveTo(cx - 80*u, cy - 10*u);
+      p.bezierCurveTo(cx - 60*u, cy - 60*u, cx - 20*u, cy - 55*u, cx + 20*u, cy - 45*u);
+      p.bezierCurveTo(cx + 60*u, cy - 35*u, cx + 75*u, cy + 5*u, cx + 60*u, cy + 25*u);
+      p.lineTo(cx + 30*u, cy + 40*u);
+      p.lineTo(cx + 5*u, cy + 25*u);
+      p.lineTo(cx - 40*u, cy + 40*u);
+      p.lineTo(cx - 60*u, cy + 25*u);
+      p.closePath();
+      // Pescoço e cabeça
+      p.moveTo(cx + 20*u, cy - 45*u);
+      p.bezierCurveTo(cx + 55*u, cy - 75*u, cx + 75*u, cy - 90*u, cx + 70*u, cy - 65*u);
+      p.lineTo(cx + 55*u, cy - 55*u);
+      p.bezierCurveTo(cx + 60*u, cy - 50*u, cx + 55*u, cy - 40*u, cx + 40*u, cy - 40*u);
+      p.closePath();
+      // Asa
+      p.moveTo(cx - 20*u, cy - 40*u);
+      p.bezierCurveTo(cx - 70*u, cy - 85*u, cx - 30*u, cy - 100*u, cx + 10*u, cy - 70*u);
+      p.bezierCurveTo(cx + 20*u, cy - 65*u, cx + 15*u, cy - 50*u, cx - 5*u, cy - 45*u);
+      p.closePath();
+      // Cauda
+      p.moveTo(cx - 80*u, cy - 10*u);
+      p.bezierCurveTo(cx - 100*u, cy + 20*u, cx - 85*u, cy + 50*u, cx - 70*u, cy + 40*u);
+      p.bezierCurveTo(cx - 75*u, cy + 25*u, cx - 70*u, cy + 10*u, cx - 60*u, cy + 5*u);
+      p.closePath();
+      break;
+    }
+    case 'dragão': case 'dragao': {
+      // Dragão estilizado
+      p.moveTo(cx - 80*u, cy + 30*u);
+      p.bezierCurveTo(cx - 60*u, cy - 30*u, cx - 10*u, cy - 10*u, cx + 10*u, cy - 40*u);
+      p.bezierCurveTo(cx + 30*u, cy - 70*u, cx + 60*u, cy - 50*u, cx + 70*u, cy - 20*u);
+      p.lineTo(cx + 85*u, cy - 35*u);
+      p.lineTo(cx + 70*u, cy - 5*u);
+      p.bezierCurveTo(cx + 60*u, cy + 30*u, cx + 20*u, cy + 40*u, cx - 10*u, cy + 30*u);
+      p.bezierCurveTo(cx - 30*u, cy + 25*u, cx - 50*u, cy + 40*u, cx - 80*u, cy + 30*u);
+      p.closePath();
+      // Asa
+      p.moveTo(cx - 20*u, cy - 10*u);
+      p.lineTo(cx - 50*u, cy - 60*u);
+      p.lineTo(cx - 10*u, cy - 40*u);
+      p.closePath();
+      // Olho
+      p.moveTo(cx + 65*u, cy - 25*u);
+      p.arc(cx + 65*u, cy - 25*u, 4*u, 0, Math.PI * 2);
+      break;
+    }
+    case 'hércules': case 'hercules': {
+      // Herói musculoso
+      p.arc(cx, cy - 55*u, 20*u, 0, Math.PI * 2);
+      p.moveTo(cx - 45*u, cy - 35*u);
+      p.lineTo(cx + 45*u, cy - 35*u);
+      p.lineTo(cx + 35*u, cy + 30*u);
+      p.lineTo(cx - 35*u, cy + 30*u);
+      p.closePath();
+      // Braços
+      p.moveTo(cx - 45*u, cy - 25*u);
+      p.lineTo(cx - 75*u, cy);
+      p.lineTo(cx - 65*u, cy + 15*u);
+      p.moveTo(cx + 45*u, cy - 25*u);
+      p.lineTo(cx + 75*u, cy);
+      p.lineTo(cx + 65*u, cy + 15*u);
+      // Perna
+      p.moveTo(cx - 35*u, cy + 30*u);
+      p.lineTo(cx - 30*u, cy + 70*u);
+      p.moveTo(cx + 35*u, cy + 30*u);
+      p.lineTo(cx + 30*u, cy + 70*u);
+      break;
+    }
+    case 'fênix': case 'fenix': {
+      // Fênix com asas e chamas
+      p.moveTo(cx, cy - 65*u);
+      p.bezierCurveTo(cx + 15*u, cy - 65*u, cx + 20*u, cy - 40*u, cx + 5*u, cy - 25*u);
+      p.bezierCurveTo(cx - 10*u, cy - 15*u, cx - 20*u, cy - 25*u, cx - 15*u, cy - 45*u);
+      p.closePath();
+      // Asas
+      p.moveTo(cx - 5*u, cy - 30*u);
+      p.bezierCurveTo(cx - 70*u, cy - 55*u, cx - 90*u, cy + 10*u, cx - 50*u, cy + 25*u);
+      p.bezierCurveTo(cx - 60*u, cy - 5*u, cx - 40*u, cy - 15*u, cx - 5*u, cy - 20*u);
+      p.moveTo(cx + 5*u, cy - 30*u);
+      p.bezierCurveTo(cx + 70*u, cy - 55*u, cx + 90*u, cy + 10*u, cx + 50*u, cy + 25*u);
+      p.bezierCurveTo(cx + 60*u, cy - 5*u, cx + 40*u, cy - 15*u, cx + 5*u, cy - 20*u);
+      // Cauda de chamas
+      p.moveTo(cx - 10*u, cy + 20*u);
+      p.bezierCurveTo(cx - 20*u, cy + 50*u, cx - 5*u, cy + 70*u, cx, cy + 55*u);
+      p.bezierCurveTo(cx + 5*u, cy + 70*u, cx + 20*u, cy + 50*u, cx + 10*u, cy + 20*u);
+      p.closePath();
+      break;
+    }
+    case 'pavão': case 'pavao': {
+      // Pavão com cauda aberta
+      p.arc(cx, cy - 55*u, 18*u, 0, Math.PI * 2);
+      p.moveTo(cx - 15*u, cy - 35*u);
+      p.lineTo(cx + 15*u, cy - 35*u);
+      p.lineTo(cx + 10*u, cy - 5*u);
+      p.lineTo(cx - 10*u, cy - 5*u);
+      p.closePath();
+      // Cauda em leque
+      for (let i = 0; i < 7; i++) {
+        const a = -Math.PI / 2 + (i - 3) * 0.35;
+        const ex = cx + Math.cos(a) * 80*u;
+        const ey = cy + 30*u + Math.sin(a) * 60*u;
+        p.moveTo(cx, cy + 5*u);
+        p.lineTo(ex, ey);
+        p.arc(ex, ey, 8*u, 0, Math.PI * 2);
+      }
+      break;
+    }
+    default: {
+      // Fallback: constelação estilizada (polígono estrelado)
+      const nodes = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        const r = 60 + (i % 2) * 20;
+        nodes.push([cx + Math.cos(a) * r * u, cy + Math.sin(a) * r * u]);
+      }
+      p.moveTo(nodes[0][0], nodes[0][1]);
+      for (let i = 1; i < nodes.length; i++) p.lineTo(nodes[i][0], nodes[i][1]);
+      p.closePath();
+      break;
+    }
+  }
+}
+
+function makeConstellationSilhouette(name, color = '#ffd966') {
+  const key = name + '_' + color;
+  if (silhouetteCache.has(key)) return silhouetteCache.get(key);
+
+  const S = 512;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
-  ctx.font = '200px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = color; ctx.shadowBlur = 40;
-  ctx.fillStyle = '#fff';
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 20;
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.shadowBlur = 0;
-  ctx.fillText(emoji, S/2, S/2);
+  const cx = S / 2, cy = S / 2;
+  const u = S / 220;
+
+  ctx.clearRect(0, 0, S, S);
+
+  // Gradiente interno
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, S * 0.5);
+  grad.addColorStop(0, '#ffffff');
+  grad.addColorStop(0.35, color);
+  grad.addColorStop(1, color);
+
+  // Pass 1: glow externo forte
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 50;
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  const path = new Path2D();
+  drawSilhouettePath(path, name, cx, cy, u);
+  ctx.fill(path);
+  ctx.stroke(path);
+
+  // Pass 2: brilho externo mais fino
+  ctx.shadowBlur = 80;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke(path);
+
+  // Pass 3: outline branco brilhante
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = '#ffffff';
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.lineWidth = 1;
+  ctx.stroke(path);
+
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  return tex;
-}
-const animalTexCache = new Map();
-function getAnimalTex(emoji, color) {
-  const key = emoji + '_' + color;
-  if (animalTexCache.has(key)) return animalTexCache.get(key);
-  const tex = makeAnimalTexture(emoji, color);
-  animalTexCache.set(key, tex);
+  tex.anisotropy = 8;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+
+  silhouetteCache.set(key, tex);
   return tex;
 }
 
@@ -684,6 +1286,17 @@ renderer.toneMappingExposure = 1.15;
 renderer.xr.enabled = true;
 app.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
+
+/* Post-processing (bloom) — desativado em VR */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  1.1,   // strength
+  0.55,  // radius
+  0.85   // threshold
+);
+composer.addPass(bloomPass);
 
 const TARGET_CLOSED = new THREE.Vector3(2.8, 0.7, -1.5);
 const TARGET_OPEN   = new THREE.Vector3(0, 0.3, -1.5);
@@ -781,6 +1394,39 @@ starLayers.push(makeStarLayer(250, 3.5, [30, 60], SKY_RADIUS * 0.91, 0.8));
 starLayers.push(makeStarLayer(150, 4, [10, 30], SKY_RADIUS * 0.89, 0.7));
 starLayers.forEach(l => scene.add(l));
 
+/* ★ POEIRA ESTELAR — partículas flutuantes ★ */
+(function addStarDust() {
+  const count = 2500;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < count; i++) {
+    const r = 150 + Math.random() * 500;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.cos(phi);
+    pos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
+    const hue = Math.random() < 0.3 ? 210 : (Math.random() < 0.5 ? 280 : 40);
+    c.setHSL(hue / 360, 0.7, 0.85);
+    col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.PointsMaterial({
+    size: 1.4, sizeAttenuation: true, map: STAR_POINT_TEX,
+    vertexColors: true, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
+  });
+  const dust = new THREE.Points(geo, mat);
+  dust.renderOrder = -998;
+  dust.userData.isDust = true;
+  scene.add(dust);
+  window.__starDust = dust;
+})();
+
+/* ★ NEBULOSAS EXPANDIDAS — ambiente rico estilo Saint Seiya ★ */
 const nebulaGroup = new THREE.Group();
 scene.add(nebulaGroup);
 const nebulaLayers = [];
@@ -793,6 +1439,14 @@ const NEBULAE_DEFS = [
   { az: 5.90, el: 0.10, hue: 220, size: 200, op: 0.42, sx: 1.1, sy: 0.9, rot: 1.8 },
   { az: 0.90, el: -0.25, hue: 320, size: 230, op: 0.38, sx: 1.5, sy: 0.7, rot: 2.3 },
   { az: 4.40, el: 0.55, hue: 260, size: 250, op: 0.45, sx: 1.3, sy: 1.0, rot: 0.8 },
+  { az: 0.20, el: 0.10, hue: 195, size: 300, op: 0.48, sx: 1.5, sy: 0.8, rot: 0.4 },
+  { az: 1.10, el: 0.40, hue: 300, size: 220, op: 0.52, sx: 1.0, sy: 1.2, rot: 1.0 },
+  { az: 2.30, el: -0.15, hue: 40, size: 280, op: 0.42, sx: 1.3, sy: 0.9, rot: 2.1 },
+  { az: 3.50, el: 0.25, hue: 260, size: 200, op: 0.55, sx: 1.1, sy: 1.0, rot: 0.7 },
+  { az: 4.80, el: 0.60, hue: 330, size: 260, op: 0.47, sx: 1.4, sy: 0.7, rot: 1.8 },
+  { az: 5.60, el: -0.10, hue: 210, size: 320, op: 0.50, sx: 1.6, sy: 0.9, rot: 2.5 },
+  { az: 0.70, el: 0.55, hue: 280, size: 240, op: 0.48, sx: 1.2, sy: 1.1, rot: 0.2 },
+  { az: 2.80, el: 0.15, hue: 20, size: 280, op: 0.44, sx: 1.3, sy: 0.8, rot: 1.5 },
 ];
 NEBULAE_DEFS.forEach((def, i) => {
   const tex = makeNebulaTex(def.hue, i);
@@ -937,15 +1591,18 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
     allPulsingStars.push(core);
     group.add(core);
   });
-  const animalTex = getAnimalTex(animal, '#' + new THREE.Color(color).getHexString());
+
+  // ★ SILHUETA VETORIAL DETALHADA ★
+  const silhouetteTex = makeConstellationSilhouette(name, '#' + new THREE.Color(color).getHexString());
   const animalSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: animalTex, transparent: true, opacity: 0,
+    map: silhouetteTex, transparent: true, opacity: 0,
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
   }));
   animalSprite.scale.set(0.001, 0.001, 1);
   animalSprite.position.set(0, 0, 0.5);
   group.add(animalSprite);
   group.userData.animalSprite = animalSprite;
+
   const outlinePts = localPts.map(p => new THREE.Vector3(p[0], p[1], 0.2));
   if (outlinePts.length > 1) outlinePts.push(outlinePts[0].clone());
   const outlineGeo = new THREE.BufferGeometry().setFromPoints(outlinePts);
@@ -968,6 +1625,7 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
   group.add(haloCircle);
   group.userData.haloCircle = haloCircle;
   group.userData.highlightIntensity = 0;
+  group.userData.flashed = false;
   return group;
 }
 function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.72) {
@@ -1091,7 +1749,6 @@ backCover.position.set(COVER_W / 2, Y_BACK, 0);
 backCover.receiveShadow = true; backCover.castShadow = true;
 bookGroup.add(backCover);
 
-/* ★ CONTRACAPA COM DOUBLESIDE ★ */
 const backInsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
   new THREE.MeshStandardMaterial({
@@ -1196,7 +1853,6 @@ coverMesh.position.set(COVER_W / 2, 0, 0);
 coverMesh.castShadow = true; coverMesh.receiveShadow = true;
 coverPivot.add(coverMesh);
 
-/* ★ CAPA COM DOUBLESIDE ★ */
 const coverOutsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
   new THREE.MeshStandardMaterial({
@@ -1245,7 +1901,7 @@ pageHitboxRight.position.set(PW / 2, Y_SHEET1 + 0.05, 0);
 bookGroup.add(pageHitboxRight);
 
 /* ============================================================
-   ★ HOLOGRAMA — MAIS VISÍVEL ★
+   HOLOGRAMA
    ============================================================ */
 function buildHologram(data) {
   const group = new THREE.Group();
@@ -1393,7 +2049,7 @@ function updateTweens(now) {
 }
 
 /* ============================================================
-   ★ SISTEMA VR DO LIVRO — COM MODO "NA MÃO" ★
+   SISTEMA VR DO LIVRO
    ============================================================ */
 const BOOK_VR_SCALE = 0.06;
 const BOOK_VR_Y = -0.16;
@@ -1414,11 +2070,9 @@ const bookVR = {
   visible: false
 };
 
-/* Transform da mão/controle esquerdo */
 const _leftPos = new THREE.Vector3();
 const _leftQuat = new THREE.Quaternion();
 function getLeftHandTransform() {
-  // Tenta hand tracking primeiro
   if (hand0 && hand0.joints && hand0.joints['wrist']) {
     const wrist = hand0.joints['wrist'];
     wrist.updateWorldMatrix(true, false);
@@ -1427,7 +2081,6 @@ function getLeftHandTransform() {
       return { pos: _leftPos, quat: _leftQuat };
     }
   }
-  // Fallback: grip0
   if (grip0) {
     grip0.getWorldPosition(_leftPos);
     grip0.getWorldQuaternion(_leftQuat);
@@ -1447,7 +2100,6 @@ function placeBookInFrontOfCamera() {
   bookVR.targetQuat.copy(camQuat).multiply(localRot);
 }
 
-/* ★ Mostra o álbum NA MÃO ESQUERDA ★ */
 function showAlbumInHand() {
   bookVR.active = true;
   bookVR.visible = true;
@@ -1455,19 +2107,16 @@ function showAlbumInHand() {
   bookGroup.visible = true;
 
   if (isVRActive() && getLeftHandTransform()) {
-    // Vai pra mão esquerda
     const t = getLeftHandTransform();
     const offsetLocal = new THREE.Vector3(HAND_OFFSET_X, HAND_OFFSET_Y, HAND_OFFSET_Z);
     const worldOffset = offsetLocal.clone().applyQuaternion(t.quat);
     bookVR.pos.copy(t.pos).add(worldOffset);
-
     const rotOffset = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2 + 0.4, 0, 0));
     bookVR.quat.copy(t.quat).multiply(rotOffset);
     bookGroup.position.copy(bookVR.pos);
     bookGroup.quaternion.copy(bookVR.quat);
     bookGroup.scale.setScalar(BOOK_VR_SCALE);
   } else {
-    // Desktop: mostra na frente da câmera
     bookVR.inHand = false;
     placeBookInFrontOfCamera();
     bookVR.pos.copy(bookVR.targetPos);
@@ -1509,7 +2158,6 @@ function updateBookVRTransform(dt) {
   if (!bookVR.active || !bookVR.visible) return;
 
   if (bookVR.inHand && !isGrabbingBook) {
-    // Segue a mão esquerda continuamente
     const t = getLeftHandTransform();
     if (t) {
       const offsetLocal = new THREE.Vector3(HAND_OFFSET_X, HAND_OFFSET_Y, HAND_OFFSET_Z);
@@ -1530,7 +2178,6 @@ function updateBookVRTransform(dt) {
     }
   }
 
-  // Modo livre (não segue a mão)
   const k = 1 - Math.pow(0.0005, dt);
   bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
   if (!isGrabbingBook) {
@@ -1784,7 +2431,6 @@ function computeTerrainQuat(cardPos, camPos) {
   return yawQuat.multiply(tiltQuat);
 }
 
-/* ★ SUMMON — HOLOGRAMA BEM MAIOR EM VR ★ */
 function summonHologram(card) {
   const data = card.userData.cardData;
   const inVR = isVRActive();
@@ -1792,7 +2438,6 @@ function summonHologram(card) {
   const cardWorldPos = new THREE.Vector3();
   card.getWorldPosition(cardWorldPos);
 
-  // ★ Offset e escala muito maiores em VR ★
   const yOff = inVR ? 0.30 : 2.1;
   holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, yOff, 0));
   holo.scale.setScalar(0.01);
@@ -1800,7 +2445,6 @@ function summonHologram(card) {
   state.summoned = holo;
   state.holoTime = 0;
 
-  // ★ Escala 0.30 em VR (antes era 0.08) ★
   const targetScale = inVR ? 0.30 : 0.9;
   animate(750, (t) => { holo.scale.setScalar(0.01 + t * targetScale); },
     () => { holo.scale.setScalar(targetScale); }, easeOutCubic);
@@ -2021,7 +2665,6 @@ function doInspect(card) {
   const startPos = card.position.clone();
   const startQuat = card.quaternion.clone();
   const startScale = card.scale.clone();
-  // Carta também maior em VR
   const targetScale = inVR
     ? new THREE.Vector3(0.22, 0.22, 0.22)
     : new THREE.Vector3(1.3, 1.3, 1.3);
@@ -2177,7 +2820,7 @@ attackBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerAttack(
 modeBtn.addEventListener('click', (e) => { e.stopPropagation(); resetBookPosition(); });
 
 /* ============================================================
-   ★ VOZ — CHAMA O LIVRO NA MÃO ★
+   VOZ
    ============================================================ */
 let speechRecognition = null;
 let voiceActive = false;
@@ -2210,7 +2853,6 @@ async function initVoiceRecognition() {
         if (transcript.includes('livro') || transcript.includes('álbum') ||
             transcript.includes('album') || transcript.includes('abrir') || transcript.includes('abre')) {
           console.log('✅ COMANDO LIVRO — chamando para a mão');
-          // ★ Chama o livro NA MÃO ★
           showAlbumInHand();
           voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Livro na mão!';
           setTimeout(() => {
@@ -2271,13 +2913,33 @@ document.body.addEventListener('click', () => {
   }
 });
 
-/* DETECÇÃO DE CONSTELAÇÃO */
+/* ============================================================
+   ★ DETECÇÃO DE CONSTELAÇÃO — com flash ring ★
+   ============================================================ */
 const _cameraDir = new THREE.Vector3();
 const _toConstDir = new THREE.Vector3();
 const _constPos = new THREE.Vector3();
 let currentPointedConstellation = null;
 const POINT_ANGLE_THRESHOLD = 0.85;
 const HIGHLIGHT_FADE_SPEED = 3.0;
+
+function spawnConstellationFlash(constellation) {
+  const ringGeo = new THREE.RingGeometry(0.5, 0.6, 48);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xffd966, transparent: true, opacity: 0.9,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    depthWrite: false, depthTest: false
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(constellation.position);
+  ring.lookAt(camera.position);
+  scene.add(ring);
+  animate(700, (t) => {
+    ring.scale.setScalar(1 + t * 25);
+    ringMat.opacity = 0.9 * (1 - t);
+  }, () => { scene.remove(ring); ringGeo.dispose(); ringMat.dispose(); }, easeOutCubic);
+}
+
 function updateConstellationPointing(dt, time) {
   camera.getWorldDirection(_cameraDir);
   const camPos = new THREE.Vector3();
@@ -2309,16 +2971,19 @@ function updateConstellationPointing(dt, time) {
     const current = c.userData.highlightIntensity || 0;
     const newIntensity = current + (target - current) * Math.min(1, HIGHLIGHT_FADE_SPEED * dt);
     c.userData.highlightIntensity = newIntensity;
+
     const outlineMat = c.userData.outlineMat;
     const animalSprite = c.userData.animalSprite;
     const haloCircle = c.userData.haloCircle;
     if (outlineMat) outlineMat.opacity = newIntensity * 0.9;
     if (animalSprite) {
-      const targetScale = 8 + newIntensity * 4;
+      // ★ Silhueta grande e viva quando destacada ★
+      const targetScale = 10 + newIntensity * 8;
       const currentScale = animalSprite.scale.x;
       const newScale = currentScale + (targetScale - currentScale) * Math.min(1, 5 * dt);
       animalSprite.scale.set(newScale, newScale, 1);
-      animalSprite.material.opacity = newIntensity * 0.95;
+      animalSprite.material.opacity = newIntensity * 1.0;
+      animalSprite.material.rotation += dt * 0.15 * newIntensity;
     }
     if (haloCircle) {
       haloCircle.material.opacity = newIntensity * 0.35;
@@ -2326,6 +2991,12 @@ function updateConstellationPointing(dt, time) {
       const s = 1 + Math.sin(time * 2) * 0.05;
       haloCircle.scale.set(s, s, 1);
     }
+    // ★ Flash ring ao atingir destaque máximo ★
+    if (newIntensity > 0.92 && !c.userData.flashed) {
+      c.userData.flashed = true;
+      spawnConstellationFlash(c);
+    }
+    if (newIntensity < 0.15) c.userData.flashed = false;
   }
 }
 
@@ -2411,7 +3082,7 @@ controller0.add(new THREE.Line(RAY_GEO, RAY_MAT));
 controller1.add(new THREE.Line(RAY_GEO, RAY_MAT));
 
 /* ============================================================
-   ★ BRACELETE — SÓ NO PULSO ESQUERDO ★
+   BRACELETE
    ============================================================ */
 function makeBraceletTexture() {
   const cv = document.createElement('canvas');
@@ -2516,15 +3187,12 @@ function buildBracelet() {
   return g;
 }
 
-// ★ SÓ UM BRACELETE — ESQUERDO ★
 const braceletLeft = buildBracelet();
 braceletLeft.visible = false;
 scene.add(braceletLeft);
 
 function updateBraceletTransform() {
   if (!isVRActive()) { braceletLeft.visible = false; return; }
-
-  // Tenta hand tracking primeiro (mão esquerda)
   if (hand0 && hand0.joints) {
     const wrist = hand0.joints['wrist'];
     if (wrist) {
@@ -2540,8 +3208,6 @@ function updateBraceletTransform() {
       }
     }
   }
-
-  // Fallback: grip0 (controle esquerdo)
   if (grip0) {
     const gPos = new THREE.Vector3();
     const gQuat = new THREE.Quaternion();
@@ -2552,7 +3218,6 @@ function updateBraceletTransform() {
     braceletLeft.visible = true;
     return;
   }
-
   braceletLeft.visible = false;
 }
 
@@ -2574,18 +3239,13 @@ function handleSelectStart(event) {
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
   raycaster.far = 500;
 
-  // 1) Bracelete → chamar livro NA MÃO
   if (checkBraceletHit(raycaster.ray.origin, raycaster.ray.direction)) {
     showAlbumInHand();
     return;
   }
-
-  // 2) Se inspecionando: tenta agarrar carta
   if (state.mode === 'inspecting' && state.inspectedCard) {
     if (tryStartCardGrab(controller)) return;
   }
-
-  // 3) Cartas do álbum (prioridade máxima quando aberto)
   if (state.mode === 'open') {
     const allCards = [];
     bookGroup.traverse(o => { if (o.userData.isCard) allCards.push(o); });
@@ -2595,8 +3255,6 @@ function handleSelectStart(event) {
       return;
     }
   }
-
-  // 4) Páginas
   if (state.mode === 'open' || state.mode === 'flipping') {
     if (raycaster.intersectObject(pageHitboxRight, false).length > 0 && state.spread < MAX_SPREAD) {
       flipForward(); return;
@@ -2605,8 +3263,6 @@ function handleSelectStart(event) {
       flipBack(); return;
     }
   }
-
-  // 5) Abrir álbum fechado
   if (state.mode === 'closed') {
     if (raycaster.intersectObject(coverOutsidePlane, false).length > 0) {
       openAlbum();
@@ -2615,8 +3271,6 @@ function handleSelectStart(event) {
     if (tryStartBookGrab(controller)) return;
     return;
   }
-
-  // 6) Devolver carta
   if (state.mode === 'inspecting' && state.inspectedCard) {
     if (raycaster.intersectObject(state.inspectedCard, false).length === 0) {
       returnInspectedCard();
@@ -2687,6 +3341,8 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  composer.setSize(innerWidth, innerHeight);
+  bloomPass.setSize(innerWidth, innerHeight);
 });
 refreshUI();
 let lastTime = performance.now();
@@ -2707,8 +3363,6 @@ renderer.setAnimationLoop(() => {
   updateCardGrab();
   updateBookVRTransform(dt);
   updateConstellationPointing(dt, tGlobal);
-
-  // ★ Atualiza o bracelete esquerdo ★
   updateBraceletTransform();
 
   if (braceletLeft.visible) {
@@ -2763,6 +3417,12 @@ renderer.setAnimationLoop(() => {
     n.material.opacity = u.baseOpacity * pulseOp;
     const scalePulse = 1 + Math.sin(tGlobal * u.pulseSpeed * 1.7 + u.pulsePhase) * u.scalePulse;
     n.scale.set(u.baseScaleX * scalePulse, u.baseScaleY * scalePulse, 1);
+  }
+
+  // ★ Poeira estelar rotaciona lentamente ★
+  if (window.__starDust) {
+    window.__starDust.rotation.y += dt * 0.005;
+    window.__starDust.rotation.x += dt * 0.002;
   }
 
   shootingStarTimer += dt;
@@ -2859,7 +3519,13 @@ renderer.setAnimationLoop(() => {
   }
 
   if (!renderer.xr.isPresenting && !state.vrPreview) controls.update();
-  renderer.render(scene, camera);
+
+  // ★ Render com ou sem bloom (bloom só fora de VR) ★
+  if (renderer.xr.isPresenting) {
+    renderer.render(scene, camera);
+  } else {
+    composer.render();
+  }
 });
 
 setTimeout(() => {
