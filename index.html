@@ -41,8 +41,6 @@
   button.nav-btn { padding: 13px 18px; min-width: 52px; font-size: 18px; }
   button.danger { background: linear-gradient(135deg, #7c2b1e 0%, #401008 100%);
     border-color: rgba(255,120,80,.6); }
-  button.danger:hover:not(:disabled) {
-    background: linear-gradient(135deg, #9c3b2e 0%, #5a1a10 100%); }
   button.vr-btn { background: linear-gradient(135deg, #4f6dff 0%, #7c4dff 100%);
     border-color: rgba(180,200,255,.6); }
   button.mode-btn { background: linear-gradient(135deg, #6d4fff 0%, #4f2bcc 100%);
@@ -406,8 +404,6 @@ function makeBackCoverInsideTexture() {
   ctx.restore();
   ctx.strokeStyle = 'rgba(138,111,74,0.55)'; ctx.lineWidth = 3;
   roundRect(ctx, 24, 24, TW - 48, TH - 48, 20); ctx.stroke();
-  ctx.strokeStyle = 'rgba(138,111,74,0.28)'; ctx.lineWidth = 1.5;
-  roundRect(ctx, 40, 40, TW - 80, TH - 80, 16); ctx.stroke();
   ctx.save();
   ctx.translate(TW / 2, TH * 0.62);
   ctx.strokeStyle = 'rgba(138,111,74,0.6)'; ctx.lineWidth = 4;
@@ -500,9 +496,7 @@ function getHoloCoreTex(emoji, tintHex) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = tintHex; ctx.shadowBlur = 60;
   ctx.fillStyle = '#fff';
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.fillText(emoji, S/2, S/2);
-  ctx.fillText(emoji, S/2, S/2);
+  for (let i = 0; i < 3; i++) ctx.fillText(emoji, S/2, S/2);
   ctx.shadowBlur = 30;
   ctx.fillText(emoji, S/2, S/2);
   ctx.shadowBlur = 0;
@@ -588,36 +582,51 @@ function makeSkyDomeTexture() {
   return tex;
 }
 
+/* ★ NEBULOSAS MAIS BONITAS — multi-camada, suaves, orgânicas ★ */
 function makeNebulaTex(hue, seed) {
-  const S = 384;
+  const S = 512;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
   const rnd = (n) => { const x = Math.sin((seed + 1) * n * 12.9898) * 43758.5453; return x - Math.floor(x); };
   ctx.globalCompositeOperation = 'lighter';
-  const core = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S * 0.35);
-  core.addColorStop(0, `hsla(${hue}, 90%, 82%, 0.65)`);
-  core.addColorStop(0.4, `hsla(${hue}, 85%, 65%, 0.25)`);
+
+  // Núcleo principal suave
+  const core = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S * 0.42);
+  core.addColorStop(0, `hsla(${hue}, 95%, 88%, 0.55)`);
+  core.addColorStop(0.25, `hsla(${hue}, 90%, 72%, 0.35)`);
+  core.addColorStop(0.6, `hsla(${hue}, 85%, 60%, 0.15)`);
   core.addColorStop(1, 'transparent');
   ctx.fillStyle = core;
-  ctx.beginPath(); ctx.arc(S/2, S/2, S * 0.35, 0, 7); ctx.fill();
-  for (let i = 0; i < 12; i++) {
-    const x = S/2 + (rnd(i + 1) - 0.5) * S * 0.9;
-    const y = S/2 + (rnd(i + 20) - 0.5) * S * 0.9;
-    const r = 30 + rnd(i + 40) * 90;
-    const h = hue + (rnd(i + 60) - 0.5) * 50;
+  ctx.beginPath(); ctx.arc(S/2, S/2, S * 0.42, 0, 7); ctx.fill();
+
+  // Nuvens secundárias em tons complementares
+  for (let i = 0; i < 22; i++) {
+    const x = S/2 + (rnd(i + 1) - 0.5) * S * 1.0;
+    const y = S/2 + (rnd(i + 20) - 0.5) * S * 1.0;
+    const r = 40 + rnd(i + 40) * 130;
+    const h = hue + (rnd(i + 60) - 0.5) * 80;
+    const light = 60 + rnd(i + 80) * 25;
     const b = ctx.createRadialGradient(x, y, 0, x, y, r);
-    b.addColorStop(0, `hsla(${h}, 80%, 65%, ${0.10 + rnd(i + 80) * 0.12})`);
+    b.addColorStop(0, `hsla(${h}, 75%, ${light}%, ${0.08 + rnd(i + 90) * 0.10})`);
     b.addColorStop(1, 'transparent');
     ctx.fillStyle = b;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
   }
-  for (let i = 0; i < 80; i++) {
+
+  // Estrelas brilhantes embutidas
+  for (let i = 0; i < 120; i++) {
     const x = rnd(i * 2 + 100) * S, y = rnd(i * 2 + 200) * S;
-    const r = 0.3 + rnd(i * 3 + 300) * 0.9;
-    ctx.fillStyle = `rgba(255,255,255,${0.15 + rnd(i + 400) * 0.6})`;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    const r = 0.4 + rnd(i * 3 + 300) * 1.1;
+    const hal = ctx.createRadialGradient(x, y, 0, x, y, r * 8);
+    hal.addColorStop(0, `rgba(255,255,255,${0.4 + rnd(i + 400) * 0.5})`);
+    hal.addColorStop(1, 'transparent');
+    ctx.fillStyle = hal;
+    ctx.beginPath(); ctx.arc(x, y, r * 8, 0, 7); ctx.fill();
+    ctx.fillStyle = `rgba(255,255,255,${0.6 + rnd(i + 500) * 0.4})`;
+    ctx.beginPath(); ctx.arc(x, y, r * 0.6, 0, 7); ctx.fill();
   }
+
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
@@ -637,12 +646,9 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.bezierCurveTo(cx - 95*u, cy - 30*u, cx - 85*u, cy - 85*u, cx - 35*u, cy - 70*u);
       p.bezierCurveTo(cx - 20*u, cy - 85*u, cx - 5*u, cy - 85*u, cx + 5*u, cy - 70*u);
       p.bezierCurveTo(cx + 55*u, cy - 85*u, cx + 95*u, cy - 30*u, cx + 55*u, cy + 5*u);
-      p.lineTo(cx + 40*u, cy + 55*u);
-      p.lineTo(cx + 15*u, cy + 40*u);
-      p.lineTo(cx, cy + 55*u);
-      p.lineTo(cx - 15*u, cy + 40*u);
-      p.lineTo(cx - 40*u, cy + 55*u);
-      p.closePath();
+      p.lineTo(cx + 40*u, cy + 55*u); p.lineTo(cx + 15*u, cy + 40*u);
+      p.lineTo(cx, cy + 55*u); p.lineTo(cx - 15*u, cy + 40*u);
+      p.lineTo(cx - 40*u, cy + 55*u); p.closePath();
       break;
     }
     case 'touro': {
@@ -656,55 +662,30 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'gêmeos': case 'gemeos': {
-      p.moveTo(cx - 30*u, cy - 70*u);
       p.arc(cx - 30*u, cy - 60*u, 20*u, 0, Math.PI * 2);
-      p.moveTo(cx - 55*u, cy - 35*u);
-      p.lineTo(cx - 5*u, cy - 35*u);
-      p.lineTo(cx - 5*u, cy + 55*u);
-      p.lineTo(cx - 55*u, cy + 55*u);
-      p.closePath();
-      p.moveTo(cx + 30*u, cy - 70*u);
+      p.rect(cx - 55*u, cy - 35*u, 50*u, 90*u);
       p.arc(cx + 30*u, cy - 60*u, 20*u, 0, Math.PI * 2);
-      p.moveTo(cx + 5*u, cy - 35*u);
-      p.lineTo(cx + 55*u, cy - 35*u);
-      p.lineTo(cx + 55*u, cy + 55*u);
-      p.lineTo(cx + 5*u, cy + 55*u);
-      p.closePath();
+      p.rect(cx + 5*u, cy - 35*u, 50*u, 90*u);
       break;
     }
     case 'câncer': case 'cancer': {
       p.ellipse(cx, cy, 50*u, 32*u, 0, 0, Math.PI * 2);
-      p.moveTo(cx - 40*u, cy - 20*u);
-      p.lineTo(cx - 90*u, cy - 55*u);
-      p.lineTo(cx - 75*u, cy - 30*u);
-      p.lineTo(cx - 100*u, cy - 30*u);
-      p.closePath();
-      p.moveTo(cx + 40*u, cy - 20*u);
-      p.lineTo(cx + 90*u, cy - 55*u);
-      p.lineTo(cx + 75*u, cy - 30*u);
-      p.lineTo(cx + 100*u, cy - 30*u);
-      p.closePath();
       for (let i = 0; i < 3; i++) {
         p.moveTo(cx - 35*u, cy + 10*u + i * 15*u);
         p.lineTo(cx - 85*u, cy + 25*u + i * 15*u);
-        p.lineTo(cx - 75*u, cy + 15*u + i * 15*u);
-        p.closePath();
+        p.lineTo(cx - 75*u, cy + 15*u + i * 15*u); p.closePath();
         p.moveTo(cx + 35*u, cy + 10*u + i * 15*u);
         p.lineTo(cx + 85*u, cy + 25*u + i * 15*u);
-        p.lineTo(cx + 75*u, cy + 15*u + i * 15*u);
-        p.closePath();
+        p.lineTo(cx + 75*u, cy + 15*u + i * 15*u); p.closePath();
       }
       break;
     }
     case 'leão': case 'leao': {
       p.arc(cx, cy - 15*u, 60*u, 0, Math.PI * 2);
-      p.moveTo(cx - 35*u, cy - 15*u);
       p.arc(cx, cy - 15*u, 35*u, 0, Math.PI * 2);
       p.moveTo(cx - 55*u, cy + 40*u);
       p.quadraticCurveTo(cx, cy + 70*u, cx + 55*u, cy + 40*u);
-      p.lineTo(cx + 40*u, cy + 75*u);
-      p.lineTo(cx - 40*u, cy + 75*u);
-      p.closePath();
+      p.lineTo(cx + 40*u, cy + 75*u); p.lineTo(cx - 40*u, cy + 75*u); p.closePath();
       break;
     }
     case 'virgem': {
@@ -720,23 +701,12 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       break;
     }
     case 'libra': {
-      p.moveTo(cx - 5*u, cy - 70*u);
-      p.lineTo(cx + 5*u, cy - 70*u);
-      p.lineTo(cx + 5*u, cy + 60*u);
-      p.lineTo(cx - 5*u, cy + 60*u);
-      p.closePath();
-      p.moveTo(cx - 60*u, cy - 55*u);
-      p.lineTo(cx + 60*u, cy - 55*u);
-      p.lineTo(cx + 60*u, cy - 45*u);
-      p.lineTo(cx - 60*u, cy - 45*u);
-      p.closePath();
+      p.rect(cx - 5*u, cy - 70*u, 10*u, 130*u);
+      p.rect(cx - 60*u, cy - 55*u, 120*u, 10*u);
       p.arc(cx - 60*u, cy - 15*u, 22*u, 0, Math.PI * 2);
       p.arc(cx + 60*u, cy - 15*u, 22*u, 0, Math.PI * 2);
-      p.moveTo(cx - 40*u, cy + 60*u);
-      p.lineTo(cx + 40*u, cy + 60*u);
-      p.lineTo(cx + 30*u, cy + 75*u);
-      p.lineTo(cx - 30*u, cy + 75*u);
-      p.closePath();
+      p.moveTo(cx - 40*u, cy + 60*u); p.lineTo(cx + 40*u, cy + 60*u);
+      p.lineTo(cx + 30*u, cy + 75*u); p.lineTo(cx - 30*u, cy + 75*u); p.closePath();
       break;
     }
     case 'escorpião': case 'escorpiao': {
@@ -744,59 +714,37 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.bezierCurveTo(cx - 80*u, cy - 20*u, cx - 30*u, cy - 60*u, cx + 30*u, cy - 55*u);
       p.bezierCurveTo(cx + 80*u, cy - 50*u, cx + 90*u, cy - 10*u, cx + 70*u, cy + 20*u);
       p.bezierCurveTo(cx + 60*u, cy + 35*u, cx + 50*u, cy + 25*u, cx + 55*u, cy + 10*u);
-      p.lineTo(cx + 50*u, cy + 5*u);
-      p.lineTo(cx + 35*u, cy + 20*u);
+      p.lineTo(cx + 50*u, cy + 5*u); p.lineTo(cx + 35*u, cy + 20*u);
       p.bezierCurveTo(cx + 30*u, cy - 30*u, cx - 20*u, cy - 35*u, cx - 45*u, cy + 10*u);
       p.bezierCurveTo(cx - 55*u, cy + 30*u, cx - 60*u, cy + 45*u, cx - 60*u, cy + 50*u);
       p.closePath();
-      p.moveTo(cx + 55*u, cy - 30*u);
-      p.lineTo(cx + 75*u, cy - 65*u);
-      p.lineTo(cx + 65*u, cy - 40*u);
-      p.closePath();
+      p.moveTo(cx + 55*u, cy - 30*u); p.lineTo(cx + 75*u, cy - 65*u);
+      p.lineTo(cx + 65*u, cy - 40*u); p.closePath();
       break;
     }
     case 'sagitário': case 'sagitario': {
       p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
-      p.moveTo(cx - 50*u, cy - 20*u);
-      p.lineTo(cx - 10*u, cy - 20*u);
-      p.lineTo(cx - 10*u, cy + 15*u);
-      p.lineTo(cx - 50*u, cy + 15*u);
-      p.closePath();
-      p.moveTo(cx - 70*u, cy + 15*u);
-      p.lineTo(cx + 60*u, cy + 15*u);
-      p.lineTo(cx + 55*u, cy + 60*u);
-      p.lineTo(cx - 60*u, cy + 60*u);
-      p.closePath();
+      p.rect(cx - 50*u, cy - 20*u, 40*u, 35*u);
+      p.rect(cx - 70*u, cy + 15*u, 130*u, 45*u);
       p.moveTo(cx + 40*u, cy - 55*u);
       p.quadraticCurveTo(cx + 100*u, cy - 40*u, cx + 90*u, cy + 20*u);
       p.lineTo(cx + 80*u, cy + 20*u);
-      p.quadraticCurveTo(cx + 88*u, cy - 35*u, cx + 40*u, cy - 45*u);
-      p.closePath();
+      p.quadraticCurveTo(cx + 88*u, cy - 35*u, cx + 40*u, cy - 45*u); p.closePath();
       break;
     }
     case 'capricórnio': case 'capricornio': {
       p.arc(cx - 30*u, cy - 45*u, 22*u, 0, Math.PI * 2);
-      p.moveTo(cx - 55*u, cy - 25*u);
-      p.lineTo(cx - 5*u, cy - 25*u);
-      p.lineTo(cx - 5*u, cy + 25*u);
-      p.lineTo(cx - 55*u, cy + 25*u);
-      p.closePath();
+      p.rect(cx - 55*u, cy - 25*u, 50*u, 50*u);
       p.moveTo(cx - 5*u, cy + 5*u);
       p.bezierCurveTo(cx + 50*u, cy - 10*u, cx + 70*u, cy + 40*u, cx + 30*u, cy + 60*u);
       p.bezierCurveTo(cx + 60*u, cy + 40*u, cx + 80*u, cy + 20*u, cx + 60*u, cy - 10*u);
       p.closePath();
-      p.moveTo(cx - 40*u, cy - 60*u);
-      p.lineTo(cx - 55*u, cy - 85*u);
-      p.lineTo(cx - 35*u, cy - 65*u);
-      p.closePath();
+      p.moveTo(cx - 40*u, cy - 60*u); p.lineTo(cx - 55*u, cy - 85*u);
+      p.lineTo(cx - 35*u, cy - 65*u); p.closePath();
       break;
     }
     case 'aquário': case 'aquario': {
-      p.moveTo(cx - 50*u, cy - 40*u);
-      p.lineTo(cx + 10*u, cy - 40*u);
-      p.lineTo(cx + 20*u, cy + 10*u);
-      p.lineTo(cx - 40*u, cy + 10*u);
-      p.closePath();
+      p.rect(cx - 50*u, cy - 40*u, 60*u, 50*u);
       p.moveTo(cx - 50*u, cy - 30*u);
       p.quadraticCurveTo(cx - 80*u, cy - 20*u, cx - 60*u, cy + 5*u);
       p.moveTo(cx + 15*u, cy - 30*u);
@@ -809,32 +757,19 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.moveTo(cx - 80*u, cy - 30*u);
       p.bezierCurveTo(cx - 50*u, cy - 60*u, cx - 10*u, cy - 50*u, cx - 10*u, cy - 20*u);
       p.bezierCurveTo(cx - 10*u, cy + 10*u, cx - 50*u, cy + 20*u, cx - 80*u, cy - 10*u);
-      p.lineTo(cx - 75*u, cy - 20*u);
-      p.lineTo(cx - 60*u, cy - 20*u);
       p.closePath();
       p.moveTo(cx + 80*u, cy + 30*u);
       p.bezierCurveTo(cx + 50*u, cy + 60*u, cx + 10*u, cy + 50*u, cx + 10*u, cy + 20*u);
       p.bezierCurveTo(cx + 10*u, cy - 10*u, cx + 50*u, cy - 20*u, cx + 80*u, cy + 10*u);
-      p.lineTo(cx + 75*u, cy + 20*u);
-      p.lineTo(cx + 60*u, cy + 20*u);
       p.closePath();
-      p.moveTo(cx - 75*u, cy - 20*u);
-      p.quadraticCurveTo(cx, cy, cx + 75*u, cy + 20*u);
+      p.moveTo(cx - 75*u, cy - 20*u); p.quadraticCurveTo(cx, cy, cx + 75*u, cy + 20*u);
       break;
     }
     case 'órion': case 'orion': {
       p.arc(cx - 10*u, cy - 55*u, 18*u, 0, Math.PI * 2);
-      p.moveTo(cx - 30*u, cy - 35*u);
-      p.lineTo(cx + 10*u, cy - 35*u);
-      p.lineTo(cx + 20*u, cy + 30*u);
-      p.lineTo(cx - 40*u, cy + 30*u);
-      p.closePath();
-      p.moveTo(cx - 40*u, cy + 30*u);
-      p.lineTo(cx - 40*u, cy + 70*u);
-      p.lineTo(cx - 15*u, cy + 55*u);
-      p.moveTo(cx + 20*u, cy + 30*u);
-      p.lineTo(cx + 20*u, cy + 70*u);
-      p.lineTo(cx + 0*u, cy + 55*u);
+      p.rect(cx - 30*u, cy - 35*u, 40*u, 65*u);
+      p.moveTo(cx - 40*u, cy + 30*u); p.lineTo(cx - 40*u, cy + 70*u); p.lineTo(cx - 15*u, cy + 55*u);
+      p.moveTo(cx + 20*u, cy + 30*u); p.lineTo(cx + 20*u, cy + 70*u); p.lineTo(cx + 0*u, cy + 55*u);
       p.arc(cx + 55*u, cy - 10*u, 30*u, 0, Math.PI * 2);
       break;
     }
@@ -850,50 +785,28 @@ function drawSilhouettePath(p, name, cx, cy, u) {
     }
     case 'cassiopeia': {
       p.arc(cx, cy - 40*u, 22*u, 0, Math.PI * 2);
-      p.moveTo(cx - 40*u, cy - 15*u);
-      p.lineTo(cx + 40*u, cy - 15*u);
-      p.lineTo(cx + 30*u, cy + 55*u);
-      p.lineTo(cx - 30*u, cy + 55*u);
-      p.closePath();
-      p.moveTo(cx - 40*u, cy - 55*u);
-      p.lineTo(cx - 30*u, cy - 80*u);
-      p.lineTo(cx - 15*u, cy - 60*u);
-      p.lineTo(cx, cy - 85*u);
-      p.lineTo(cx + 15*u, cy - 60*u);
-      p.lineTo(cx + 30*u, cy - 80*u);
-      p.lineTo(cx + 40*u, cy - 55*u);
-      p.closePath();
+      p.moveTo(cx - 40*u, cy - 15*u); p.lineTo(cx + 40*u, cy - 15*u);
+      p.lineTo(cx + 30*u, cy + 55*u); p.lineTo(cx - 30*u, cy + 55*u); p.closePath();
+      p.moveTo(cx - 40*u, cy - 55*u); p.lineTo(cx - 30*u, cy - 80*u);
+      p.lineTo(cx - 15*u, cy - 60*u); p.lineTo(cx, cy - 85*u);
+      p.lineTo(cx + 15*u, cy - 60*u); p.lineTo(cx + 30*u, cy - 80*u);
+      p.lineTo(cx + 40*u, cy - 55*u); p.closePath();
       break;
     }
     case 'perseu': {
       p.arc(cx - 10*u, cy - 50*u, 20*u, 0, Math.PI * 2);
-      p.moveTo(cx - 30*u, cy - 30*u);
-      p.lineTo(cx + 10*u, cy - 30*u);
-      p.lineTo(cx + 20*u, cy + 30*u);
-      p.lineTo(cx - 40*u, cy + 30*u);
-      p.closePath();
-      p.moveTo(cx - 40*u, cy + 30*u);
-      p.lineTo(cx - 40*u, cy + 70*u);
-      p.moveTo(cx + 20*u, cy + 30*u);
-      p.lineTo(cx + 20*u, cy + 70*u);
-      p.moveTo(cx + 30*u, cy - 60*u);
-      p.lineTo(cx + 70*u, cy - 20*u);
-      p.lineTo(cx + 65*u, cy - 15*u);
-      p.lineTo(cx + 25*u, cy - 55*u);
-      p.closePath();
+      p.rect(cx - 30*u, cy - 30*u, 40*u, 60*u);
+      p.moveTo(cx - 40*u, cy + 30*u); p.lineTo(cx - 40*u, cy + 70*u);
+      p.moveTo(cx + 20*u, cy + 30*u); p.lineTo(cx + 20*u, cy + 70*u);
+      p.moveTo(cx + 30*u, cy - 60*u); p.lineTo(cx + 70*u, cy - 20*u);
+      p.lineTo(cx + 65*u, cy - 15*u); p.lineTo(cx + 25*u, cy - 55*u); p.closePath();
       break;
     }
     case 'andrômeda': case 'andromeda': {
       p.arc(cx, cy - 55*u, 20*u, 0, Math.PI * 2);
-      p.moveTo(cx - 35*u, cy - 30*u);
-      p.lineTo(cx + 35*u, cy - 30*u);
-      p.lineTo(cx + 25*u, cy + 40*u);
-      p.lineTo(cx - 25*u, cy + 40*u);
-      p.closePath();
-      p.moveTo(cx - 35*u, cy - 20*u);
-      p.lineTo(cx - 75*u, cy - 45*u);
-      p.moveTo(cx + 35*u, cy - 20*u);
-      p.lineTo(cx + 75*u, cy - 45*u);
+      p.rect(cx - 35*u, cy - 30*u, 70*u, 70*u);
+      p.moveTo(cx - 35*u, cy - 20*u); p.lineTo(cx - 75*u, cy - 45*u);
+      p.moveTo(cx + 35*u, cy - 20*u); p.lineTo(cx + 75*u, cy - 45*u);
       break;
     }
     case 'cisne': {
@@ -911,84 +824,45 @@ function drawSilhouettePath(p, name, cx, cy, u) {
     case 'lira': {
       p.moveTo(cx, cy - 60*u);
       p.bezierCurveTo(cx - 50*u, cy - 60*u, cx - 60*u, cy, cx - 30*u, cy + 40*u);
-      p.lineTo(cx - 40*u, cy + 60*u);
-      p.lineTo(cx + 40*u, cy + 60*u);
+      p.lineTo(cx - 40*u, cy + 60*u); p.lineTo(cx + 40*u, cy + 60*u);
       p.lineTo(cx + 30*u, cy + 40*u);
       p.bezierCurveTo(cx + 60*u, cy, cx + 50*u, cy - 60*u, cx, cy - 60*u);
       p.closePath();
       for (let i = -1; i <= 1; i++) {
-        p.moveTo(cx + i * 15*u, cy - 55*u);
-        p.lineTo(cx + i * 15*u, cy + 55*u);
+        p.moveTo(cx + i * 15*u, cy - 55*u); p.lineTo(cx + i * 15*u, cy + 55*u);
       }
       break;
     }
     case 'águia': case 'aguia': {
-      p.moveTo(cx, cy - 55*u);
-      p.lineTo(cx - 15*u, cy - 25*u);
-      p.lineTo(cx + 15*u, cy - 25*u);
-      p.closePath();
+      p.moveTo(cx, cy - 55*u); p.lineTo(cx - 15*u, cy - 25*u);
+      p.lineTo(cx + 15*u, cy - 25*u); p.closePath();
       p.moveTo(cx - 15*u, cy - 40*u);
       p.bezierCurveTo(cx - 90*u, cy - 60*u, cx - 100*u, cy - 10*u, cx - 60*u, cy + 5*u);
       p.bezierCurveTo(cx - 55*u, cy - 15*u, cx - 40*u, cy - 15*u, cx - 15*u, cy - 20*u);
       p.moveTo(cx + 15*u, cy - 40*u);
       p.bezierCurveTo(cx + 90*u, cy - 60*u, cx + 100*u, cy - 10*u, cx + 60*u, cy + 5*u);
       p.bezierCurveTo(cx + 55*u, cy - 15*u, cx + 40*u, cy - 15*u, cx + 15*u, cy - 20*u);
-      p.moveTo(cx - 15*u, cy - 20*u);
-      p.lineTo(cx + 15*u, cy - 20*u);
-      p.lineTo(cx + 10*u, cy + 55*u);
-      p.lineTo(cx - 10*u, cy + 55*u);
-      p.closePath();
+      p.rect(cx - 15*u, cy - 20*u, 30*u, 75*u);
       break;
     }
     case 'centauro': {
       p.arc(cx - 20*u, cy - 45*u, 20*u, 0, Math.PI * 2);
-      p.moveTo(cx - 40*u, cy - 25*u);
-      p.lineTo(cx, cy - 25*u);
-      p.lineTo(cx, cy + 10*u);
-      p.lineTo(cx - 40*u, cy + 10*u);
-      p.closePath();
-      p.moveTo(cx - 60*u, cy + 10*u);
-      p.lineTo(cx + 60*u, cy + 10*u);
-      p.lineTo(cx + 55*u, cy + 55*u);
-      p.lineTo(cx - 55*u, cy + 55*u);
-      p.closePath();
+      p.rect(cx - 40*u, cy - 25*u, 40*u, 35*u);
+      p.rect(cx - 60*u, cy + 10*u, 120*u, 45*u);
       break;
     }
     case 'cruzeiro do sul': {
-      p.moveTo(cx, cy - 80*u);
-      p.lineTo(cx + 15*u, cy - 60*u);
-      p.lineTo(cx + 15*u, cy + 60*u);
-      p.lineTo(cx - 15*u, cy + 60*u);
-      p.lineTo(cx - 15*u, cy - 60*u);
-      p.closePath();
-      p.moveTo(cx - 70*u, cy - 15*u);
-      p.lineTo(cx - 15*u, cy - 15*u);
-      p.lineTo(cx - 15*u, cy + 15*u);
-      p.lineTo(cx - 70*u, cy + 15*u);
-      p.closePath();
-      p.moveTo(cx + 15*u, cy - 15*u);
-      p.lineTo(cx + 70*u, cy - 15*u);
-      p.lineTo(cx + 70*u, cy + 15*u);
-      p.lineTo(cx + 15*u, cy + 15*u);
-      p.closePath();
+      p.rect(cx - 15*u, cy - 80*u, 30*u, 160*u);
+      p.rect(cx - 70*u, cy - 15*u, 140*u, 30*u);
       break;
     }
     case 'carina': {
-      p.moveTo(cx - 60*u, cy + 40*u);
-      p.lineTo(cx + 60*u, cy + 40*u);
-      p.lineTo(cx + 40*u, cy + 60*u);
-      p.lineTo(cx - 40*u, cy + 60*u);
-      p.closePath();
-      p.moveTo(cx, cy - 70*u);
-      p.lineTo(cx, cy + 40*u);
-      p.moveTo(cx, cy - 70*u);
-      p.lineTo(cx - 50*u, cy + 30*u);
-      p.lineTo(cx - 10*u, cy + 30*u);
-      p.closePath();
-      p.moveTo(cx, cy - 70*u);
-      p.lineTo(cx + 50*u, cy + 30*u);
-      p.lineTo(cx + 10*u, cy + 30*u);
-      p.closePath();
+      p.rect(cx - 60*u, cy + 40*u, 120*u, 20*u);
+      p.moveTo(cx, cy - 70*u); p.lineTo(cx, cy + 40*u);
+      p.moveTo(cx, cy - 70*u); p.lineTo(cx - 50*u, cy + 30*u);
+      p.lineTo(cx - 10*u, cy + 30*u); p.closePath();
+      p.moveTo(cx, cy - 70*u); p.lineTo(cx + 50*u, cy + 30*u);
+      p.lineTo(cx + 10*u, cy + 30*u); p.closePath();
       break;
     }
     case 'hidra': {
@@ -1008,10 +882,8 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.bezierCurveTo(cx + 70*u, cy + 30*u, cx + 30*u, cy + 60*u, cx, cy + 40*u);
       p.bezierCurveTo(cx - 30*u, cy + 60*u, cx - 70*u, cy + 30*u, cx - 40*u, cy);
       p.closePath();
-      p.moveTo(cx - 40*u, cy);
-      p.lineTo(cx - 75*u, cy + 10*u);
-      p.lineTo(cx - 45*u, cy - 5*u);
-      p.closePath();
+      p.moveTo(cx - 40*u, cy); p.lineTo(cx - 75*u, cy + 10*u);
+      p.lineTo(cx - 45*u, cy - 5*u); p.closePath();
       break;
     }
     case 'cão maior': case 'cao maior': {
@@ -1036,11 +908,8 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.moveTo(cx - 80*u, cy - 10*u);
       p.bezierCurveTo(cx - 60*u, cy - 60*u, cx - 20*u, cy - 55*u, cx + 20*u, cy - 45*u);
       p.bezierCurveTo(cx + 60*u, cy - 35*u, cx + 75*u, cy + 5*u, cx + 60*u, cy + 25*u);
-      p.lineTo(cx + 30*u, cy + 40*u);
-      p.lineTo(cx + 5*u, cy + 25*u);
-      p.lineTo(cx - 40*u, cy + 40*u);
-      p.lineTo(cx - 60*u, cy + 25*u);
-      p.closePath();
+      p.lineTo(cx + 30*u, cy + 40*u); p.lineTo(cx + 5*u, cy + 25*u);
+      p.lineTo(cx - 40*u, cy + 40*u); p.lineTo(cx - 60*u, cy + 25*u); p.closePath();
       p.moveTo(cx + 20*u, cy - 45*u);
       p.bezierCurveTo(cx + 55*u, cy - 75*u, cx + 75*u, cy - 90*u, cx + 70*u, cy - 65*u);
       p.lineTo(cx + 55*u, cy - 55*u);
@@ -1060,36 +929,21 @@ function drawSilhouettePath(p, name, cx, cy, u) {
       p.moveTo(cx - 80*u, cy + 30*u);
       p.bezierCurveTo(cx - 60*u, cy - 30*u, cx - 10*u, cy - 10*u, cx + 10*u, cy - 40*u);
       p.bezierCurveTo(cx + 30*u, cy - 70*u, cx + 60*u, cy - 50*u, cx + 70*u, cy - 20*u);
-      p.lineTo(cx + 85*u, cy - 35*u);
-      p.lineTo(cx + 70*u, cy - 5*u);
+      p.lineTo(cx + 85*u, cy - 35*u); p.lineTo(cx + 70*u, cy - 5*u);
       p.bezierCurveTo(cx + 60*u, cy + 30*u, cx + 20*u, cy + 40*u, cx - 10*u, cy + 30*u);
       p.bezierCurveTo(cx - 30*u, cy + 25*u, cx - 50*u, cy + 40*u, cx - 80*u, cy + 30*u);
       p.closePath();
-      p.moveTo(cx - 20*u, cy - 10*u);
-      p.lineTo(cx - 50*u, cy - 60*u);
-      p.lineTo(cx - 10*u, cy - 40*u);
-      p.closePath();
-      p.moveTo(cx + 65*u, cy - 25*u);
-      p.arc(cx + 65*u, cy - 25*u, 4*u, 0, Math.PI * 2);
+      p.moveTo(cx - 20*u, cy - 10*u); p.lineTo(cx - 50*u, cy - 60*u);
+      p.lineTo(cx - 10*u, cy - 40*u); p.closePath();
       break;
     }
     case 'hércules': case 'hercules': {
       p.arc(cx, cy - 55*u, 20*u, 0, Math.PI * 2);
-      p.moveTo(cx - 45*u, cy - 35*u);
-      p.lineTo(cx + 45*u, cy - 35*u);
-      p.lineTo(cx + 35*u, cy + 30*u);
-      p.lineTo(cx - 35*u, cy + 30*u);
-      p.closePath();
-      p.moveTo(cx - 45*u, cy - 25*u);
-      p.lineTo(cx - 75*u, cy);
-      p.lineTo(cx - 65*u, cy + 15*u);
-      p.moveTo(cx + 45*u, cy - 25*u);
-      p.lineTo(cx + 75*u, cy);
-      p.lineTo(cx + 65*u, cy + 15*u);
-      p.moveTo(cx - 35*u, cy + 30*u);
-      p.lineTo(cx - 30*u, cy + 70*u);
-      p.moveTo(cx + 35*u, cy + 30*u);
-      p.lineTo(cx + 30*u, cy + 70*u);
+      p.rect(cx - 45*u, cy - 35*u, 90*u, 65*u);
+      p.moveTo(cx - 45*u, cy - 25*u); p.lineTo(cx - 75*u, cy); p.lineTo(cx - 65*u, cy + 15*u);
+      p.moveTo(cx + 45*u, cy - 25*u); p.lineTo(cx + 75*u, cy); p.lineTo(cx + 65*u, cy + 15*u);
+      p.moveTo(cx - 35*u, cy + 30*u); p.lineTo(cx - 30*u, cy + 70*u);
+      p.moveTo(cx + 35*u, cy + 30*u); p.lineTo(cx + 30*u, cy + 70*u);
       break;
     }
     case 'fênix': case 'fenix': {
@@ -1111,17 +965,12 @@ function drawSilhouettePath(p, name, cx, cy, u) {
     }
     case 'pavão': case 'pavao': {
       p.arc(cx, cy - 55*u, 18*u, 0, Math.PI * 2);
-      p.moveTo(cx - 15*u, cy - 35*u);
-      p.lineTo(cx + 15*u, cy - 35*u);
-      p.lineTo(cx + 10*u, cy - 5*u);
-      p.lineTo(cx - 10*u, cy - 5*u);
-      p.closePath();
+      p.rect(cx - 15*u, cy - 35*u, 30*u, 30*u);
       for (let i = 0; i < 7; i++) {
         const a = -Math.PI / 2 + (i - 3) * 0.35;
         const ex = cx + Math.cos(a) * 80*u;
         const ey = cy + 30*u + Math.sin(a) * 60*u;
-        p.moveTo(cx, cy + 5*u);
-        p.lineTo(ex, ey);
+        p.moveTo(cx, cy + 5*u); p.lineTo(ex, ey);
         p.arc(ex, ey, 8*u, 0, Math.PI * 2);
       }
       break;
@@ -1154,16 +1003,18 @@ function makeConstellationSilhouette(name, color = '#ffd966') {
 
   ctx.clearRect(0, 0, S, S);
 
+  // Gradiente interno dourado/branco
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, S * 0.5);
   grad.addColorStop(0, '#ffffff');
-  grad.addColorStop(0.35, color);
+  grad.addColorStop(0.4, color);
   grad.addColorStop(1, color);
 
+  // Pass 1: glow externo forte
   ctx.shadowColor = color;
-  ctx.shadowBlur = 50;
+  ctx.shadowBlur = 55;
   ctx.fillStyle = grad;
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 3.5;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
@@ -1172,16 +1023,27 @@ function makeConstellationSilhouette(name, color = '#ffd966') {
   ctx.fill(path);
   ctx.stroke(path);
 
-  ctx.shadowBlur = 80;
+  // Pass 2: aura ampla
+  ctx.shadowBlur = 90;
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.8;
   ctx.stroke(path);
 
-  ctx.shadowBlur = 15;
+  // Pass 3: outline branco brilhante
+  ctx.shadowBlur = 18;
   ctx.shadowColor = '#ffffff';
-  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.98)';
+  ctx.lineWidth = 1.2;
   ctx.stroke(path);
+
+  // Pass 4: brilho interno
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
+  const innerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, S * 0.4);
+  innerGlow.addColorStop(0, 'rgba(255,255,255,0.7)');
+  innerGlow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = innerGlow;
+  ctx.fill(path);
 
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -1190,6 +1052,63 @@ function makeConstellationSilhouette(name, color = '#ffd966') {
   tex.generateMipmaps = false;
 
   silhouetteCache.set(key, tex);
+  return tex;
+}
+
+/* ★ LABEL DE NOME DA CONSTELAÇÃO ★ */
+const labelTexCache = new Map();
+function makeConstellationLabelTex(name, colorHex) {
+  const key = name + '_' + colorHex;
+  if (labelTexCache.has(key)) return labelTexCache.get(key);
+  const W = 640, H = 180;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const color = colorHex;
+
+  // Linha superior e inferior
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(80, 58); ctx.lineTo(560, 58);
+  ctx.moveTo(80, 122); ctx.lineTo(560, 122);
+  ctx.stroke();
+
+  // Diamantes nas pontas
+  function diamond(x, y, s) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x, y + s); ctx.lineTo(x - s, y);
+    ctx.closePath(); ctx.fill();
+  }
+  diamond(80, 90, 10);
+  diamond(560, 90, 10);
+
+  // Glow radial atrás do texto
+  const glow = ctx.createRadialGradient(W/2, 90, 20, W/2, 90, 220);
+  glow.addColorStop(0, 'rgba(255,240,180,0.55)');
+  glow.addColorStop(1, 'rgba(255,240,180,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Texto
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 56px Georgia, serif';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(name.toUpperCase(), W/2, 90);
+  ctx.shadowBlur = 8;
+  ctx.fillText(name.toUpperCase(), W/2, 90);
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  labelTexCache.set(key, tex);
   return tex;
 }
 
@@ -1217,8 +1136,7 @@ document.body.appendChild(VRButton.createButton(renderer));
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(innerWidth, innerHeight),
-  1.1, 0.55, 0.85
+  new THREE.Vector2(innerWidth, innerHeight), 1.1, 0.55, 0.85
 );
 composer.addPass(bloomPass);
 
@@ -1344,31 +1262,33 @@ starLayers.forEach(l => scene.add(l));
   });
   const dust = new THREE.Points(geo, mat);
   dust.renderOrder = -998;
-  dust.userData.isDust = true;
   scene.add(dust);
   window.__starDust = dust;
 })();
 
+/* ★ NEBULOSAS — MUITO MAIS RICAS E FLUTUANTES ★ */
 const nebulaGroup = new THREE.Group();
 scene.add(nebulaGroup);
 const nebulaLayers = [];
 const NEBULAE_DEFS = [
-  { az: 0.40, el: 0.20, hue: 210, size: 220, op: 0.55, sx: 1.3, sy: 1.0, rot: 0 },
-  { az: 1.55, el: -0.05, hue: 280, size: 260, op: 0.50, sx: 1.4, sy: 0.9, rot: 0.6 },
-  { az: 2.70, el: 0.35, hue: 340, size: 190, op: 0.42, sx: 1.0, sy: 1.1, rot: 1.2 },
-  { az: 3.90, el: 0.05, hue: 30, size: 240, op: 0.38, sx: 1.2, sy: 1.0, rot: 0.3 },
-  { az: 5.00, el: 0.32, hue: 190, size: 320, op: 0.58, sx: 2.0, sy: 0.5, rot: -0.5 },
-  { az: 5.90, el: 0.10, hue: 220, size: 200, op: 0.42, sx: 1.1, sy: 0.9, rot: 1.8 },
-  { az: 0.90, el: -0.25, hue: 320, size: 230, op: 0.38, sx: 1.5, sy: 0.7, rot: 2.3 },
-  { az: 4.40, el: 0.55, hue: 260, size: 250, op: 0.45, sx: 1.3, sy: 1.0, rot: 0.8 },
-  { az: 0.20, el: 0.10, hue: 195, size: 300, op: 0.48, sx: 1.5, sy: 0.8, rot: 0.4 },
-  { az: 1.10, el: 0.40, hue: 300, size: 220, op: 0.52, sx: 1.0, sy: 1.2, rot: 1.0 },
-  { az: 2.30, el: -0.15, hue: 40, size: 280, op: 0.42, sx: 1.3, sy: 0.9, rot: 2.1 },
-  { az: 3.50, el: 0.25, hue: 260, size: 200, op: 0.55, sx: 1.1, sy: 1.0, rot: 0.7 },
-  { az: 4.80, el: 0.60, hue: 330, size: 260, op: 0.47, sx: 1.4, sy: 0.7, rot: 1.8 },
-  { az: 5.60, el: -0.10, hue: 210, size: 320, op: 0.50, sx: 1.6, sy: 0.9, rot: 2.5 },
-  { az: 0.70, el: 0.55, hue: 280, size: 240, op: 0.48, sx: 1.2, sy: 1.1, rot: 0.2 },
-  { az: 2.80, el: 0.15, hue: 20, size: 280, op: 0.44, sx: 1.3, sy: 0.8, rot: 1.5 },
+  { az: 0.40, el: 0.20, hue: 210, size: 320, op: 0.55, sx: 1.4, sy: 1.0, rot: 0 },
+  { az: 1.55, el: -0.05, hue: 280, size: 360, op: 0.50, sx: 1.5, sy: 0.9, rot: 0.6 },
+  { az: 2.70, el: 0.35, hue: 340, size: 280, op: 0.42, sx: 1.1, sy: 1.1, rot: 1.2 },
+  { az: 3.90, el: 0.05, hue: 30, size: 340, op: 0.38, sx: 1.3, sy: 1.0, rot: 0.3 },
+  { az: 5.00, el: 0.32, hue: 190, size: 420, op: 0.58, sx: 2.1, sy: 0.5, rot: -0.5 },
+  { az: 5.90, el: 0.10, hue: 220, size: 300, op: 0.42, sx: 1.2, sy: 0.9, rot: 1.8 },
+  { az: 0.90, el: -0.25, hue: 320, size: 330, op: 0.38, sx: 1.6, sy: 0.7, rot: 2.3 },
+  { az: 4.40, el: 0.55, hue: 260, size: 350, op: 0.45, sx: 1.4, sy: 1.0, rot: 0.8 },
+  { az: 0.20, el: 0.10, hue: 195, size: 400, op: 0.48, sx: 1.6, sy: 0.8, rot: 0.4 },
+  { az: 1.10, el: 0.40, hue: 300, size: 320, op: 0.52, sx: 1.1, sy: 1.2, rot: 1.0 },
+  { az: 2.30, el: -0.15, hue: 40, size: 380, op: 0.42, sx: 1.4, sy: 0.9, rot: 2.1 },
+  { az: 3.50, el: 0.25, hue: 260, size: 300, op: 0.55, sx: 1.2, sy: 1.0, rot: 0.7 },
+  { az: 4.80, el: 0.60, hue: 330, size: 360, op: 0.47, sx: 1.5, sy: 0.7, rot: 1.8 },
+  { az: 5.60, el: -0.10, hue: 210, size: 420, op: 0.50, sx: 1.7, sy: 0.9, rot: 2.5 },
+  { az: 0.70, el: 0.55, hue: 280, size: 340, op: 0.48, sx: 1.3, sy: 1.1, rot: 0.2 },
+  { az: 2.80, el: 0.15, hue: 20, size: 380, op: 0.44, sx: 1.4, sy: 0.8, rot: 1.5 },
+  { az: 3.20, el: -0.35, hue: 250, size: 400, op: 0.42, sx: 1.5, sy: 0.7, rot: 0.9 },
+  { az: 4.20, el: 0.30, hue: 180, size: 360, op: 0.50, sx: 1.3, sy: 1.0, rot: 2.8 },
 ];
 NEBULAE_DEFS.forEach((def, i) => {
   const tex = makeNebulaTex(def.hue, i);
@@ -1388,14 +1308,15 @@ NEBULAE_DEFS.forEach((def, i) => {
     pulseSpeed: 0.15 + Math.random() * 0.25,
     pulsePhase: Math.random() * Math.PI * 2,
     rotSpeed: (Math.random() - 0.5) * 0.02,
-    driftRadius: 15 + Math.random() * 20,
-    driftSpeedX: (0.05 + Math.random() * 0.08) * (Math.random() > 0.5 ? 1 : -1),
-    driftSpeedY: (0.04 + Math.random() * 0.07) * (Math.random() > 0.5 ? 1 : -1),
-    driftSpeedZ: (0.03 + Math.random() * 0.06) * (Math.random() > 0.5 ? 1 : -1),
+    // ★ Flutuação mais ampla e orgânica ★
+    driftRadius: 30 + Math.random() * 40,
+    driftSpeedX: (0.04 + Math.random() * 0.06) * (Math.random() > 0.5 ? 1 : -1),
+    driftSpeedY: (0.03 + Math.random() * 0.05) * (Math.random() > 0.5 ? 1 : -1),
+    driftSpeedZ: (0.02 + Math.random() * 0.05) * (Math.random() > 0.5 ? 1 : -1),
     driftPhaseX: Math.random() * Math.PI * 2,
     driftPhaseY: Math.random() * Math.PI * 2,
     driftPhaseZ: Math.random() * Math.PI * 2,
-    scalePulse: 0.05 + Math.random() * 0.08,
+    scalePulse: 0.06 + Math.random() * 0.10,
     baseScaleX: def.size * def.sx,
     baseScaleY: def.size * def.sy,
   };
@@ -1476,24 +1397,24 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
   center[0] /= pts.length; center[1] /= pts.length;
   const localPts = pts.map(p => [(p[0] - center[0]) * 6 * scale, (p[1] - center[1]) * 6 * scale]);
   const lineMat = new THREE.LineBasicMaterial({
-    color, transparent: true, opacity: 0.45 * intensity,
+    color, transparent: true, opacity: 0.55 * intensity,
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
   });
   const lineGeo = new THREE.BufferGeometry().setFromPoints(localPts.map(p => new THREE.Vector3(p[0], p[1], 0)));
   group.add(new THREE.Line(lineGeo, lineMat));
   group.userData.lineMat = lineMat;
-  group.userData.baseLineOpacity = 0.45 * intensity;
+  group.userData.baseLineOpacity = 0.55 * intensity;
   group.userData.phase = Math.random() * Math.PI * 2;
   localPts.forEach(p => {
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({
       map: STAR_POINT_TEX, color, transparent: true,
-      opacity: 0.55 * intensity, blending: THREE.AdditiveBlending,
+      opacity: 0.65 * intensity, blending: THREE.AdditiveBlending,
       depthWrite: false, depthTest: false, fog: false
     }));
-    halo.scale.set(7, 7, 1);
+    halo.scale.set(8.5, 8.5, 1);
     halo.position.set(p[0], p[1], -0.08);
-    halo.userData.baseScale = 7;
-    halo.userData.baseOpacity = 0.55 * intensity;
+    halo.userData.baseScale = 8.5;
+    halo.userData.baseOpacity = 0.65 * intensity;
     halo.userData.pulseSpeed = 0.6 + Math.random() * 0.8;
     halo.userData.pulsePhase = Math.random() * Math.PI * 2;
     allPulsingStars.push(halo);
@@ -1503,7 +1424,7 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
       opacity: 0.98 * intensity, blending: THREE.AdditiveBlending,
       depthWrite: false, depthTest: false, fog: false
     }));
-    const cs = isZodiac ? 3.5 : 2.2;
+    const cs = isZodiac ? 4.5 : 3.0;
     core.scale.set(cs, cs, 1);
     core.position.set(p[0], p[1], 0);
     core.userData.baseScale = cs;
@@ -1523,6 +1444,17 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
   animalSprite.position.set(0, 0, 0.5);
   group.add(animalSprite);
   group.userData.animalSprite = animalSprite;
+
+  // ★ LABEL DO NOME ★
+  const labelTex = makeConstellationLabelTex(name, '#' + new THREE.Color(color).getHexString());
+  const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: labelTex, transparent: true, opacity: 0.9,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false
+  }));
+  labelSprite.scale.set(46, 13, 1);
+  labelSprite.position.set(0, 30, 0.3);
+  group.add(labelSprite);
+  group.userData.labelSprite = labelSprite;
 
   const outlinePts = localPts.map(p => new THREE.Vector3(p[0], p[1], 0.2));
   if (outlinePts.length > 1) outlinePts.push(outlinePts[0].clone());
@@ -1549,7 +1481,10 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
   group.userData.flashed = false;
   return group;
 }
-function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.5) { // ★ Distância reduzida para aproximar ★
+
+/* ★ CONSTELAÇÕES MUITO MAIS PRÓXIMAS ★ */
+const CONST_DISTANCE = 220;
+function placeConstellation(group, azimuth, elevation, dist = CONST_DISTANCE) {
   group.position.set(
     dist * Math.cos(elevation) * Math.cos(azimuth),
     dist * Math.sin(elevation),
@@ -1558,14 +1493,14 @@ function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.5) 
   group.lookAt(0, 0, 0);
 }
 ZODIAC.forEach((z, i) => {
-  const g = buildConstellation(z.name, z.animal, z.pts, 1.5, GOLD_COLOR, 1.2, true); // ★ Escala aumentada ★
+  const g = buildConstellation(z.name, z.animal, z.pts, 1.5, GOLD_COLOR, 1.2, true);
   placeConstellation(g, (i / ZODIAC.length) * Math.PI * 2, 0.35 + (i % 3) * 0.18);
   zodiacGroup.add(g);
   allConstellations.push(g);
 });
 EXTENDED_CONSTELLATIONS.forEach((c, i) => {
   const color = EXTENDED_COLORS[i % EXTENDED_COLORS.length];
-  const g = buildConstellation(c.name, c.animal, c.pts, 1.0, color, 0.85, false); // ★ Escala aumentada ★
+  const g = buildConstellation(c.name, c.animal, c.pts, 1.0, color, 0.85, false);
   placeConstellation(g, (i / EXTENDED_CONSTELLATIONS.length) * Math.PI * 2 + 0.3, 0.15 + (i % 4) * 0.14);
   extendedGroup.add(g);
   allConstellations.push(g);
@@ -1630,8 +1565,7 @@ function spawnShootingStar() {
   trailMesh.scale.set(trailLen, 1, 1);
   trailMesh.position.set(-trailLen / 2, 0, 0);
   const group = new THREE.Group();
-  group.add(head);
-  group.add(trailMesh);
+  group.add(head); group.add(trailMesh);
   scene.add(group);
   shootingStars.push({
     group, head, trailMat, startPos, endPos, tailDir,
@@ -1673,9 +1607,7 @@ bookGroup.add(backCover);
 const backInsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
   new THREE.MeshStandardMaterial({
-    map: makeBackCoverInsideTexture(),
-    roughness: 0.72,
-    side: THREE.DoubleSide
+    map: makeBackCoverInsideTexture(), roughness: 0.72, side: THREE.DoubleSide
   })
 );
 backInsidePlane.rotation.x = -Math.PI / 2;
@@ -1777,8 +1709,7 @@ coverPivot.add(coverMesh);
 const coverOutsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
   new THREE.MeshStandardMaterial({
-    map: makeCoverTexture(), roughness: 0.5, metalness: 0.3,
-    side: THREE.DoubleSide
+    map: makeCoverTexture(), roughness: 0.5, metalness: 0.3, side: THREE.DoubleSide
   })
 );
 coverOutsidePlane.rotation.x = -Math.PI / 2;
@@ -1788,8 +1719,7 @@ coverPivot.add(coverOutsidePlane);
 const coverInsidePlane = new THREE.Mesh(
   new THREE.PlaneGeometry(COVER_W * 0.98, COVER_D * 0.98),
   new THREE.MeshStandardMaterial({
-    map: makeInsideCoverTexture(), roughness: 0.7,
-    side: THREE.DoubleSide
+    map: makeInsideCoverTexture(), roughness: 0.7, side: THREE.DoubleSide
   })
 );
 coverInsidePlane.rotation.x = Math.PI / 2;
@@ -1970,7 +1900,7 @@ function updateTweens(now) {
 }
 
 /* ============================================================
-   SISTEMA VR DO LIVRO
+   SISTEMA VR DO LIVRO — DUAS MÃOS + ARREMESSO + RECALL
    ============================================================ */
 const BOOK_VR_SCALE = 0.06;
 const BOOK_VR_Y = -0.16;
@@ -1978,7 +1908,6 @@ const BOOK_VR_Z = -0.42;
 
 const bookVR = {
   active: false,
-  inHand: false,
   scale: BOOK_VR_SCALE,
   targetScale: BOOK_VR_SCALE,
   pos: new THREE.Vector3(),
@@ -1988,24 +1917,17 @@ const bookVR = {
   visible: false
 };
 
+// Estrutura de "agarrar" por mão
+const bookGrabs = {
+  left:  { active: false, controller: null, offsetPos: new THREE.Vector3(), offsetQuat: new THREE.Quaternion() },
+  right: { active: false, controller: null, offsetPos: new THREE.Vector3(), offsetQuat: new THREE.Quaternion() }
+};
+let isGrabbingBook = false;
+let bookFlying = false;
+const bookVelocity = new THREE.Vector3();
+
 const _leftPos = new THREE.Vector3();
 const _leftQuat = new THREE.Quaternion();
-function getLeftHandTransform() {
-  if (hand0 && hand0.joints && hand0.joints['wrist']) {
-    const wrist = hand0.joints['wrist'];
-    wrist.updateWorldMatrix(true, false);
-    wrist.matrixWorld.decompose(_leftPos, _leftQuat, new THREE.Vector3());
-    if (_leftPos.lengthSq() > 0.0001) {
-      return { pos: _leftPos, quat: _leftQuat };
-    }
-  }
-  if (grip0) {
-    grip0.getWorldPosition(_leftPos);
-    grip0.getWorldQuaternion(_leftQuat);
-    return { pos: _leftPos, quat: _leftQuat };
-  }
-  return null;
-}
 
 function placeBookInFrontOfCamera() {
   const camPos = new THREE.Vector3();
@@ -2018,15 +1940,28 @@ function placeBookInFrontOfCamera() {
   bookVR.targetQuat.copy(camQuat).multiply(localRot);
 }
 
+/* ★ LIVRO VOLTA PARA FRENTE — reseta TODOS os estados ★ */
 function showAlbumInFront() {
+  // Reset grab/fly state
+  isGrabbingBook = false;
+  bookFlying = false;
+  bookVelocity.set(0, 0, 0);
+  bookGrabs.left.active = false;
+  bookGrabs.left.controller = null;
+  bookGrabs.right.active = false;
+  bookGrabs.right.controller = null;
+
   bookVR.active = true;
   bookVR.visible = true;
-  bookVR.inHand = false;
   bookGroup.visible = true;
 
   placeBookInFrontOfCamera();
-  bookVR.pos.copy(bookVR.targetPos);
-  bookVR.quat.copy(bookVR.targetQuat);
+  // Se o livro estiver muito longe, teleporta; senão, lerp suave
+  const dist = bookVR.pos.distanceTo(bookVR.targetPos);
+  if (dist > 5) {
+    bookVR.pos.copy(bookVR.targetPos);
+    bookVR.quat.copy(bookVR.targetQuat);
+  }
   bookGroup.position.copy(bookVR.pos);
   bookGroup.quaternion.copy(bookVR.quat);
   bookGroup.scale.setScalar(BOOK_VR_SCALE);
@@ -2041,25 +1976,116 @@ function showAlbumInFront() {
 }
 const showAlbumInHand = showAlbumInFront;
 
-function resetBookPosition() {
-  isGrabbingBook = false;
-  grabbingController = null;
-  showAlbumInFront();
-}
-
+function resetBookPosition() { showAlbumInFront(); }
 function enableBookVR() { showAlbumInFront(); }
 
 function disableBookVR() {
   bookVR.active = false;
   bookVR.visible = false;
   isGrabbingBook = false;
-  grabbingController = null;
+  bookFlying = false;
+  bookGrabs.left.active = false;
+  bookGrabs.right.active = false;
+  bookGrabs.left.controller = null;
+  bookGrabs.right.controller = null;
   bookGroup.visible = true;
   bookGroup.position.set(0, 1.0, -1.5);
   bookGroup.rotation.set(0, 0, 0);
   bookGroup.scale.setScalar(1);
 }
 
+/* ★ INICIAR GRAB POR MÃO (esquerda/direita) ★ */
+function tryStartBookGrab(controller, side) {
+  const grab = bookGrabs[side];
+  if (grab.active) return false;
+  if (!bookGroup.visible) return false;
+
+  const tempMatrix = new THREE.Matrix4();
+  tempMatrix.identity().extractRotation(controller.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+  if (raycaster.intersectObject(coverOutsidePlane, false).length === 0) return false;
+
+  // ★ Se o livro está aberto, não pode agarrar (só fechado) ★
+  if (state.mode !== 'closed') return false;
+
+  grab.active = true;
+  grab.controller = controller;
+
+  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
+  controller.getWorldPosition(cPos);
+  controller.getWorldQuaternion(cQuat);
+  grab.offsetPos.copy(bookVR.pos).sub(cPos).applyQuaternion(cQuat.clone().invert());
+  grab.offsetQuat.copy(cQuat).invert().multiply(bookVR.quat);
+
+  isGrabbingBook = true;
+  bookFlying = false;
+  bookVelocity.set(0, 0, 0);
+  return true;
+}
+
+/* ★ ATUALIZAR GRAB (uma ou duas mãos) ★ */
+function updateBookGrab(dt) {
+  const activeGrabs = [];
+  for (const side of ['left', 'right']) {
+    const grab = bookGrabs[side];
+    if (grab.active && grab.controller) {
+      const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
+      grab.controller.getWorldPosition(cPos);
+      grab.controller.getWorldQuaternion(cQuat);
+      const p = cPos.clone().add(grab.offsetPos.clone().applyQuaternion(cQuat));
+      const q = cQuat.clone().multiply(grab.offsetQuat);
+      activeGrabs.push({ p, q });
+    }
+  }
+
+  if (activeGrabs.length === 0) return;
+
+  isGrabbingBook = true;
+
+  // Posição média de todas as mãos ativas
+  const newPos = new THREE.Vector3();
+  for (const g of activeGrabs) newPos.add(g.p);
+  newPos.divideScalar(activeGrabs.length);
+
+  // Quaternion médio
+  let newQuat = activeGrabs[0].q.clone();
+  if (activeGrabs.length > 1) newQuat.slerp(activeGrabs[1].q, 0.5);
+
+  // Velocidade (para arremesso)
+  if (dt > 0.0001) {
+    const instVel = newPos.clone().sub(bookVR.pos).divideScalar(dt);
+    bookVelocity.lerp(instVel, 0.4);
+  }
+
+  bookVR.pos.copy(newPos);
+  bookVR.quat.copy(newQuat);
+  bookVR.targetPos.copy(newPos);
+  bookVR.targetQuat.copy(newQuat);
+}
+
+/* ★ SOLTAR — aplica inércia (arremesso) ★ */
+function endBookGrab(side) {
+  if (side) {
+    const grab = bookGrabs[side];
+    grab.active = false;
+    grab.controller = null;
+  }
+  // Se nenhuma mão ainda segura, inicia voo
+  if (!bookGrabs.left.active && !bookGrabs.right.active) {
+    isGrabbingBook = false;
+    if (bookVelocity.length() > 0.4) {
+      bookFlying = true;
+    } else {
+      bookVelocity.set(0, 0, 0);
+      // Fica onde está — atualiza alvo para ele próprio
+      bookVR.targetPos.copy(bookVR.pos);
+      bookVR.targetQuat.copy(bookVR.quat);
+    }
+  }
+}
+
+/* ★ MOVER O LIVRO (interpolação / inércia) ★ */
 function updateBookVRTransform(dt) {
   if (!bookVR.active || !bookVR.visible) return;
 
@@ -2067,8 +2093,20 @@ function updateBookVRTransform(dt) {
   bookVR.scale += (bookVR.targetScale - bookVR.scale) * k;
 
   if (!isGrabbingBook) {
-    bookVR.pos.lerp(bookVR.targetPos, k);
-    bookVR.quat.slerp(bookVR.targetQuat, k);
+    if (bookFlying) {
+      // Arremesso: move + atrito
+      bookVR.pos.addScaledVector(bookVelocity, dt);
+      bookVelocity.multiplyScalar(Math.pow(0.25, dt));
+      if (bookVelocity.length() < 0.08) {
+        bookFlying = false;
+        bookVelocity.set(0, 0, 0);
+        bookVR.targetPos.copy(bookVR.pos);
+        bookVR.targetQuat.copy(bookVR.quat);
+      }
+    } else {
+      bookVR.pos.lerp(bookVR.targetPos, k);
+      bookVR.quat.slerp(bookVR.targetQuat, k);
+    }
   }
 
   bookGroup.position.copy(bookVR.pos);
@@ -2076,41 +2114,7 @@ function updateBookVRTransform(dt) {
   bookGroup.scale.setScalar(bookVR.scale);
 }
 
-let isGrabbingBook = false;
-let grabbingController = null;
-const bookGrabOffsetPos = new THREE.Vector3();
-const bookGrabOffsetQuat = new THREE.Quaternion();
-
-function tryStartBookGrab(controller) {
-  if (isGrabbingBook || !bookGroup.visible) return false;
-  if (state.mode !== 'closed') return false;
-  const tempMatrix = new THREE.Matrix4();
-  tempMatrix.identity().extractRotation(controller.matrixWorld);
-  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-  if (raycaster.intersectObject(coverOutsidePlane, false).length === 0) return false;
-  isGrabbingBook = true;
-  bookVR.inHand = false;
-  grabbingController = controller;
-  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
-  controller.getWorldPosition(cPos);
-  controller.getWorldQuaternion(cQuat);
-  bookGrabOffsetPos.copy(bookVR.pos).sub(cPos).applyQuaternion(cQuat.clone().invert());
-  bookGrabOffsetQuat.copy(cQuat).invert().multiply(bookVR.quat);
-  return true;
-}
-function updateBookGrab() {
-  if (!isGrabbingBook || !grabbingController) return;
-  const cPos = new THREE.Vector3(), cQuat = new THREE.Quaternion();
-  grabbingController.getWorldPosition(cPos);
-  grabbingController.getWorldQuaternion(cQuat);
-  const newPos = cPos.clone().add(bookGrabOffsetPos.clone().applyQuaternion(cQuat));
-  const newQuat = cQuat.clone().multiply(bookGrabOffsetQuat);
-  bookVR.pos.copy(newPos); bookVR.quat.copy(newQuat);
-  bookVR.targetPos.copy(newPos); bookVR.targetQuat.copy(newQuat);
-}
-function endBookGrab() { isGrabbingBook = false; grabbingController = null; }
-
+/* GRAB DE CARTA (inalterado) */
 let isGrabbingCard = false;
 let grabbingCardController = null;
 let cardWasManuallyPlaced = false;
@@ -2325,18 +2329,15 @@ function summonHologram(card) {
   const holo = buildHologram(data);
   const cardWorldPos = new THREE.Vector3();
   card.getWorldPosition(cardWorldPos);
-
   const yOff = inVR ? 0.30 : 2.1;
   holo.position.copy(cardWorldPos).add(new THREE.Vector3(0, yOff, 0));
   holo.scale.setScalar(0.01);
   scene.add(holo);
   state.summoned = holo;
   state.holoTime = 0;
-
   const targetScale = inVR ? 0.30 : 0.9;
   animate(750, (t) => { holo.scale.setScalar(0.01 + t * targetScale); },
     () => { holo.scale.setScalar(targetScale); }, easeOutCubic);
-
   if (card.userData.terrainOverlay) {
     card.userData.terrainOverlay.visible = true;
     animate(700, (t) => { TERRAIN_MAT.opacity = 0.85 * t; });
@@ -2488,7 +2489,6 @@ function triggerAttack() {
     else push = 0.45 * (1 - (t - 0.55) / 0.45);
     holo.position.copy(holoStartPos).addScaledVector(attackDir, push);
   }, () => { state.isAttacking = false; }, (t) => t);
-
   if (state.cardLayout !== 'terrain') toggleCardTerrain();
 }
 
@@ -2740,7 +2740,7 @@ async function initVoiceRecognition() {
         console.log('🎤 Ouvido:', transcript);
         if (transcript.includes('livro') || transcript.includes('álbum') ||
             transcript.includes('album') || transcript.includes('abrir') || transcript.includes('abre')) {
-          console.log('✅ COMANDO LIVRO — invocando na frente');
+          console.log('✅ COMANDO LIVRO');
           showAlbumInFront();
           voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Livro invocado!';
           setTimeout(() => {
@@ -2862,6 +2862,7 @@ function updateConstellationPointing(dt, time) {
     const outlineMat = c.userData.outlineMat;
     const animalSprite = c.userData.animalSprite;
     const haloCircle = c.userData.haloCircle;
+    const labelSprite = c.userData.labelSprite;
     if (outlineMat) outlineMat.opacity = newIntensity * 0.9;
     if (animalSprite) {
       const targetScale = 10 + newIntensity * 8;
@@ -2870,6 +2871,12 @@ function updateConstellationPointing(dt, time) {
       animalSprite.scale.set(newScale, newScale, 1);
       animalSprite.material.opacity = newIntensity * 1.0;
       animalSprite.material.rotation += dt * 0.15 * newIntensity;
+    }
+    if (labelSprite) {
+      // Label fica mais brilhante quando destacada
+      labelSprite.material.opacity = 0.75 + newIntensity * 0.25;
+      const s = 1 + newIntensity * 0.15;
+      labelSprite.scale.set(46 * s, 13 * s, 1);
     }
     if (haloCircle) {
       haloCircle.material.opacity = newIntensity * 0.35;
@@ -3066,8 +3073,9 @@ function buildBracelet() {
   g.add(aura);
   g.userData.aura = aura;
 
+  // ★ HITBOX GRANDE — fácil de tocar com o dedo ★
   const hitbox = new THREE.Mesh(
-    new THREE.SphereGeometry(0.07, 10, 8),
+    new THREE.SphereGeometry(0.12, 12, 10),
     new THREE.MeshBasicMaterial({ visible: false })
   );
   g.add(hitbox);
@@ -3108,6 +3116,27 @@ function updateBraceletTransform() {
   braceletLeft.visible = true;
 }
 
+/* ★ TOQUE DO DEDO NO BRACELETE (hand tracking) ★ */
+const _fingerTips = ['index-finger-tip', 'thumb-tip', 'middle-finger-tip'];
+const _tmpTipPos = new THREE.Vector3();
+function checkBraceletFingerTouch() {
+  if (!braceletLeft.visible) return false;
+  // Verifica as duas mãos
+  const hands = [hand0, hand1];
+  for (const h of hands) {
+    if (!h || !h.joints) continue;
+    for (const tipName of _fingerTips) {
+      const tip = h.joints[tipName];
+      if (!tip) continue;
+      tip.updateWorldMatrix(true, false);
+      tip.getWorldPosition(_tmpTipPos);
+      const d = _tmpTipPos.distanceTo(braceletLeft.position);
+      if (d < 0.09) return true;
+    }
+  }
+  return false;
+}
+
 function checkBraceletHit(origin, dir) {
   if (!braceletLeft.visible) return false;
   raycaster.set(origin, dir);
@@ -3119,13 +3148,14 @@ function checkBraceletHit(origin, dir) {
    ============================================================ */
 const tempMatrix = new THREE.Matrix4();
 
-function handleSelectStart(event) {
+function handleSelectStart(event, side) {
   const controller = event.target;
   tempMatrix.identity().extractRotation(controller.matrixWorld);
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
   raycaster.far = 500;
 
+  // ★ Clique no bracelete → livro na frente ★
   if (checkBraceletHit(raycaster.ray.origin, raycaster.ray.direction)) {
     showAlbumInFront();
     return;
@@ -3153,7 +3183,8 @@ function handleSelectStart(event) {
       openAlbum();
       return;
     }
-    if (tryStartBookGrab(controller)) return;
+    // ★ Tentar agarrar o livro (com qualquer mão) ★
+    if (tryStartBookGrab(controller, side)) return;
     return;
   }
   if (state.mode === 'inspecting' && state.inspectedCard) {
@@ -3162,11 +3193,14 @@ function handleSelectStart(event) {
     }
   }
 }
-function handleSelectEnd() { endCardGrab(); endBookGrab(); }
-controller0.addEventListener('selectstart', handleSelectStart);
-controller0.addEventListener('selectend', handleSelectEnd);
-controller1.addEventListener('selectstart', handleSelectStart);
-controller1.addEventListener('selectend', handleSelectEnd);
+function handleSelectEnd(event, side) {
+  endCardGrab();
+  endBookGrab(side);
+}
+controller0.addEventListener('selectstart', (e) => handleSelectStart(e, 'left'));
+controller0.addEventListener('selectend', (e) => handleSelectEnd(e, 'left'));
+controller1.addEventListener('selectstart', (e) => handleSelectStart(e, 'right'));
+controller1.addEventListener('selectend', (e) => handleSelectEnd(e, 'right'));
 
 const controllerBtnStates = [{ a: false, b: false, squeeze: false }, { a: false, b: false, squeeze: false }];
 function pollControllerButtons() {
@@ -3206,7 +3240,6 @@ renderer.xr.addEventListener('sessionstart', () => {
 renderer.xr.addEventListener('sessionend', () => {
   extendedGroup.visible = false;
   disableBookVR();
-  endBookGrab();
   endCardGrab();
   state.mode = 'closed'; state.spread = 0;
   coverInfo.pivot.rotation.z = 0;
@@ -3236,6 +3269,8 @@ const _tmpV2 = new THREE.Vector3();
 const _tmpV3 = new THREE.Vector3();
 const _tmpM1 = new THREE.Matrix4();
 
+let braceletTouchLastFrame = false;
+
 renderer.setAnimationLoop(() => {
   const now = performance.now();
   const dt = Math.min((now - lastTime) / 1000, 0.05);
@@ -3244,11 +3279,20 @@ renderer.setAnimationLoop(() => {
 
   updateTweens(now);
   pollControllerButtons();
-  updateBookGrab();
+  updateBookGrab(dt);
   updateCardGrab();
   updateBookVRTransform(dt);
   updateConstellationPointing(dt, tGlobal);
   updateBraceletTransform();
+
+  // ★ Toque do dedo no bracelete → invoca livro ★
+  if (isVRActive() && braceletLeft.visible) {
+    const touched = checkBraceletFingerTouch();
+    if (touched && !braceletTouchLastFrame) {
+      showAlbumInFront();
+    }
+    braceletTouchLastFrame = touched;
+  }
 
   if (braceletLeft.visible) {
     if (braceletLeft.userData.aura) {
@@ -3290,6 +3334,7 @@ renderer.setAnimationLoop(() => {
         (0.7 + Math.sin(tGlobal * 1.4 + c.userData.phase) * 0.3);
     }
   }
+  // ★ Nebulosas — flutuação orgânica e independente ★
   for (let i = 0; i < nebulaLayers.length; i++) {
     const n = nebulaLayers[i];
     const u = n.userData;
