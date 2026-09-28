@@ -1427,40 +1427,40 @@ function makeUniqueId(baseName) {
   return id;
 }
 const ZODIAC = [
-  { name:'Áries',      animal:'🐏', pts:[[0,0],[0.6,-0.4],[1.2,-0.3],[1.8,-0.1],[2.4,-0.4]] },
-  { name:'Touro',      animal:'🐂', pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5],[2.4,0.8]] },
-  { name:'Gêmeos',     animal:'👬', pts:[[0,0],[0.3,0.5],[0.6,1.0],[1.0,1.2],[1.4,1.0],[1.7,0.6],[2.0,0.2]] },
-  { name:'Câncer',     animal:'🦀', pts:[[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5]] },
-  { name:'Leão',       animal:'🦁', pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.0],[1.4,1.1],[1.7,0.9],[2.0,0.5],[1.6,0.2],[1.0,0]] },
-  { name:'Virgem',     animal:'👸', pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.7],[2.0,0.8],[2.4,0.6],[2.5,0.2]] },
-  { name:'Libra',      animal:'⚖️', pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.3],[2.0,0.5]] },
-  { name:'Escorpião',  animal:'🦂', pts:[[0,0],[0.4,0.3],[0.7,0.7],[1.0,1.1],[1.3,1.4],[1.6,1.6],[1.9,1.7],[2.1,1.5]] },
-  { name:'Sagitário',  animal:'🏹', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.7,1.2],[2.0,1.1]] },
-  { name:'Capricórnio',animal:'🐐', pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6]] },
-  { name:'Aquário',    animal:'🏺', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.3,0.6],[1.7,0.4],[2.1,0.7]] },
-  { name:'Peixes',     animal:'🐟', pts:[[0,0],[0.5,0.2],[1.0,0.4],[1.5,0.3],[2.0,0.5],[2.4,0.8]] },
+  { name:'Áries',      animal:'🐏', pts:[[0,0],[0.4,-0.2],[0.8,-0.3],[1.2,-0.1]] },
+  { name:'Touro',      animal:'🐂', pts:[[0,0],[0.3,0.4],[0.6,0.5],[0.9,0.3],[1.2,0.6]] },
+  { name:'Gêmeos',     animal:'👬', pts:[[0,0],[0.2,0.3],[0.4,0.6],[0.6,0.3],[0.8,0.6],[1.0,0.3]] },
+  { name:'Câncer',     animal:'🦀', pts:[[0,0],[0.3,0.2],[0.6,0.1],[0.9,0.3]] },
+  { name:'Leão',       animal:'🦁', pts:[[0,0],[0.2,0.3],[0.4,0.5],[0.6,0.3],[0.8,0.1],[1.0,0.2]] },
+  { name:'Virgem',     animal:'👸', pts:[[0,0],[0.3,0.2],[0.6,0.3],[0.9,0.5],[1.2,0.4]] },
+  { name:'Libra',      animal:'⚖️', pts:[[0,0],[0.3,0.2],[0.6,0.2],[0.9,0.3]] },
+  { name:'Escorpião',  animal:'🦂', pts:[[0,0],[0.3,0.2],[0.5,0.5],[0.7,0.8],[0.9,1.0],[1.1,0.8]] },
+  { name:'Sagitário',  animal:'🏹', pts:[[0,0],[0.3,0.3],[0.6,0.5],[0.9,0.4],[1.2,0.6]] },
+  { name:'Capricórnio',animal:'🐐', pts:[[0,0],[0.4,0.2],[0.8,0.3],[1.2,0.1]] },
+  { name:'Aquário',    animal:'🏺', pts:[[0,0],[0.3,0.2],[0.6,0.4],[0.9,0.3],[1.2,0.5]] },
+  { name:'Peixes',     animal:'🐟', pts:[[0,0],[0.4,0.2],[0.8,0.1],[1.2,0.3],[1.6,0.2]] },
 ];
 const EXTENDED_CONSTELLATIONS = [
-  { name:'Órion',         animal:'🏹', pts:[[0,0],[0.5,0.3],[1.0,0.6],[1.5,0.7],[1.8,0.4],[2.2,0.6]] },
-  { name:'Ursa Maior',    animal:'🐻', pts:[[0,0],[0.6,0.2],[1.2,0.4],[1.8,0.3],[2.3,0.5],[2.6,0.9],[2.2,1.2]] },
-  { name:'Cassiopeia',    animal:'👸', pts:[[0,0],[0.5,0.4],[1.0,0.6],[1.5,0.4],[2.0,0.1]] },
-  { name:'Perseu',        animal:'⚔️', pts:[[0,0],[0.4,0.4],[0.8,0.7],[1.3,0.5],[1.6,0.9]] },
-  { name:'Andrômeda',     animal:'👰', pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.6],[2.3,0.4]] },
-  { name:'Cisne',         animal:'🦢', pts:[[0,0],[0.5,0.4],[1.0,0.8],[1.5,1.1],[2.0,1.3],[2.4,1.5]] },
-  { name:'Lira',          animal:'🎵', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.4],[1.5,0.1]] },
-  { name:'Águia',         animal:'🦅', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.4,1.0],[1.6,1.4]] },
-  { name:'Centauro',      animal:'🐴', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.5,0.9],[2.0,1.1],[2.3,1.4]] },
-  { name:'Cruzeiro do Sul',animal:'✝️', pts:[[0,0.8],[0.5,0.8],[1.0,0.8],[0.5,0],[0.5,1.6]] },
-  { name:'Carina',        animal:'⛵', pts:[[0,0],[0.5,0.3],[1.0,0.4],[1.5,0.2],[2.0,0.5]] },
-  { name:'Hidra',         animal:'🐍', pts:[[0,0],[0.5,0.2],[1.0,0.1],[1.5,0.3],[2.0,0.2],[2.5,0.4],[2.8,0.7]] },
-  { name:'Corvo',         animal:'🐦‍⬛', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.3],[1.5,0.6]] },
-  { name:'Cão Maior',     animal:'🐕', pts:[[0,0],[0.5,0.3],[1.0,0.2],[1.5,0.5],[1.9,0.8]] },
-  { name:'Baleia',        animal:'🐋', pts:[[0,0],[0.5,0.2],[1.0,0.1],[1.5,0.3],[2.0,0.5],[2.4,0.3]] },
-  { name:'Pégaso',        animal:'🦄', pts:[[0,0],[0.5,0.4],[1.0,0.6],[1.5,0.8],[2.0,0.5],[2.3,0.2]] },
-  { name:'Dragão',        animal:'🐉', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.5,0.9],[2.0,1.1],[2.4,1.3],[2.6,1.0]] },
-  { name:'Hércules',      animal:'💪', pts:[[0,0],[0.5,0.3],[1.0,0.6],[1.4,0.8],[1.7,0.6],[1.9,0.9]] },
-  { name:'Fênix',         animal:'🔥', pts:[[0,0],[0.5,0.4],[1.0,0.7],[1.5,0.5],[2.0,0.8]] },
-  { name:'Pavão',         animal:'🦚', pts:[[0,0],[0.5,0.4],[1.0,0.6],[1.4,0.8],[1.8,1.0],[2.2,0.8]] },
+  { name:'Órion',         animal:'🏹', pts:[[0,0],[0.3,0.2],[0.6,0.3],[0.9,0.2],[1.2,0.4],[1.5,0.3]] },
+  { name:'Ursa Maior',    animal:'🐻', pts:[[0,0],[0.3,0.1],[0.6,0.2],[0.9,0.1],[1.2,0.3],[1.5,0.2],[1.8,0.4]] },
+  { name:'Cassiopeia',    animal:'👸', pts:[[0,0],[0.3,0.4],[0.6,0.1],[0.9,0.5],[1.2,0.2]] },
+  { name:'Perseu',        animal:'⚔️', pts:[[0,0],[0.3,0.3],[0.6,0.5],[0.9,0.3],[1.2,0.6]] },
+  { name:'Andrômeda',     animal:'👰', pts:[[0,0],[0.4,0.2],[0.8,0.4],[1.2,0.3],[1.6,0.5]] },
+  { name:'Cisne',         animal:'🦢', pts:[[0,0],[0.5,0.5],[1.0,1.0],[1.5,1.5]] },
+  { name:'Lira',          animal:'🎵', pts:[[0,0],[0.2,0.3],[0.4,0.4],[0.6,0.2]] },
+  { name:'Águia',         animal:'🦅', pts:[[0,0],[0.3,0.3],[0.6,0.5],[0.9,0.3],[1.2,0.6]] },
+  { name:'Centauro',      animal:'🐴', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.3],[1.6,0.6]] },
+  { name:'Cruzeiro do Sul',animal:'✝️', pts:[[0.5,0],[0.5,0.5],[0.5,1],[0.2,0.5],[0.8,0.5]] },
+  { name:'Carina',        animal:'⛵', pts:[[0,0],[0.4,0.2],[0.8,0.4],[1.2,0.3]] },
+  { name:'Hidra',         animal:'🐍', pts:[[0,0],[0.5,0.2],[1.0,0.1],[1.5,0.3],[2.0,0.2],[2.5,0.4],[3.0,0.3]] },
+  { name:'Corvo',         animal:'🐦‍⬛', pts:[[0,0],[0.3,0.2],[0.6,0.2],[0.9,0.3],[0.6,0.5]] },
+  { name:'Cão Maior',     animal:'🐕', pts:[[0,0],[0.3,0.2],[0.6,0.4],[0.9,0.3],[1.2,0.5]] },
+  { name:'Baleia',        animal:'🐋', pts:[[0,0],[0.5,0.2],[1.0,0.3],[1.5,0.2],[2.0,0.4]] },
+  { name:'Pégaso',        animal:'🦄', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.3],[1.6,0.6]] },
+  { name:'Dragão',        animal:'🐉', pts:[[0,0],[0.5,0.3],[1.0,0.5],[1.5,0.4],[2.0,0.7],[2.5,0.5]] },
+  { name:'Hércules',      animal:'💪', pts:[[0,0],[0.3,0.3],[0.6,0.4],[0.9,0.3],[1.2,0.6]] },
+  { name:'Fênix',         animal:'🔥', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.3],[1.6,0.6]] },
+  { name:'Pavão',         animal:'🦚', pts:[[0,0],[0.4,0.3],[0.8,0.5],[1.2,0.3],[1.6,0.6]] },
 ];
 const allPulsingStars = [];
 const allConstellations = [];
@@ -1549,7 +1549,7 @@ function buildConstellation(name, animal, pts, scale, color, intensity, isZodiac
   group.userData.flashed = false;
   return group;
 }
-function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.72) {
+function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.5) { // ★ Distância reduzida para aproximar ★
   group.position.set(
     dist * Math.cos(elevation) * Math.cos(azimuth),
     dist * Math.sin(elevation),
@@ -1558,14 +1558,14 @@ function placeConstellation(group, azimuth, elevation, dist = SKY_RADIUS * 0.72)
   group.lookAt(0, 0, 0);
 }
 ZODIAC.forEach((z, i) => {
-  const g = buildConstellation(z.name, z.animal, z.pts, 1.2, GOLD_COLOR, 1.2, true);
+  const g = buildConstellation(z.name, z.animal, z.pts, 1.5, GOLD_COLOR, 1.2, true); // ★ Escala aumentada ★
   placeConstellation(g, (i / ZODIAC.length) * Math.PI * 2, 0.35 + (i % 3) * 0.18);
   zodiacGroup.add(g);
   allConstellations.push(g);
 });
 EXTENDED_CONSTELLATIONS.forEach((c, i) => {
   const color = EXTENDED_COLORS[i % EXTENDED_COLORS.length];
-  const g = buildConstellation(c.name, c.animal, c.pts, 0.75, color, 0.85, false);
+  const g = buildConstellation(c.name, c.animal, c.pts, 1.0, color, 0.85, false); // ★ Escala aumentada ★
   placeConstellation(g, (i / EXTENDED_CONSTELLATIONS.length) * Math.PI * 2 + 0.3, 0.15 + (i % 4) * 0.14);
   extendedGroup.add(g);
   allConstellations.push(g);
@@ -2018,7 +2018,6 @@ function placeBookInFrontOfCamera() {
   bookVR.targetQuat.copy(camQuat).multiply(localRot);
 }
 
-// ★ NOVO: livro surge na frente da câmera, NÃO na mão ★
 function showAlbumInFront() {
   bookVR.active = true;
   bookVR.visible = true;
@@ -2040,10 +2039,8 @@ function showAlbumInFront() {
   sheet2.pivot.rotation.z = 0; sheet2.pivot.position.y = sheet2.originalY;
   refreshUI();
 }
-// Alias de compatibilidade com código antigo
 const showAlbumInHand = showAlbumInFront;
 
-// ★ Livro volta para frente da câmera (voz / botão) ★
 function resetBookPosition() {
   isGrabbingBook = false;
   grabbingController = null;
@@ -2063,8 +2060,6 @@ function disableBookVR() {
   bookGroup.scale.setScalar(1);
 }
 
-// ★ Livro NÃO segue mais a mão. Só interpola suavemente para seu alvo.
-//    Se o usuário arrastar, ele fica onde deixar (targetPos = pos).
 function updateBookVRTransform(dt) {
   if (!bookVR.active || !bookVR.visible) return;
 
@@ -2249,7 +2244,6 @@ function closeAlbum() {
   }, () => { state.mode = 'closed'; state.spread = 0; refreshUI(); });
 }
 
-// ★ Virada de página MAIS FLUIDA (1250ms + curva seno) ★
 function flipForward() {
   if (state.mode !== 'open' || state.spread >= MAX_SPREAD) return;
   state.mode = 'flipping'; refreshUI();
@@ -2747,7 +2741,6 @@ async function initVoiceRecognition() {
         if (transcript.includes('livro') || transcript.includes('álbum') ||
             transcript.includes('album') || transcript.includes('abrir') || transcript.includes('abre')) {
           console.log('✅ COMANDO LIVRO — invocando na frente');
-          // ★ Livro volta para FRENTE da câmera, fechado ★
           showAlbumInFront();
           voiceStatusEl.innerHTML = '<span class="dot"></span>✅ Livro invocado!';
           setTimeout(() => {
@@ -2974,7 +2967,7 @@ controller0.add(new THREE.Line(RAY_GEO, RAY_MAT));
 controller1.add(new THREE.Line(RAY_GEO, RAY_MAT));
 
 /* ============================================================
-   BRACELETE — PEQUENO E COM ORIENTAÇÃO CORRETA
+   BRACELETE
    ============================================================ */
 function makeBraceletTexture() {
   const cv = document.createElement('canvas');
@@ -3021,7 +3014,6 @@ function makeBraceletTexture() {
 }
 const BRACELET_TEX = makeBraceletTexture();
 
-// ★ Bracelete pequeno, toro padrão (eixo Z) — circula o pulso ★
 function buildBracelet() {
   const g = new THREE.Group();
 
@@ -3088,7 +3080,6 @@ const braceletLeft = buildBracelet();
 braceletLeft.visible = false;
 scene.add(braceletLeft);
 
-// ★ Orientação correta: aplica a rotação do pulso diretamente ★
 function updateBraceletTransform() {
   if (!isVRActive()) { braceletLeft.visible = false; return; }
 
@@ -3135,7 +3126,6 @@ function handleSelectStart(event) {
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
   raycaster.far = 500;
 
-  // ★ Clique no bracelete → livro aparece NA FRENTE, fechado ★
   if (checkBraceletHit(raycaster.ray.origin, raycaster.ray.direction)) {
     showAlbumInFront();
     return;
